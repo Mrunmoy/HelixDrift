@@ -8,6 +8,8 @@ nRF mocap node firmware workspace (split from SensorFusion library-only repo).
 ./build.py
 ```
 
+This validates host tests and cross-builds nRF targets. It does not flash hardware.
+
 ## Build Commands
 
 - `./build.py`: build all targets (host + nRF cross-build).
@@ -17,6 +19,18 @@ nRF mocap node firmware workspace (split from SensorFusion library-only repo).
 - `./build.py --clean`: clean then build.
 
 `build.py` auto-initializes `external/SensorFusion` for nRF builds.
+
+## CI
+
+GitHub Actions workflow: `.github/workflows/ci.yml`
+
+- Gate job: runs `./build.py -t` on every push and pull request.
+- Smoke matrix:
+  - `host`: `./build.py --host-only -t`
+  - `nrf`: `./build.py --nrf-only`
+- nRF smoke job uploads:
+  - `nrf52_blinky` + `nrf52_mocap_node` (ELF)
+  - `nrf52_blinky.hex` + `nrf52_mocap_node.hex`
 
 ## Repository Layout
 
@@ -50,3 +64,59 @@ See:
 - Optionally implement `sf_mocap_sync_anchor(uint64_t* localUs, uint64_t* remoteUs)` to feed central-time sync anchors.
 - Optionally implement `sf_mocap_health_sample(...)` to publish battery/link/drop telemetry; these are emitted as `NODE_HEALTH` frames.
 - `examples/nrf52-mocap-node` uses `WeakSymbolBleSender` + `MocapNodeLoopT` to keep the loop testable off-target.
+
+## Hardware Setup (Seeed XIAO nRF52840 + Sensor Dev Boards)
+
+Recommended wiring for the current dual-I2C architecture:
+
+- `TWIM0` (IMU only, `LSM6DSO`)
+  - XIAO `D4/P0.04` -> `LSM6DSO SDA`
+  - XIAO `D5/P0.05` -> `LSM6DSO SCL`
+- `TWIM1` (shared `BMM350` + `LPS22DF`)
+  - XIAO `D6/P1.11` -> `BMM350 SDA` and `LPS22DF SDA`
+  - XIAO `D7/P1.12` -> `BMM350 SCL` and `LPS22DF SCL`
+- Power/common:
+  - XIAO `3V3` -> all sensor `VCC`
+  - XIAO `GND` -> all sensor `GND`
+
+Notes:
+- Use 3.3 V sensor breakouts only.
+- Ensure each I2C bus has pull-ups (many dev boards already do).
+- Keep bus wiring short for stable high-rate sampling.
+- You must provide real `g_twim0`/`g_twim1` initialization in your board layer (the example contains weak placeholders for off-target build only).
+
+## Flashing XIAO nRF52840
+
+Current repo output for the mocap app:
+
+- ELF: `build/nrf/nrf52_mocap_node`
+
+Create HEX/BIN from ELF:
+
+```bash
+arm-none-eabi-objcopy -O ihex build/nrf/nrf52_mocap_node build/nrf/nrf52_mocap_node.hex
+arm-none-eabi-objcopy -O binary build/nrf/nrf52_mocap_node build/nrf/nrf52_mocap_node.bin
+```
+
+### SWD (recommended for this repo right now)
+
+Use a J-Link (or compatible probe) connected to XIAO SWD pads:
+
+```bash
+nrfjprog --program build/nrf/nrf52_mocap_node.hex --chiperase --verify --reset
+```
+
+### UF2 bootloader mode (USB)
+
+- Double-press reset to enter UF2 mode (mass-storage drive appears).
+- This repo does not yet generate UF2 directly; add a UF2 conversion step in your board-specific workflow if you want drag-and-drop flashing.
+
+## Sensor Bring-Up Checklist
+
+1. Confirm each sensor responds on its assigned bus.
+2. Verify `imu.init()`, `mag.init()`, and `baro.init()` succeed (otherwise app remains in fault loop).
+3. Implement `sf_mocap_ble_notify(...)` and confirm quaternion notifications at target cadence.
+4. Optionally implement:
+   - `sf_mocap_calibration_command(...)`
+   - `sf_mocap_sync_anchor(...)`
+   - `sf_mocap_health_sample(...)`
