@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   gate:
-    name: Gate (build.py -t)
+    name: Gate (host tests)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -24,22 +24,8 @@ jobs:
       - name: Enable Nix cache
         uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - name: Build + host tests + nRF cross-build
-        run: ./build.py -t
-
-      - name: Package gate nRF artifacts
-        run: |
-          mkdir -p artifacts/gate-nrf
-          cp build/nrf/nrf52_blinky artifacts/gate-nrf/
-          cp build/nrf/nrf52_mocap_node artifacts/gate-nrf/
-          nix develop --command bash -lc "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_blinky artifacts/gate-nrf/nrf52_blinky.hex"
-          nix develop --command bash -lc "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_mocap_node artifacts/gate-nrf/nrf52_mocap_node.hex"
-
-      - name: Upload gate nRF artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: gate-nrf-binaries
-          path: artifacts/gate-nrf/
+      - name: Build + host tests
+        run: ./build.py --host-only -t
 
   smoke:
     name: Smoke (${{ matrix.target }})
@@ -48,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [host, nrf]
+        target: [host, esp32s3]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,22 +51,21 @@ jobs:
         if: matrix.target == 'host'
         run: ./build.py --host-only -t
 
-      - name: nRF smoke
-        if: matrix.target == 'nrf'
-        run: ./build.py --nrf-only
+      - name: ESP32-S3 smoke
+        if: matrix.target == 'esp32s3'
+        run: ./build.py --esp32s3-only
 
-      - name: Package nRF artifacts
-        if: matrix.target == 'nrf'
+      - name: Package ESP32-S3 artifacts
+        if: matrix.target == 'esp32s3'
         run: |
-          mkdir -p artifacts/nrf
-          cp build/nrf/nrf52_blinky artifacts/nrf/
-          cp build/nrf/nrf52_mocap_node artifacts/nrf/
-          nix develop --command bash -lc "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_blinky artifacts/nrf/nrf52_blinky.hex"
-          nix develop --command bash -lc "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_mocap_node artifacts/nrf/nrf52_mocap_node.hex"
+          mkdir -p artifacts/esp32s3
+          cp build/esp32s3/esp32s3_mocap_node.bin artifacts/esp32s3/
+          cp build/esp32s3/bootloader/bootloader.bin artifacts/esp32s3/
+          cp build/esp32s3/partition_table/partition-table.bin artifacts/esp32s3/
 
-      - name: Upload nRF artifacts
-        if: matrix.target == 'nrf'
+      - name: Upload ESP32-S3 artifacts
+        if: matrix.target == 'esp32s3'
         uses: actions/upload-artifact@v4
         with:
-          name: nrf-smoke-binaries
-          path: artifacts/nrf/
+          name: esp32s3-smoke-binaries
+          path: artifacts/esp32s3/

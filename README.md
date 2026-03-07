@@ -26,10 +26,10 @@ This bootstraps ESP-IDF, runs host tests, and builds the ESP32-S3 project.
 
 GitHub Actions workflow: `.github/workflows/ci.yml`
 
-- Gate job: runs `./build.py -t` on every push and pull request.
+- Gate job: runs `./build.py --host-only -t` on every push and pull request.
 - Smoke matrix:
   - `host`: `./build.py --host-only -t`
-  - `nrf`: `./build.py --nrf-only` (legacy branch compatibility)
+  - `esp32s3`: `./build.py --esp32s3-only`
 
 ## Repository Layout
 
