@@ -19,6 +19,9 @@ add_library(helix_mocap_common STATIC
 )
 target_include_directories(helix_mocap_common PUBLIC
     firmware/common
+    external/SensorFusion/middleware/codec
+    external/SensorFusion/middleware/common
+    external/SensorFusion/drivers/hal
 )
 
 if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
@@ -64,6 +67,7 @@ if(HELIXDRIFT_BUILD_TESTS)
     add_executable(helix_tests
         tests/test_blink_engine.cpp
         tests/test_mocap_ble_sender.cpp
+        tests/test_mocap_health_telemetry.cpp
         tests/test_mocap_node_loop.cpp
         tests/test_timestamp_synchronized_transport.cpp
         tests/test_mocap_profiles.cpp

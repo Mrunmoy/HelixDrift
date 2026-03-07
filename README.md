@@ -48,4 +48,5 @@ See:
   - `2`: capture T-pose
   - `3`: reset calibration
 - Optionally implement `sf_mocap_sync_anchor(uint64_t* localUs, uint64_t* remoteUs)` to feed central-time sync anchors.
+- Optionally implement `sf_mocap_health_sample(...)` to publish battery/link/drop telemetry; these are emitted as `NODE_HEALTH` frames.
 - `examples/nrf52-mocap-node` uses `WeakSymbolBleSender` + `MocapNodeLoopT` to keep the loop testable off-target.

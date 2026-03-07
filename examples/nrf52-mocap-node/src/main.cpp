@@ -3,6 +3,7 @@
 #include "LPS22DF.hpp"
 #include "MocapBleTransport.hpp"
 #include "MocapCalibrationFlow.hpp"
+#include "MocapHealthTelemetry.hpp"
 #include "MocapNodePipeline.hpp"
 #include "MocapBleSender.hpp"
 #include "MocapNodeLoop.hpp"
@@ -18,6 +19,19 @@ extern "C" uint8_t __attribute__((weak)) sf_mocap_calibration_command() { return
 extern "C" bool __attribute__((weak)) sf_mocap_sync_anchor(uint64_t* localUs, uint64_t* remoteUs) {
     (void)localUs;
     (void)remoteUs;
+    return false;
+}
+extern "C" bool __attribute__((weak)) sf_mocap_health_sample(
+    uint16_t* batteryMv,
+    uint8_t* batteryPercent,
+    uint8_t* linkQuality,
+    uint16_t* droppedFrames,
+    uint8_t* flags) {
+    (void)batteryMv;
+    (void)batteryPercent;
+    (void)linkQuality;
+    (void)droppedFrames;
+    (void)flags;
     return false;
 }
 
@@ -92,6 +106,8 @@ int main() {
     SyncAnchorSource syncAnchorSource{};
     helix::TimestampSynchronizedTransportT<BaseBleTransport, sf::TimestampSync, SyncAnchorSource>
         syncedTx(bleTx, timestampSync, syncAnchorSource);
+    helix::NodeHealthTelemetryEmitterT<helix::BleSenderAdapter> healthTx{
+        helix::BleSenderAdapter(&bleSender)};
     sf::MocapCalibrationFlow calibrationFlow{};
     CalibrationHook calibrationHook{calibrationFlow};
     NrfDelayClock clock{delay};
@@ -105,7 +121,31 @@ int main() {
         sf::MocapNodeSample,
         CalibrationHook> loop(clock, pipeline, syncedTx, loopCfg, calibrationHook);
 
+    uint64_t nextHealthTickUs = clock.nowUs();
     while (true) {
+        const uint64_t nowUs = clock.nowUs();
+        if (nowUs >= nextHealthTickUs) {
+            nextHealthTickUs = nowUs + 1000000ULL;
+            uint16_t batteryMv = 0;
+            uint8_t batteryPercent = 0;
+            uint8_t linkQuality = 0;
+            uint16_t droppedFrames = 0;
+            uint8_t flags = 0;
+            if (sf_mocap_health_sample(
+                    &batteryMv, &batteryPercent, &linkQuality, &droppedFrames, &flags)) {
+                helix::NodeHealthTelemetry telemetry{};
+                telemetry.batteryMv = batteryMv;
+                telemetry.batteryPercent = batteryPercent;
+                telemetry.linkQuality = linkQuality;
+                telemetry.droppedFrames = droppedFrames;
+                telemetry.calibrationState = static_cast<uint8_t>(calibrationFlow.state());
+                telemetry.flags = flags;
+                (void)healthTx.send(
+                    kNodeId,
+                    timestampSync.toRemoteTimeUs(nowUs),
+                    telemetry);
+            }
+        }
         if (!loop.tick()) {
             delay.delayMs(1);
         }
