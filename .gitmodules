@@ -1,3 +1,0 @@
-[submodule "external/SensorFusion"]
-	path = external/SensorFusion
-	url = https://github.com/Mrunmoy/SensorFusion.git
