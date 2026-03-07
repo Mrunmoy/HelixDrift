@@ -11,8 +11,11 @@
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
           git
+          python3
+          curl
           cmake
           ninja
+          gcc
           gcc-arm-embedded
         ];
       };
