@@ -16,6 +16,7 @@ def nix_wrap(inner_cmd):
 
 
 def build_host(repo_root, run_tests):
+    run("git submodule update --init external/SensorFusion", repo_root)
     cmake_cfg = (
         "cmake -S . -B build/host -G Ninja "
         "-DHELIXDRIFT_BUILD_TESTS=ON -DHELIXDRIFT_BUILD_NRF_EXAMPLES=OFF"
@@ -38,6 +39,19 @@ def build_nrf(repo_root):
     run(nix_wrap("cmake --build build/nrf --parallel"), repo_root)
 
 
+def build_esp32s3(repo_root):
+    run("git submodule update --init external/SensorFusion third_party/esp-idf", repo_root)
+    run("bash tools/esp/setup_idf.sh", repo_root)
+    run("rm -rf build/esp32s3", repo_root)
+    esp_cmd = (
+        "source third_party/esp-idf/export.sh && "
+        "idf.py -C examples/esp32s3-mocap-node "
+        "-B build/esp32s3 "
+        "set-target esp32s3 build"
+    )
+    run(f"bash -lc {shlex.quote(esp_cmd)}", repo_root)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="HelixDrift build orchestrator."
@@ -55,6 +69,10 @@ def main():
         help="Build nRF target only."
     )
     parser.add_argument(
+        "--esp32s3-only", action="store_true",
+        help="Build ESP32-S3 target only."
+    )
+    parser.add_argument(
         "--clean", action="store_true",
         help="Remove build directory before building."
     )
@@ -62,18 +80,22 @@ def main():
     args = parser.parse_args()
     repo_root = os.path.dirname(os.path.abspath(__file__))
 
-    if args.host_only and args.nrf_only:
-        print("cannot combine --host-only and --nrf-only", file=sys.stderr)
+    selected = int(args.host_only) + int(args.nrf_only) + int(args.esp32s3_only)
+    if selected > 1:
+        print("cannot combine --host-only, --nrf-only, and --esp32s3-only", file=sys.stderr)
         return 2
 
     if args.clean:
         run("rm -rf build", repo_root)
 
-    if not args.nrf_only:
+    if not args.nrf_only and not args.esp32s3_only:
         build_host(repo_root, args.test)
 
-    if not args.host_only:
+    if not args.host_only and not args.esp32s3_only:
         build_nrf(repo_root)
+
+    if args.esp32s3_only:
+        build_esp32s3(repo_root)
 
     return 0
 
