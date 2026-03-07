@@ -84,6 +84,7 @@ Notes:
 - Ensure each I2C bus has pull-ups (many dev boards already do).
 - Keep bus wiring short for stable high-rate sampling.
 - You must provide real `g_twim0`/`g_twim1` initialization in your board layer (the example contains weak placeholders for off-target build only).
+- Reference pin map: https://wiki.seeedstudio.com/XIAO_BLE/
 
 ## Flashing XIAO nRF52840
 
@@ -110,6 +111,7 @@ nrfjprog --program build/nrf/nrf52_mocap_node.hex --chiperase --verify --reset
 
 - Double-press reset to enter UF2 mode (mass-storage drive appears).
 - This repo does not yet generate UF2 directly; add a UF2 conversion step in your board-specific workflow if you want drag-and-drop flashing.
+- UF2 mode reference: https://wiki.seeedstudio.com/XIAO-nRF52840-Zephyr-RTOS/
 
 ## Sensor Bring-Up Checklist
 
