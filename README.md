@@ -119,8 +119,13 @@ nrfjprog --program build/nrf/nrf52_mocap_node.hex --chiperase --verify --reset
 
 1. Confirm each sensor responds on its assigned bus.
 2. Verify `imu.init()`, `mag.init()`, and `baro.init()` succeed (otherwise app remains in fault loop).
-3. Implement `sf_mocap_ble_notify(...)` and confirm quaternion notifications at target cadence.
+3. Implement `xiao_ble_stack_notify(...)` and confirm quaternion notifications at target cadence.
 4. Optionally implement:
-   - `sf_mocap_calibration_command(...)`
-   - `sf_mocap_sync_anchor(...)`
-   - `sf_mocap_health_sample(...)`
+   - `xiao_mocap_calibration_command(...)`
+   - `xiao_mocap_sync_anchor(...)`
+   - `xiao_mocap_health_sample(...)`
+
+## On-Target Validation
+
+- Checklist: `docs/validation/ON_TARGET_VALIDATION.md`
+- Test log template: `docs/validation/TEST_LOG_TEMPLATE.md`
