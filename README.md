@@ -47,4 +47,5 @@ See:
   - `1`: capture stationary
   - `2`: capture T-pose
   - `3`: reset calibration
+- Optionally implement `sf_mocap_sync_anchor(uint64_t* localUs, uint64_t* remoteUs)` to feed central-time sync anchors.
 - `examples/nrf52-mocap-node` uses `WeakSymbolBleSender` + `MocapNodeLoopT` to keep the loop testable off-target.

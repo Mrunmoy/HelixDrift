@@ -7,12 +7,19 @@
 #include "MocapBleSender.hpp"
 #include "MocapNodeLoop.hpp"
 #include "MocapProfiles.hpp"
+#include "TimestampSync.hpp"
+#include "TimestampSynchronizedTransport.hpp"
 #include "NrfDelay.hpp"
 #include "NrfTwimBus.hpp"
 
 extern const nrfx_twim_t g_twim0 = {};
 extern const nrfx_twim_t g_twim1 = {};
 extern "C" uint8_t __attribute__((weak)) sf_mocap_calibration_command() { return 0; }
+extern "C" bool __attribute__((weak)) sf_mocap_sync_anchor(uint64_t* localUs, uint64_t* remoteUs) {
+    (void)localUs;
+    (void)remoteUs;
+    return false;
+}
 
 namespace {
 constexpr uint8_t kNodeId = 1;
@@ -36,6 +43,12 @@ struct CalibrationHook {
         }
         (void)flow.processSample(sample.orientation);
         sample.orientation = flow.apply(sample.orientation);
+    }
+};
+
+struct SyncAnchorSource {
+    bool poll(uint64_t& localUs, uint64_t& remoteUs) {
+        return sf_mocap_sync_anchor(&localUs, &remoteUs);
     }
 };
 } // namespace
@@ -73,8 +86,12 @@ int main() {
     bleCfg.attMtu = 185;
     bleCfg.maxRetries = 2;
     helix::WeakSymbolBleSender bleSender;
-    using BleTransport = sf::MocapBleTransportT<helix::BleSenderAdapter>;
-    BleTransport bleTx(helix::BleSenderAdapter(&bleSender), bleCfg);
+    using BaseBleTransport = sf::MocapBleTransportT<helix::BleSenderAdapter>;
+    BaseBleTransport bleTx(helix::BleSenderAdapter(&bleSender), bleCfg);
+    sf::TimestampSync timestampSync{};
+    SyncAnchorSource syncAnchorSource{};
+    helix::TimestampSynchronizedTransportT<BaseBleTransport, sf::TimestampSync, SyncAnchorSource>
+        syncedTx(bleTx, timestampSync, syncAnchorSource);
     sf::MocapCalibrationFlow calibrationFlow{};
     CalibrationHook calibrationHook{calibrationFlow};
     NrfDelayClock clock{delay};
@@ -84,9 +101,9 @@ int main() {
     helix::MocapNodeLoopT<
         NrfDelayClock,
         sf::MocapNodePipeline,
-        BleTransport,
+        helix::TimestampSynchronizedTransportT<BaseBleTransport, sf::TimestampSync, SyncAnchorSource>,
         sf::MocapNodeSample,
-        CalibrationHook> loop(clock, pipeline, bleTx, loopCfg, calibrationHook);
+        CalibrationHook> loop(clock, pipeline, syncedTx, loopCfg, calibrationHook);
 
     while (true) {
         if (!loop.tick()) {
