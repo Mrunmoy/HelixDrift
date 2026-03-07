@@ -12,28 +12,7 @@
 #include "TimestampSynchronizedTransport.hpp"
 #include "NrfDelay.hpp"
 #include "NrfTwimBus.hpp"
-
-extern const nrfx_twim_t g_twim0 = {};
-extern const nrfx_twim_t g_twim1 = {};
-extern "C" uint8_t __attribute__((weak)) sf_mocap_calibration_command() { return 0; }
-extern "C" bool __attribute__((weak)) sf_mocap_sync_anchor(uint64_t* localUs, uint64_t* remoteUs) {
-    (void)localUs;
-    (void)remoteUs;
-    return false;
-}
-extern "C" bool __attribute__((weak)) sf_mocap_health_sample(
-    uint16_t* batteryMv,
-    uint8_t* batteryPercent,
-    uint8_t* linkQuality,
-    uint16_t* droppedFrames,
-    uint8_t* flags) {
-    (void)batteryMv;
-    (void)batteryPercent;
-    (void)linkQuality;
-    (void)droppedFrames;
-    (void)flags;
-    return false;
-}
+#include "board_xiao_nrf52840.hpp"
 
 namespace {
 constexpr uint8_t kNodeId = 1;
@@ -69,6 +48,10 @@ struct SyncAnchorSource {
 
 int main() {
     constexpr helix::MocapProfile profile = helix::selectMocapProfile(kPowerMode);
+
+    if (!xiao_board_init_i2c()) {
+        while (true) {}
+    }
 
     sf::NrfTwimBus imuBus(g_twim0);
     sf::NrfTwimBus envBus(g_twim1);

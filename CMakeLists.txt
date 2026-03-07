@@ -42,6 +42,7 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
 
     add_executable(nrf52_mocap_node
         examples/nrf52-mocap-node/src/main.cpp
+        examples/nrf52-mocap-node/src/board_xiao_nrf52840.cpp
     )
     target_include_directories(nrf52_mocap_node PRIVATE
         tools/nrf/stubs/include

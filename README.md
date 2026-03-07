@@ -55,14 +55,16 @@ See:
 
 ## nRF BLE Integration Boundary
 
-- Implement `sf_mocap_ble_notify(const uint8_t* data, size_t len)` in board firmware.
-- Optionally implement `sf_mocap_calibration_command(void)` returning:
+- `examples/nrf52-mocap-node/src/board_xiao_nrf52840.cpp` provides the board-facing bridge.
+- Implement these weak board hooks in your BLE/control layer:
+  - `xiao_ble_stack_notify(const uint8_t* data, size_t len)`
+  - `xiao_mocap_calibration_command(void)` returning:
   - `0`: none
   - `1`: capture stationary
   - `2`: capture T-pose
   - `3`: reset calibration
-- Optionally implement `sf_mocap_sync_anchor(uint64_t* localUs, uint64_t* remoteUs)` to feed central-time sync anchors.
-- Optionally implement `sf_mocap_health_sample(...)` to publish battery/link/drop telemetry; these are emitted as `NODE_HEALTH` frames.
+- `xiao_mocap_sync_anchor(uint64_t* localUs, uint64_t* remoteUs)` to feed central-time sync anchors.
+- `xiao_mocap_health_sample(...)` to publish battery/link/drop telemetry; these are emitted as `NODE_HEALTH` frames.
 - `examples/nrf52-mocap-node` uses `WeakSymbolBleSender` + `MocapNodeLoopT` to keep the loop testable off-target.
 
 ## Hardware Setup (Seeed XIAO nRF52840 + Sensor Dev Boards)
@@ -83,7 +85,7 @@ Notes:
 - Use 3.3 V sensor breakouts only.
 - Ensure each I2C bus has pull-ups (many dev boards already do).
 - Keep bus wiring short for stable high-rate sampling.
-- You must provide real `g_twim0`/`g_twim1` initialization in your board layer (the example contains weak placeholders for off-target build only).
+- `xiao_board_init_i2c()` now initializes `TWIM0` and `TWIM1` for this wiring map in `board_xiao_nrf52840.cpp`.
 - Reference pin map: https://wiki.seeedstudio.com/XIAO_BLE/
 
 ## Flashing XIAO nRF52840
