@@ -42,4 +42,9 @@ See:
 ## nRF BLE Integration Boundary
 
 - Implement `sf_mocap_ble_notify(const uint8_t* data, size_t len)` in board firmware.
+- Optionally implement `sf_mocap_calibration_command(void)` returning:
+  - `0`: none
+  - `1`: capture stationary
+  - `2`: capture T-pose
+  - `3`: reset calibration
 - `examples/nrf52-mocap-node` uses `WeakSymbolBleSender` + `MocapNodeLoopT` to keep the loop testable off-target.

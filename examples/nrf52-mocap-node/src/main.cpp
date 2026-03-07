@@ -2,6 +2,7 @@
 #include "LSM6DSO.hpp"
 #include "LPS22DF.hpp"
 #include "MocapBleTransport.hpp"
+#include "MocapCalibrationFlow.hpp"
 #include "MocapNodePipeline.hpp"
 #include "MocapBleSender.hpp"
 #include "MocapNodeLoop.hpp"
@@ -11,6 +12,7 @@
 
 extern const nrfx_twim_t g_twim0 = {};
 extern const nrfx_twim_t g_twim1 = {};
+extern "C" uint8_t __attribute__((weak)) sf_mocap_calibration_command() { return 0; }
 
 namespace {
 constexpr uint8_t kNodeId = 1;
@@ -19,6 +21,22 @@ constexpr helix::MocapPowerMode kPowerMode = helix::MocapPowerMode::PERFORMANCE;
 struct NrfDelayClock {
     sf::NrfDelay& delay;
     uint64_t nowUs() const { return delay.getTimestampUs(); }
+};
+
+struct CalibrationHook {
+    sf::MocapCalibrationFlow& flow;
+
+    void onSample(uint64_t, sf::MocapNodeSample& sample) {
+        const uint8_t cmdRaw = sf_mocap_calibration_command();
+        if (cmdRaw <= static_cast<uint8_t>(sf::MocapCalibrationFlow::Command::Reset)) {
+            const auto cmd = static_cast<sf::MocapCalibrationFlow::Command>(cmdRaw);
+            if (cmd != sf::MocapCalibrationFlow::Command::None) {
+                flow.issue(cmd);
+            }
+        }
+        (void)flow.processSample(sample.orientation);
+        sample.orientation = flow.apply(sample.orientation);
+    }
 };
 } // namespace
 
@@ -57,12 +75,18 @@ int main() {
     helix::WeakSymbolBleSender bleSender;
     using BleTransport = sf::MocapBleTransportT<helix::BleSenderAdapter>;
     BleTransport bleTx(helix::BleSenderAdapter(&bleSender), bleCfg);
+    sf::MocapCalibrationFlow calibrationFlow{};
+    CalibrationHook calibrationHook{calibrationFlow};
     NrfDelayClock clock{delay};
     helix::MocapNodeLoopConfig loopCfg{};
     loopCfg.nodeId = kNodeId;
     loopCfg.outputPeriodUs = profile.outputPeriodUs;
-    helix::MocapNodeLoopT<NrfDelayClock, sf::MocapNodePipeline, BleTransport, sf::MocapNodeSample>
-        loop(clock, pipeline, bleTx, loopCfg);
+    helix::MocapNodeLoopT<
+        NrfDelayClock,
+        sf::MocapNodePipeline,
+        BleTransport,
+        sf::MocapNodeSample,
+        CalibrationHook> loop(clock, pipeline, bleTx, loopCfg, calibrationHook);
 
     while (true) {
         if (!loop.tick()) {

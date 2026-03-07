@@ -49,6 +49,18 @@ struct FakeTransport {
     }
 };
 
+struct FakeHook {
+    uint32_t callCount = 0;
+    uint64_t lastTimestampUs = 0;
+    FakeQuat replacement{0.0f, 1.0f, 0.0f, 0.0f};
+
+    void onSample(uint64_t timestampUs, FakeSample& sample) {
+        ++callCount;
+        lastTimestampUs = timestampUs;
+        sample.orientation = replacement;
+    }
+};
+
 TEST(MocapNodeLoopTest, FirstTickIsDueAndSendsFrame) {
     FakeClock clock{};
     FakePipeline pipeline{};
@@ -149,6 +161,25 @@ TEST(MocapNodeLoopTest, PipelineFailureSkipsTransportForThatTick) {
     EXPECT_TRUE(loop.tick());
     EXPECT_EQ(pipeline.callCount, 2u);
     EXPECT_EQ(tx.callCount, 1u);
+}
+
+TEST(MocapNodeLoopTest, SampleHookCanTransformOrientationBeforeSend) {
+    FakeClock clock{};
+    FakePipeline pipeline{};
+    FakeTransport tx{};
+    FakeHook hook{};
+    helix::MocapNodeLoopConfig cfg{};
+    cfg.nodeId = 3;
+
+    helix::MocapNodeLoopT<FakeClock, FakePipeline, FakeTransport, FakeSample, FakeHook> loop(
+        clock, pipeline, tx, cfg, hook);
+
+    EXPECT_TRUE(loop.tick());
+    EXPECT_EQ(tx.callCount, 1u);
+    EXPECT_FLOAT_EQ(tx.lastQuat.w, 0.0f);
+    EXPECT_FLOAT_EQ(tx.lastQuat.x, 1.0f);
+    EXPECT_FLOAT_EQ(tx.lastQuat.y, 0.0f);
+    EXPECT_FLOAT_EQ(tx.lastQuat.z, 0.0f);
 }
 
 } // namespace
