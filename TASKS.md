@@ -12,10 +12,10 @@ Rule: if a fix belongs to SensorFusion, fix it in `SensorFusion` first, push it,
 - [x] Host tests passing (`./build.py -t`)
 
 ## In Progress
-- [ ] Stabilize mocap node slice for integration handoff (clear interfaces + docs)
+- [ ] Add mocap app-loop unit tests (timing, profile behavior, frame cadence at 50 Hz contract)
 
 ## Next Up (Priority Order)
-1. [ ] Add BLE sender adapter in HelixDrift example (real implementation boundary + mockable test double)
+1. [x] Add BLE sender adapter in HelixDrift example (real implementation boundary + mockable test double)
 2. [ ] Add mocap app-loop unit tests (timing, profile behavior, frame cadence at 50 Hz contract)
 3. [ ] Add calibration command flow wiring (stationary/T-pose command interface) via SensorFusion patch + submodule bump
 4. [ ] Add timestamp sync flow with central node contract via SensorFusion patch + submodule bump

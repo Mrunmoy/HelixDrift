@@ -3,16 +3,10 @@
 #include "LPS22DF.hpp"
 #include "MocapBleTransport.hpp"
 #include "MocapNodePipeline.hpp"
+#include "MocapBleSender.hpp"
 #include "MocapProfiles.hpp"
 #include "NrfDelay.hpp"
 #include "NrfTwimBus.hpp"
-
-extern "C" bool __attribute__((weak)) sf_mocap_ble_notify(const uint8_t* data, size_t len) {
-    (void)data;
-    (void)len;
-    // Implement in board-specific BLE code.
-    return false;
-}
 
 extern const nrfx_twim_t g_twim0 = {};
 extern const nrfx_twim_t g_twim1 = {};
@@ -20,11 +14,6 @@ extern const nrfx_twim_t g_twim1 = {};
 namespace {
 constexpr uint8_t kNodeId = 1;
 constexpr helix::MocapPowerMode kPowerMode = helix::MocapPowerMode::PERFORMANCE;
-
-bool bleNotifyAdapter(const uint8_t* data, size_t len, void* context) {
-    (void)context;
-    return sf_mocap_ble_notify(data, len);
-}
 } // namespace
 
 int main() {
@@ -59,7 +48,9 @@ int main() {
     sf::MocapBleTransport::Config bleCfg{};
     bleCfg.attMtu = 185;
     bleCfg.maxRetries = 2;
-    sf::MocapBleTransport bleTx(&bleNotifyAdapter, nullptr, bleCfg);
+    helix::WeakSymbolBleSender bleSender;
+    using BleTransport = sf::MocapBleTransportT<helix::BleSenderAdapter>;
+    BleTransport bleTx(helix::BleSenderAdapter(&bleSender), bleCfg);
 
     uint64_t nextTickUs = delay.getTimestampUs();
     while (true) {

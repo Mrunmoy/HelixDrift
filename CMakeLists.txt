@@ -14,6 +14,13 @@ target_include_directories(helix_blink PUBLIC
     firmware/common
 )
 
+add_library(helix_mocap_common STATIC
+    firmware/common/MocapBleSender.cpp
+)
+target_include_directories(helix_mocap_common PUBLIC
+    firmware/common
+)
+
 if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tools/nrf/stubs/include)
 
@@ -38,6 +45,7 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
         firmware/common
     )
     target_link_libraries(nrf52_mocap_node PRIVATE
+        helix_mocap_common
         sensorfusion_middleware
         sensorfusion_platform_nrf52
     )
@@ -55,10 +63,12 @@ if(HELIXDRIFT_BUILD_TESTS)
 
     add_executable(helix_tests
         tests/test_blink_engine.cpp
+        tests/test_mocap_ble_sender.cpp
         tests/test_mocap_profiles.cpp
     )
     target_link_libraries(helix_tests PRIVATE
         helix_blink
+        helix_mocap_common
         GTest::gtest_main
     )
     include(GoogleTest)
