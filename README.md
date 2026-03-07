@@ -16,10 +16,13 @@ nRF mocap node firmware workspace (split from SensorFusion library-only repo).
 - `./build.py --nrf-only`: nRF cross-build only.
 - `./build.py --clean`: clean then build.
 
+`build.py` auto-initializes `external/SensorFusion` for nRF builds.
+
 ## Repository Layout
 
 - `firmware/common/`: shared embedded-safe logic (no heap/no RTTI/no exceptions).
 - `examples/nrf52-blinky/`: baseline nRF blinky firmware app.
+- `examples/nrf52-mocap-node/`: nRF mocap node firmware app using SensorFusion submodule.
 - `tests/`: host-side TDD suite.
 - `tools/`: repo-local toolchain and nRF stub headers for off-target validation.
 - `datasheets/`: datasheets, reference manuals, and document index.
@@ -33,6 +36,5 @@ See:
 
 ## Next Steps
 
-- Add `SensorFusion` as git submodule under `external/SensorFusion`.
 - Move nRF-specific mocap node code from SensorFusion into this repo.
 - Implement board BLE sender and application-level wiring.

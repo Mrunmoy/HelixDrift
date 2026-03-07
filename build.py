@@ -27,6 +27,8 @@ def build_host(repo_root, run_tests):
 
 
 def build_nrf(repo_root):
+    run("git submodule update --init external/SensorFusion", repo_root)
+    run("rm -rf build/nrf", repo_root)
     cmake_cfg = (
         "cmake -S . -B build/nrf -G Ninja "
         "-DCMAKE_TOOLCHAIN_FILE=tools/toolchains/arm-none-eabi-gcc.cmake "
