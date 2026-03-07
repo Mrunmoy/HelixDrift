@@ -64,6 +64,7 @@ if(HELIXDRIFT_BUILD_TESTS)
     add_executable(helix_tests
         tests/test_blink_engine.cpp
         tests/test_mocap_ble_sender.cpp
+        tests/test_mocap_node_loop.cpp
         tests/test_mocap_profiles.cpp
     )
     target_link_libraries(helix_tests PRIVATE

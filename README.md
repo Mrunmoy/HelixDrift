@@ -36,5 +36,10 @@ See:
 
 ## Next Steps
 
-- Move nRF-specific mocap node code from SensorFusion into this repo.
-- Implement board BLE sender and application-level wiring.
+- Wire node calibration command flow and timestamp sync with central node protocol.
+- Add battery/health telemetry frames and CI gates for host + nRF smoke builds.
+
+## nRF BLE Integration Boundary
+
+- Implement `sf_mocap_ble_notify(const uint8_t* data, size_t len)` in board firmware.
+- `examples/nrf52-mocap-node` uses `WeakSymbolBleSender` + `MocapNodeLoopT` to keep the loop testable off-target.

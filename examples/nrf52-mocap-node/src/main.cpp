@@ -4,6 +4,7 @@
 #include "MocapBleTransport.hpp"
 #include "MocapNodePipeline.hpp"
 #include "MocapBleSender.hpp"
+#include "MocapNodeLoop.hpp"
 #include "MocapProfiles.hpp"
 #include "NrfDelay.hpp"
 #include "NrfTwimBus.hpp"
@@ -14,6 +15,11 @@ extern const nrfx_twim_t g_twim1 = {};
 namespace {
 constexpr uint8_t kNodeId = 1;
 constexpr helix::MocapPowerMode kPowerMode = helix::MocapPowerMode::PERFORMANCE;
+
+struct NrfDelayClock {
+    sf::NrfDelay& delay;
+    uint64_t nowUs() const { return delay.getTimestampUs(); }
+};
 } // namespace
 
 int main() {
@@ -51,18 +57,16 @@ int main() {
     helix::WeakSymbolBleSender bleSender;
     using BleTransport = sf::MocapBleTransportT<helix::BleSenderAdapter>;
     BleTransport bleTx(helix::BleSenderAdapter(&bleSender), bleCfg);
+    NrfDelayClock clock{delay};
+    helix::MocapNodeLoopConfig loopCfg{};
+    loopCfg.nodeId = kNodeId;
+    loopCfg.outputPeriodUs = profile.outputPeriodUs;
+    helix::MocapNodeLoopT<NrfDelayClock, sf::MocapNodePipeline, BleTransport, sf::MocapNodeSample>
+        loop(clock, pipeline, bleTx, loopCfg);
 
-    uint64_t nextTickUs = delay.getTimestampUs();
     while (true) {
-        const uint64_t nowUs = delay.getTimestampUs();
-        if (nowUs < nextTickUs) {
+        if (!loop.tick()) {
             delay.delayMs(1);
-            continue;
         }
-        nextTickUs = nowUs + profile.outputPeriodUs;
-
-        sf::MocapNodeSample sample{};
-        if (!pipeline.step(sample)) continue;
-        (void)bleTx.sendQuaternion(kNodeId, nowUs, sample.orientation);
     }
 }
