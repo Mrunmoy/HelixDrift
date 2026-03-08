@@ -27,14 +27,21 @@ SECTIONS {
         . = ALIGN(4);
     } > FLASH
 
-    .data : AT(LOADADDR(.text) + SIZEOF(.text)) {
+    .init_array : {
+        _init_array_start = .;
+        KEEP(*(.init_array*))
+        _init_array_end = .;
+        . = ALIGN(4);
+    } > FLASH
+
+    _sidata = LOADADDR(.data);
+
+    .data : {
         _sdata = .;
         *(.data*)
         . = ALIGN(4);
         _edata = .;
-    } > RAM
-
-    _sidata = LOADADDR(.data);
+    } > RAM AT > FLASH
 
     .bss (NOLOAD) : {
         _sbss = .;
@@ -44,8 +51,8 @@ SECTIONS {
         _ebss = .;
     } > RAM
 
-    .stack (NOLOAD) : {
-        . = ALIGN(8);
+    /* 4 KB bootloader stack anchored at the top of its RAM region */
+    .stack (NOLOAD) : ORIGIN(RAM) + LENGTH(RAM) - 4K {
         _stack_bottom = .;
         . += 4K;
         _stack_top = .;

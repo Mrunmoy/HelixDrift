@@ -34,6 +34,7 @@ target_include_directories(helix_ota PUBLIC
 
 if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tools/nrf/stubs/include)
+    add_compile_definitions(NRFX_STUB)
 
     set(SENSORFUSION_BUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(SENSORFUSION_BUILD_APP OFF CACHE BOOL "" FORCE)

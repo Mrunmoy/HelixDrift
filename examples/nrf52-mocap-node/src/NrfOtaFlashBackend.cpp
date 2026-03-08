@@ -4,16 +4,6 @@
 
 namespace helix {
 
-namespace {
-// MCUboot overwrite-only upgrade trailer magic written at the very end of the
-// secondary slot to signal a pending upgrade.  The 16-byte magic matches the
-// value defined in MCUboot's bootutil_priv.h.
-constexpr uint8_t kBootMagic[16] = {
-    0x77, 0xc2, 0x95, 0xf3, 0x60, 0xd2, 0xef, 0x7f,
-    0x35, 0x52, 0x50, 0x0f, 0x2c, 0xb6, 0x79, 0x80
-};
-} // namespace
-
 uint32_t NrfOtaFlashBackend::slotSize() const {
     return kSecondarySlotSize;
 }
@@ -36,10 +26,11 @@ bool NrfOtaFlashBackend::writeChunk(uint32_t offset, const uint8_t* data, size_t
 }
 
 bool NrfOtaFlashBackend::setPendingUpgrade() {
-    // Write the MCUboot BOOT_MAGIC at the end of the secondary slot so that
-    // MCUboot recognises the image as a pending upgrade candidate.
-    const uint32_t magicAddr = kSecondarySlotBase + kSecondarySlotSize - sizeof(kBootMagic);
-    return writeAligned(magicAddr, kBootMagic, sizeof(kBootMagic));
+    // MCUboot OVERWRITE_ONLY mode: MCUboot upgrades automatically when it finds
+    // a valid image with a higher version number in the secondary slot.
+    // No trailer magic write is needed or desired — writing it would corrupt
+    // a full-slot image (the magic would overwrite the last 16 bytes).
+    return true;
 }
 
 /* static */

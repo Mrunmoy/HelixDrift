@@ -40,16 +40,21 @@ SECTIONS {
         . = ALIGN(4);
     } > FLASH
 
-    _etext = LOADADDR(.data) + SIZEOF(.data);
+    .init_array : {
+        _init_array_start = .;
+        KEEP(*(.init_array*))
+        _init_array_end = .;
+        . = ALIGN(4);
+    } > FLASH
 
-    .data : AT(LOADADDR(.text) + SIZEOF(.text)) {
+    _sidata = LOADADDR(.data);
+
+    .data : {
         _sdata = .;
         *(.data*)
         . = ALIGN(4);
         _edata = .;
-    } > RAM
-
-    _sidata = LOADADDR(.data);
+    } > RAM AT > FLASH
 
     .bss (NOLOAD) : {
         _sbss = .;
@@ -59,9 +64,8 @@ SECTIONS {
         _ebss = .;
     } > RAM
 
-    /* 8 KB main stack at top of RAM */
-    .stack (NOLOAD) : {
-        . = ALIGN(8);
+    /* 8 KB main stack anchored at the top of RAM */
+    .stack (NOLOAD) : ORIGIN(RAM) + LENGTH(RAM) - 8K {
         _stack_bottom = .;
         . += 8K;
         _stack_top = .;

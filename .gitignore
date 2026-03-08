@@ -1,2 +1,7 @@
 build/
 build-arm/
+
+# Production signing keys — never commit production private keys.
+# The committed keys/dev_signing_key.pem is a CI-only development key.
+keys/prod_*.pem
+keys/hw_*.pem

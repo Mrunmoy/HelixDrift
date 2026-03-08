@@ -59,11 +59,12 @@ target_include_directories(bootutil PUBLIC
     "${MCUBOOT_DIR}/boot/bootutil/include"
     "${MCUBOOT_DIR}/boot/bootutil/src"         # internal headers
     "${CMAKE_CURRENT_SOURCE_DIR}/port"          # mcuboot_config.h
-    "${CMAKE_SOURCE_DIR}/tools/nrf/stubs/include"  # nrfx_nvmc.h
+    "${CMAKE_SOURCE_DIR}/tools/nrf/stubs/include"  # nrfx_nvmc.h (stub only)
 )
 
 target_compile_definitions(bootutil PUBLIC
     MCUBOOT_IMAGE_HEADER_SIZE=0x200
+    NRFX_STUB    # enable the no-op stub; remove for real hardware builds
 )
 
 target_link_libraries(bootutil PUBLIC tinycrypt)

@@ -21,6 +21,7 @@
  * GPIO registers for direct register access without nrfx dependency. */
 #define GPIO_P0_BASE        0x50000000u
 #define GPIO_DIRSET_OFFSET  0x518u
+#define GPIO_OUTSET_OFFSET  0x508u
 #define GPIO_OUTCLR_OFFSET  0x50Cu
 
 static inline void fault_led_init(void) {
@@ -30,10 +31,17 @@ static inline void fault_led_init(void) {
 
 static inline void fault_led_on(void) {
     volatile uint32_t* outclr = (volatile uint32_t*)(GPIO_P0_BASE + GPIO_OUTCLR_OFFSET);
-    *outclr = (1u << 26);
+    *outclr = (1u << 26);  /* active-low: clear = LED on */
 }
 
-/* Simple spin delay (rough, calibrated for 64 MHz system clock). */
+static inline void fault_led_off(void) {
+    volatile uint32_t* outset = (volatile uint32_t*)(GPIO_P0_BASE + GPIO_OUTSET_OFFSET);
+    *outset = (1u << 26);  /* active-low: set = LED off */
+}
+
+/* Simple spin delay. nRF52840 boots on 16 MHz RC oscillator.
+ * Each loop body is ~3 cycles at 16 MHz ≈ ~187 ns/iteration.
+ * 80000 iterations ≈ ~15 ms. */
 static void spin_delay(volatile uint32_t ticks) {
     while (ticks--) { __asm__ volatile("nop"); }
 }
@@ -47,7 +55,9 @@ int main(void) {
         fault_led_init();
         while (1) {
             fault_led_on();
-            spin_delay(3200000u);  /* ~50 ms on at 64 MHz */
+            spin_delay(80000u);   /* ~15 ms on */
+            fault_led_off();
+            spin_delay(80000u);   /* ~15 ms off */
         }
     }
 
@@ -60,8 +70,14 @@ int main(void) {
     uint32_t app_sp = *((uint32_t*)app_vector_table);
     uint32_t app_pc = *((uint32_t*)(app_vector_table + 4u));
 
-    /* Relocate VTOR to the application's vector table. */
+    /* Relocate VTOR to the application's vector table.
+     * Disable interrupts first to close the window between the VTOR write
+     * and the stack/PC switch.  DSB + ISB ensure the new table is visible
+     * to the exception mechanism before we hand off (Cortex-M4 TRM §4.2.2). */
+    __asm__ volatile("cpsid i" ::: "memory");
     SCB_VTOR = app_vector_table;
+    __asm__ volatile("dsb" ::: "memory");
+    __asm__ volatile("isb" ::: "memory");
 
     /* Set the main stack pointer and jump to the application. */
     __asm__ volatile(
@@ -69,7 +85,7 @@ int main(void) {
         "bx  %1       \n"
         :
         : "r"(app_sp), "r"(app_pc)
-        :
+        : "memory"
     );
 
     /* Unreachable */

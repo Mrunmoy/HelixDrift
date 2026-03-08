@@ -1,10 +1,15 @@
 /* nrfx_nvmc.h — minimal stub for off-target compile validation.
- * Real implementation is provided by the nRF5 SDK nrfx driver on hardware.
+ *
+ * Only active when NRFX_STUB is defined (set by the CMake host/CI build).
+ * Hardware builds must provide the real nrfx_nvmc driver instead and must
+ * NOT define NRFX_STUB.
  */
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+
+#ifdef NRFX_STUB
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,3 +35,8 @@ static inline bool nrfx_nvmc_write_done_check(void) { return true; }
 #ifdef __cplusplus
 }
 #endif
+
+#else
+/* On real hardware, include the nRF5 SDK nrfx driver header. */
+#error "nrfx_nvmc.h stub included without NRFX_STUB — provide the real nrfx_nvmc driver."
+#endif /* NRFX_STUB */

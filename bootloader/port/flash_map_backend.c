@@ -76,14 +76,16 @@ void flash_area_close(const struct flash_area* fap) {
 
 int flash_area_read(const struct flash_area* fap, uint32_t off,
                     void* dst, uint32_t len) {
-    if (off + len > fap->fa_size) return -1;
+    if (len > fap->fa_size || off > fap->fa_size - len) return -1;
     memcpy(dst, (const void*)(uintptr_t)(fap->fa_off + off), len);
     return 0;
 }
 
 int flash_area_write(const struct flash_area* fap, uint32_t off,
                      const void* src, uint32_t len) {
-    if (off + len > fap->fa_size) return -1;
+    if (len > fap->fa_size || off > fap->fa_size - len) return -1;
+    /* nRF52840 NVMC requires 4-byte aligned writes. */
+    if ((off & 3u) != 0 || (len & 3u) != 0) return -1;
 
     const uint8_t*  data = (const uint8_t*)src;
     uint32_t        addr = fap->fa_off + off;
@@ -111,7 +113,7 @@ int flash_area_write(const struct flash_area* fap, uint32_t off,
 }
 
 int flash_area_erase(const struct flash_area* fap, uint32_t off, uint32_t len) {
-    if (off + len > fap->fa_size) return -1;
+    if (len > fap->fa_size || off > fap->fa_size - len) return -1;
     const uint32_t page_size = NRFX_NVMC_FLASH_PAGE_SIZE;
     for (uint32_t p = 0; p < len; p += page_size) {
         nrfx_nvmc_page_erase(fap->fa_off + off + p);

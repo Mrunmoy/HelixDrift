@@ -102,8 +102,7 @@ extern "C" __attribute__((weak)) void xiao_ota_confirm_image() {
 
 extern "C" __attribute__((weak))
 uint8_t xiao_ota_control(uint8_t cmd, const uint8_t* payload, size_t payloadLen) {
-    (void)payload; (void)payloadLen;
-    // cmd 1 = begin, 2 = commit, 3 = abort
+    if (cmd == 0) return 0;  // polling no-op
     if (cmd == 1 && payloadLen >= 8) {
         uint32_t imageSize = 0;
         uint32_t expectedCrc = 0;

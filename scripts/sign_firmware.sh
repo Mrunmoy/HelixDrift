@@ -47,5 +47,12 @@ imgtool sign \
 
 echo "Signed image: ${OUTPUT_HEX}"
 
-# Print image info for CI logs
-imgtool verify --key "${KEY_PEM}" "${OUTPUT_HEX}" || true
+# Extract the public key for verification (imgtool verify requires pubkey only).
+PUB_KEY="${KEY_PEM%.pem}_pub.pem"
+imgtool getpub --key "${KEY_PEM}" --output "${PUB_KEY}" 2>/dev/null || true
+
+# Verify the signed image if a public key is available.
+if [ -f "${PUB_KEY}" ]; then
+    imgtool verify --key "${PUB_KEY}" "${OUTPUT_HEX}"
+    echo "Signature verification: OK"
+fi
