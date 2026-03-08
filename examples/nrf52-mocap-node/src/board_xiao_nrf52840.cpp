@@ -1,4 +1,6 @@
 #include "board_xiao_nrf52840.hpp"
+#include "NrfOtaFlashBackend.hpp"
+#include "OtaManager.hpp"
 
 namespace {
 // Seeed XIAO BLE (nRF52840) dual-I2C mapping used by README wiring guide.
@@ -6,6 +8,10 @@ constexpr uint32_t kTwim0SdaPin = 4;   // D4 / P0.04
 constexpr uint32_t kTwim0SclPin = 5;   // D5 / P0.05
 constexpr uint32_t kTwim1SdaPin = 43;  // D6 / P1.11
 constexpr uint32_t kTwim1SclPin = 44;  // D7 / P1.12
+
+// OTA manager — single static instance, lives for the lifetime of the app.
+helix::NrfOtaFlashBackend g_otaBackend;
+helix::OtaManager         g_otaManager{g_otaBackend};
 } // namespace
 
 const nrfx_twim_t g_twim0 = NRFX_TWIM_INSTANCE(0);
@@ -83,4 +89,34 @@ extern "C" bool sf_mocap_health_sample(
     uint8_t* flags) {
     return xiao_mocap_health_sample(
         batteryMv, batteryPercent, linkQuality, droppedFrames, flags);
+}
+
+// ---------------------------------------------------------------------------
+// OTA hooks — BLE stack layer overrides these with strong symbols
+// ---------------------------------------------------------------------------
+
+extern "C" __attribute__((weak)) void xiao_ota_confirm_image() {
+    // In MCUboot overwrite-only mode no explicit confirmation is required.
+    // Swap-with-revert builds should write image_ok=1 via MCUboot's API here.
+}
+
+extern "C" __attribute__((weak))
+uint8_t xiao_ota_control(uint8_t cmd, const uint8_t* payload, size_t payloadLen) {
+    (void)payload; (void)payloadLen;
+    // cmd 1 = begin, 2 = commit, 3 = abort
+    if (cmd == 1 && payloadLen >= 8) {
+        uint32_t imageSize = 0;
+        uint32_t expectedCrc = 0;
+        for (int i = 0; i < 4; ++i) imageSize  |= static_cast<uint32_t>(payload[i]) << (i * 8);
+        for (int i = 0; i < 4; ++i) expectedCrc|= static_cast<uint32_t>(payload[4 + i]) << (i * 8);
+        return static_cast<uint8_t>(g_otaManager.begin(imageSize, expectedCrc));
+    }
+    if (cmd == 2) return static_cast<uint8_t>(g_otaManager.commit());
+    if (cmd == 3) { g_otaManager.abort(); return 0; }
+    return static_cast<uint8_t>(helix::OtaStatus::ERROR_INVALID_STATE);
+}
+
+extern "C" __attribute__((weak))
+uint8_t xiao_ota_write_chunk(uint32_t offset, const uint8_t* data, size_t len) {
+    return static_cast<uint8_t>(g_otaManager.writeChunk(offset, data, len));
 }

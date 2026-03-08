@@ -27,11 +27,25 @@ jobs:
       - name: Build + host tests + nRF cross-build
         run: ./build.py -t
 
+      - name: Install imgtool (for signing)
+        run: pip install imgtool
+
+      - name: Sign nRF application image
+        run: |
+          nix develop --command bash -lc \
+            "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_mocap_node build/nrf/nrf52_mocap_node.hex"
+          ./scripts/sign_firmware.sh \
+            build/nrf/nrf52_mocap_node.hex \
+            keys/dev_signing_key.pem \
+            "1.0.0+${GITHUB_RUN_NUMBER:-0}" \
+            build/nrf/nrf52_mocap_node_signed.hex
+
       - name: Package gate nRF artifacts
         run: |
           mkdir -p artifacts/gate-nrf
           cp build/nrf/nrf52_blinky artifacts/gate-nrf/
           cp build/nrf/nrf52_mocap_node artifacts/gate-nrf/
+          cp build/nrf/nrf52_mocap_node_signed.hex artifacts/gate-nrf/
           nix develop --command bash -lc "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_blinky artifacts/gate-nrf/nrf52_blinky.hex"
           nix develop --command bash -lc "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_mocap_node artifacts/gate-nrf/nrf52_mocap_node.hex"
 
@@ -69,12 +83,25 @@ jobs:
         if: matrix.target == 'nrf'
         run: ./build.py --nrf-only
 
+      - name: Install imgtool and sign (nRF smoke)
+        if: matrix.target == 'nrf'
+        run: |
+          pip install imgtool
+          nix develop --command bash -lc \
+            "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_mocap_node build/nrf/nrf52_mocap_node.hex"
+          ./scripts/sign_firmware.sh \
+            build/nrf/nrf52_mocap_node.hex \
+            keys/dev_signing_key.pem \
+            "1.0.0+${GITHUB_RUN_NUMBER:-0}" \
+            build/nrf/nrf52_mocap_node_signed.hex
+
       - name: Package nRF artifacts
         if: matrix.target == 'nrf'
         run: |
           mkdir -p artifacts/nrf
           cp build/nrf/nrf52_blinky artifacts/nrf/
           cp build/nrf/nrf52_mocap_node artifacts/nrf/
+          cp build/nrf/nrf52_mocap_node_signed.hex artifacts/nrf/
           nix develop --command bash -lc "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_blinky artifacts/nrf/nrf52_blinky.hex"
           nix develop --command bash -lc "arm-none-eabi-objcopy -O ihex build/nrf/nrf52_mocap_node artifacts/nrf/nrf52_mocap_node.hex"
 

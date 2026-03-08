@@ -74,6 +74,10 @@ int main() {
         while (true) delay.delayMs(1000);
     }
 
+    // Sensors initialised successfully — confirm the running image so MCUboot
+    // does not revert it on the next reset (no-op in OVERWRITE_ONLY mode).
+    xiao_ota_confirm_image();
+
     sf::MocapNodePipeline::Config nodeCfg{};
     nodeCfg.dtSeconds = profile.dtSeconds;
     nodeCfg.preferMag = true;
