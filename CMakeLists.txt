@@ -23,6 +23,14 @@ target_include_directories(helix_mocap_common PUBLIC
     external/SensorFusion/drivers/hal
 )
 
+add_library(helix_ota STATIC
+    firmware/common/ota/OtaManager.cpp
+    firmware/common/ota/BleOtaService.cpp
+)
+target_include_directories(helix_ota PUBLIC
+    firmware/common/ota
+)
+
 if(HELIXDRIFT_BUILD_TESTS)
     enable_testing()
     include(FetchContent)
@@ -40,11 +48,24 @@ if(HELIXDRIFT_BUILD_TESTS)
         tests/test_mocap_node_loop.cpp
         tests/test_timestamp_synchronized_transport.cpp
         tests/test_mocap_profiles.cpp
+        tests/test_ota_manager.cpp
+        tests/test_esp32_ota_flash_backend.cpp
+        tests/test_ble_ota_service.cpp
+        examples/esp32s3-mocap-node/src/Esp32OtaFlashBackend.cpp
     )
+    target_include_directories(helix_tests PRIVATE
+        tests/mocks
+        firmware/common/ota
+        tools/esp/stubs/include
+        examples/esp32s3-mocap-node/src
+    )
+    target_compile_definitions(helix_tests PRIVATE ESP32_STUB)
     target_link_libraries(helix_tests PRIVATE
         helix_blink
         helix_mocap_common
+        helix_ota
         GTest::gtest_main
+        GTest::gmock
     )
     include(GoogleTest)
     gtest_discover_tests(helix_tests)
