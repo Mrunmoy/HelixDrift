@@ -41,6 +41,11 @@ if(HELIXDRIFT_BUILD_TESTS)
     )
     FetchContent_MakeAvailable(googletest)
 
+    # SensorFusion submodule — drivers + middleware (tests and app disabled).
+    set(SENSORFUSION_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(SENSORFUSION_BUILD_APP   OFF CACHE BOOL "" FORCE)
+    add_subdirectory(external/SensorFusion)
+
     add_executable(helix_tests
         tests/test_blink_engine.cpp
         tests/test_mocap_ble_sender.cpp
@@ -51,19 +56,24 @@ if(HELIXDRIFT_BUILD_TESTS)
         tests/test_ota_manager.cpp
         tests/test_esp32_ota_flash_backend.cpp
         tests/test_ble_ota_service.cpp
+        tests/test_sensor_fusion_task.cpp
         examples/esp32s3-mocap-node/src/Esp32OtaFlashBackend.cpp
+        examples/wroom32-mocap-node/src/SensorFusionTask.cpp
     )
     target_include_directories(helix_tests PRIVATE
         tests/mocks
         firmware/common/ota
         tools/esp/stubs/include
         examples/esp32s3-mocap-node/src
+        examples/wroom32-mocap-node/src
     )
     target_compile_definitions(helix_tests PRIVATE ESP32_STUB)
     target_link_libraries(helix_tests PRIVATE
         helix_blink
         helix_mocap_common
         helix_ota
+        sensorfusion_drivers
+        sensorfusion_middleware
         GTest::gtest_main
         GTest::gmock
     )

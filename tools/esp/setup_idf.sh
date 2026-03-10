@@ -12,5 +12,5 @@ if [[ ! -x "${IDF_DIR}/install.sh" ]]; then
   exit 1
 fi
 
-# Installs tools for ESP32-S3 target (idempotent).
-"${IDF_DIR}/install.sh" esp32s3
+# Installs tools for ESP32 and ESP32-S3 targets (idempotent).
+"${IDF_DIR}/install.sh" esp32,esp32s3

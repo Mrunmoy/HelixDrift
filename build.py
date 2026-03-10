@@ -39,6 +39,19 @@ def build_esp32s3(repo_root):
     run(f"bash -lc {shlex.quote(esp_cmd)}", repo_root)
 
 
+def build_wroom32(repo_root):
+    run("git submodule update --init external/SensorFusion third_party/esp-idf", repo_root)
+    run("bash tools/esp/setup_idf.sh", repo_root)
+    run("rm -rf build/wroom32", repo_root)
+    esp_cmd = (
+        "source third_party/esp-idf/export.sh && "
+        "idf.py -C examples/wroom32-mocap-node "
+        "-B build/wroom32 "
+        "set-target esp32 build"
+    )
+    run(f"bash -lc {shlex.quote(esp_cmd)}", repo_root)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="HelixDrift build orchestrator."
@@ -56,6 +69,10 @@ def main():
         help="Build ESP32-S3 target only."
     )
     parser.add_argument(
+        "--wroom32-only", action="store_true",
+        help="Build ESP32-WROOM-32 target only."
+    )
+    parser.add_argument(
         "--clean", action="store_true",
         help="Remove build directory before building."
     )
@@ -63,19 +80,22 @@ def main():
     args = parser.parse_args()
     repo_root = os.path.dirname(os.path.abspath(__file__))
 
-    selected = int(args.host_only) + int(args.esp32s3_only)
+    selected = int(args.host_only) + int(args.esp32s3_only) + int(args.wroom32_only)
     if selected > 1:
-        print("cannot combine --host-only and --esp32s3-only", file=sys.stderr)
+        print("cannot combine --host-only, --esp32s3-only, --wroom32-only", file=sys.stderr)
         return 2
 
     if args.clean:
         run("rm -rf build", repo_root)
 
-    if not args.esp32s3_only:
+    if not args.esp32s3_only and not args.wroom32_only:
         build_host(repo_root, args.test)
 
-    if not args.host_only:
+    if not args.host_only and not args.wroom32_only:
         build_esp32s3(repo_root)
+
+    if args.wroom32_only:
+        build_wroom32(repo_root)
 
     return 0
 

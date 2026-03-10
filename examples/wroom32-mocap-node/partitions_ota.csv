@@ -1,0 +1,19 @@
+# Partition table for ESP32-WROOM-32 (4 MB flash) with dual-OTA support.
+#
+# Layout:
+#   0x0000_0000  2nd-stage bootloader  ~32 KB  (ESP-IDF managed)
+#   0x0000_8000  Partition table         4 KB
+#   0x0000_9000  NVS                    16 KB
+#   0x0000_D000  OTA data                8 KB  (tracks active OTA slot)
+#   0x0000_F000  PHY init                4 KB
+#   0x0001_0000  OTA slot 0           1920 KB  (active / factory image)
+#   0x001F_0000  OTA slot 1           1920 KB  (update target)
+#
+# Total: 0x3D0000 = ~3.8 MB  < 4 MB flash
+#
+# Name,     Type,  SubType,  Offset,    Size
+nvs,        data,  nvs,      0x9000,    0x4000,
+otadata,    data,  ota,      0xd000,    0x2000,
+phy_init,   data,  phy,      0xf000,    0x1000,
+ota_0,      app,   ota_0,    0x10000,   0x1E0000,
+ota_1,      app,   ota_1,    0x1F0000,  0x1E0000,
