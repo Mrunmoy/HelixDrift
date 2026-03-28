@@ -123,8 +123,10 @@ TEST(VirtualMocapNodeHarnessTest, RunForDurationCollectsExpectedSamplesAndStats)
     ASSERT_EQ(result.samples.size(), 5u);
     EXPECT_EQ(result.samples.front().timestampUs, 20000u);
     EXPECT_EQ(result.samples.back().timestampUs, 100000u);
+    EXPECT_TRUE(std::isfinite(result.meanErrorDeg));
     EXPECT_TRUE(std::isfinite(result.rmsErrorDeg));
     EXPECT_TRUE(std::isfinite(result.maxErrorDeg));
+    EXPECT_GE(result.meanErrorDeg, 0.0f);
     EXPECT_GE(result.maxErrorDeg, 0.0f);
     EXPECT_GE(result.rmsErrorDeg, 0.0f);
 }
@@ -237,10 +239,52 @@ TEST(VirtualMocapNodeHarnessTest, RunForDurationReturnsEmptyResultWhenStepIsZero
     const NodeRunResult result = harness.runForDuration(100000, 0);
 
     EXPECT_TRUE(result.samples.empty());
+    EXPECT_EQ(result.meanErrorDeg, 0.0f);
     EXPECT_EQ(result.rmsErrorDeg, 0.0f);
     EXPECT_EQ(result.maxErrorDeg, 0.0f);
     EXPECT_EQ(result.finalErrorDeg, 0.0f);
     EXPECT_EQ(result.driftRateDegPerMin, 0.0f);
+}
+
+TEST(VirtualMocapNodeHarnessTest, RunWithWarmupDiscardsWarmupSamplesFromResult) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+
+    const NodeRunResult result = harness.runWithWarmup(3, 5, 20000);
+
+    ASSERT_EQ(result.samples.size(), 5u);
+    EXPECT_EQ(result.samples.front().timestampUs, 80000u);
+    EXPECT_EQ(result.samples.back().timestampUs, 160000u);
+    EXPECT_EQ(harness.captureTransport().frames.size(), 8u);
+}
+
+TEST(VirtualMocapNodeHarnessTest, RunWithWarmupReturnsEmptyWhenMeasuredStepsAreZero) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+
+    const NodeRunResult result = harness.runWithWarmup(5, 0, 20000);
+
+    EXPECT_TRUE(result.samples.empty());
+    EXPECT_EQ(result.meanErrorDeg, 0.0f);
+    EXPECT_EQ(result.rmsErrorDeg, 0.0f);
+    EXPECT_EQ(result.maxErrorDeg, 0.0f);
+}
+
+TEST(VirtualMocapNodeHarnessTest, RunWithWarmupTracksYawMotionWithFiniteSummaryMetrics) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+    harness.assembly().gimbal().setRotationRate({0.0f, 0.0f, 0.314f});
+
+    const NodeRunResult result = harness.runWithWarmup(5, 10, 20000);
+
+    ASSERT_EQ(result.samples.size(), 10u);
+    EXPECT_TRUE(std::isfinite(result.meanErrorDeg));
+    EXPECT_TRUE(std::isfinite(result.rmsErrorDeg));
+    EXPECT_TRUE(std::isfinite(result.maxErrorDeg));
+    EXPECT_GE(result.maxErrorDeg, result.meanErrorDeg);
+    EXPECT_GE(result.rmsErrorDeg, result.meanErrorDeg);
 }
 
 TEST(VirtualMocapNodeHarnessTest, YawSweepThenHoldStaysWithinBoundedError) {
