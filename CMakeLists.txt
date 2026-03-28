@@ -35,6 +35,8 @@ target_include_directories(helix_ota PUBLIC
 add_library(helix_simulators STATIC
     simulators/i2c/VirtualI2CBus.cpp
     simulators/sensors/Lps22dfSimulator.cpp
+    simulators/sensors/Lsm6dsoSimulator.cpp
+    simulators/sensors/Bmm350Simulator.cpp
 )
 target_include_directories(helix_simulators PUBLIC
     simulators/i2c
@@ -87,6 +89,8 @@ if(HELIXDRIFT_BUILD_TESTS)
     add_executable(helix_integration_tests
         simulators/tests/test_virtual_i2c_bus.cpp
         simulators/tests/test_lps22df_simulator.cpp
+        simulators/tests/test_bmm350_simulator.cpp
+        simulators/tests/test_lsm6dso_simulator.cpp
     )
     target_include_directories(helix_integration_tests PRIVATE
         simulators/i2c
