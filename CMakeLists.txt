@@ -89,6 +89,24 @@ if(HELIXDRIFT_BUILD_TESTS)
     include(GoogleTest)
     gtest_discover_tests(helix_tests)
 
+    # SensorFusion drivers library (for integration tests)
+    add_library(helix_sensorfusion STATIC
+        external/SensorFusion/drivers/lsm6dso/LSM6DSO.cpp
+        external/SensorFusion/drivers/bmm350/BMM350.cpp
+        external/SensorFusion/drivers/lps22df/LPS22DF.cpp
+        external/SensorFusion/middleware/motion/MocapNodePipeline.cpp
+        external/SensorFusion/middleware/ahrs/MahonyAHRS.cpp
+    )
+    target_include_directories(helix_sensorfusion PUBLIC
+        external/SensorFusion/drivers/lsm6dso
+        external/SensorFusion/drivers/bmm350
+        external/SensorFusion/drivers/lps22df
+        external/SensorFusion/middleware/motion
+        external/SensorFusion/middleware/ahrs
+        external/SensorFusion/drivers/hal
+        external/SensorFusion/middleware/common
+    )
+
     # Integration tests (simulators)
     add_executable(helix_integration_tests
         simulators/tests/test_virtual_i2c_bus.cpp
@@ -97,6 +115,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_lsm6dso_simulator.cpp
         simulators/tests/test_at24cxx_simulator.cpp
         simulators/tests/test_virtual_gimbal.cpp
+        simulators/tests/test_sensor_fusion_integration.cpp
     )
     target_include_directories(helix_integration_tests PRIVATE
         simulators/i2c
@@ -108,6 +127,7 @@ if(HELIXDRIFT_BUILD_TESTS)
     )
     target_link_libraries(helix_integration_tests PRIVATE
         helix_simulators
+        helix_sensorfusion
         GTest::gtest_main
         GTest::gmock
     )
