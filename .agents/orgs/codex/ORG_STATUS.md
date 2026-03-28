@@ -33,6 +33,9 @@
   - Wave A A5 Mahony bias-rejection proof in a standalone experiment file
   - Wave A A1 static-yaw probe and escalation evidence
   - Wave A A3 long-duration drift proof for identity-start operation
+  - Wave A A6 two-node joint-angle proof for near-identity initialization
+  - Additional A1a and A2 probe evidence showing current redirected thresholds
+    are still too aggressive for the present SensorFusion behavior
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -78,6 +81,10 @@
   intermediate-entry conditions instead of forcing false acceptance tests
 - Task: After Claude Sprint 5 redirect, close A3 first, then move to A1a
   small-offset static accuracy instead of retrying blocked large-angle cases
+- Task: Keep A1a and A2 in evidence-gathering mode until Claude or SensorFusion
+  changes justify codifying them as acceptance tests
+- Task: Use A6 joint-angle recovery as the next valid M2 proof slice because it
+  remains accurate despite the blocked absolute static-offset path
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

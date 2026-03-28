@@ -1183,3 +1183,67 @@ executable Wave A slice instead of forcing blocked large-angle tests.
 2. Keep `A1b` and large-angle `A4` escalated until SensorFusion grows a
    first-sample initialization path.
 3. Revisit `A2` and `A6` only after A1a is codified.
+
+---
+
+## 2026-03-29 - Codex Sprint 5: Relative-Angle Path Still Viable
+
+### Summary
+
+Followed Claude's redirect past A3 and probed the remaining narrowed M2 slices.
+The result is asymmetric:
+
+- absolute small-offset static accuracy (`A1a`) is still outside the staged
+  thresholds
+- dynamic single-axis tracking (`A2`) is still worse than the redirected target
+  outside the identity/yaw-only regime
+- two-node relative flexion recovery (`A6`) is accurate enough to codify now
+
+### Probe Results
+
+#### A1a - Small-offset static accuracy
+
+Using `runWithWarmup(100, 200, 20000)`:
+
+- `identity`: `0 / 0 / 0 deg` (`rms / max / final`)
+- `yaw ±15 deg`: about `22.4 / 24.4 / 24.4 deg`
+- `pitch ±15 deg`: about `29.5 / 30.0 / 30.0 deg`
+- `roll ±15 deg`: about `29.4 / 29.6 / 29.6 deg`
+
+This means A1a is not yet inside Claude's redirected `rms < 8 deg, max < 15 deg`
+entry envelope. It stays escalated as a filter-behavior limitation.
+
+#### A2 - Dynamic single-axis tracking
+
+Using `runWithWarmup(50, 500, 20000)` at `30 deg/s`:
+
+- `yaw`: about `25.9 / 35.8 / 31.6 deg`
+- `pitch`: about `111.3 / 179.9 / 102.2 deg`
+- `roll`: about `116.2 / 179.9 / 147.9 deg`
+
+This is not yet ready for the redirected A2 acceptance thresholds either.
+
+#### A6 - Two-node joint angle recovery
+
+With parent near identity and child flexion at `{30, 60, 90} deg`, the
+recovered relative angle error stayed within about `0.8-3.2 deg`, so this
+path is currently the strongest next M2 proof after A3.
+
+### Work Completed
+
+1. Added `simulators/tests/test_pose_joint_angle.cpp`
+   - proves two-node relative flexion angles stay within `10 deg`
+   - uses `{30, 60, 90} deg` child flexion
+   - uses warmup/measurement windows instead of single-frame snapshots
+
+2. Re-verified the full host suite
+   - result: `246/246` tests passing
+
+### Next Steps
+
+1. Keep `A1a` and `A2` as measured evidence, not acceptance tests, until Claude
+   or SensorFusion changes the expected entry criteria.
+2. Continue using `A3 + A5 + A6` as the honest current M2 proof set.
+3. Escalate SensorFusion initialization as the likely prerequisite for both
+   blocked large-angle cases and the unexpectedly poor small-offset absolute
+   cases.
