@@ -133,10 +133,10 @@ TEST_F(Lsm6dsoSimulatorTest, Accel_RolledOrientation_ReadsGravityInX) {
     float y = rawY * accelSens * 0.001f;
     float z = rawZ * accelSens * 0.001f;
     
-    // When rolled 90 degrees, gravity should point in +Y direction
-    // (positive roll around X moves Y toward Z)
+    // When rolled 90 degrees, gravity should point in -Y direction
+    // (positive roll around X rotates Y toward Z, so world Z points to sensor -Y)
     EXPECT_NEAR(x, 0.0f, 0.01f);
-    EXPECT_NEAR(y, 1.0f, 0.01f);
+    EXPECT_NEAR(y, -1.0f, 0.01f);
     EXPECT_NEAR(z, 0.0f, 0.05f); // Small tolerance for Z
 }
 
