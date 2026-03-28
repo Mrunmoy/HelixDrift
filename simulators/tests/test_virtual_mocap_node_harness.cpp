@@ -142,3 +142,52 @@ TEST(VirtualMocapNodeHarnessTest, RunForDurationTracksShortYawMotionWithFiniteEr
     EXPECT_TRUE(std::isfinite(result.maxErrorDeg));
     EXPECT_LT(result.maxErrorDeg, 40.0f);
 }
+
+TEST(VirtualMocapNodeHarnessTest, SameSeedProducesDeterministicRunStatisticsAcrossHarnesses) {
+    VirtualMocapNodeHarness harnessA;
+    VirtualMocapNodeHarness harnessB;
+    harnessA.setSeed(1357);
+    harnessB.setSeed(1357);
+
+    harnessA.assembly().imuSim().setAccelNoiseStdDev(0.01f);
+    harnessB.assembly().imuSim().setAccelNoiseStdDev(0.01f);
+    harnessA.assembly().imuSim().setGyroNoiseStdDev(0.005f);
+    harnessB.assembly().imuSim().setGyroNoiseStdDev(0.005f);
+    harnessA.assembly().baroSim().setPressureNoiseStdDev(0.1f);
+    harnessB.assembly().baroSim().setPressureNoiseStdDev(0.1f);
+
+    Bmm350Simulator::ErrorConfig magErrors{};
+    magErrors.noiseStdDev = 0.2f;
+    harnessA.assembly().magSim().setErrors(magErrors);
+    harnessB.assembly().magSim().setErrors(magErrors);
+
+    ASSERT_TRUE(harnessA.initAll());
+    ASSERT_TRUE(harnessB.initAll());
+    harnessA.resetAndSync();
+    harnessB.resetAndSync();
+    harnessA.assembly().gimbal().setRotationRate({0.05f, 0.0f, 0.2f});
+    harnessB.assembly().gimbal().setRotationRate({0.05f, 0.0f, 0.2f});
+
+    const NodeRunResult resultA = harnessA.runForDuration(200000, 20000);
+    const NodeRunResult resultB = harnessB.runForDuration(200000, 20000);
+
+    ASSERT_EQ(resultA.samples.size(), resultB.samples.size());
+    ASSERT_FALSE(resultA.samples.empty());
+    EXPECT_FLOAT_EQ(resultA.rmsErrorDeg, resultB.rmsErrorDeg);
+    EXPECT_FLOAT_EQ(resultA.maxErrorDeg, resultB.maxErrorDeg);
+    EXPECT_FLOAT_EQ(resultA.finalErrorDeg, resultB.finalErrorDeg);
+    EXPECT_FLOAT_EQ(resultA.driftRateDegPerMin, resultB.driftRateDegPerMin);
+}
+
+TEST(VirtualMocapNodeHarnessTest, RunForDurationComputesFinalAndDriftMetrics) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+    harness.assembly().gimbal().setRotationRate({0.0f, 0.0f, 0.314f});
+
+    const NodeRunResult result = harness.runForDuration(200000, 20000);
+
+    ASSERT_FALSE(result.samples.empty());
+    EXPECT_FLOAT_EQ(result.finalErrorDeg, result.samples.back().angularErrorDeg);
+    EXPECT_TRUE(std::isfinite(result.driftRateDegPerMin));
+}
