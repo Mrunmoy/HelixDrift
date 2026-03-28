@@ -2,69 +2,56 @@
 
 ## Org Lead
 
-- Lead session: claude-org team lead
+- Lead session: claude-org team lead (Systems Architect + Review Board mode)
 - Lead worktree: repo root
-- Integration worktree: repo root (Claude does not edit implementation code)
+- Integration worktree: repo root
 
 ## Active Teams
 
 | Team | Mission | Write Scope | Status |
 |---|---|---|---|
-| Systems Architect (lead) | Roadmap, backlog, interfaces, cross-org coordination | `TASKS.md`, `.agents/`, `docs/` (non-research) | idle — sprint complete |
-| Pose Inference (teammate) | Define v1 spatial output requirements and feasibility | `docs/pose-inference-*.md` | complete |
-| Review Board | Peer review of Codex/Kimi deliverables | Review-only across all scopes | on-demand |
+| Systems Architect (lead) | Execution sequencing, milestone tracking, merge decisions | `TASKS.md`, `.agents/`, `docs/` | idle — sprint 3 complete |
+| Review Board (lead) | Reviewed Codex harness hardening (23cd2ed) | Review-only | idle — sprint 3 complete |
+| Pose Inference | Experiment specs delivered in sprint 2 | `docs/` | idle |
+
+## Sprint 3 Deliverables (2026-03-29)
+
+| Deliverable | File |
+|---|---|
+| Execution sequencing (next 2 waves) | `docs/CODEX_NEXT_WAVES.md` |
+| Codex harness hardening review | Section in CODEX_NEXT_WAVES.md |
+| Kimi adversarial review response | Section in CODEX_NEXT_WAVES.md |
+| Updated ORG_STATUS | This file |
+
+## Signoff History
+
+| Codex Commit | Verdict | Conditions |
+|---|---|---|
+| Wave 1 (pre-23cd2ed) | Ready with conditions | setSeed, Kp/Ki config, lastFrame guard |
+| 23cd2ed (harness hardening) | **APPROVED for merge** | All conditions met |
 
 ## Planning Gate
 
-- Problems currently owned:
-  1. Pose inference v1 requirements definition — COMPLETE
-  2. Pose inference feasibility analysis — COMPLETE
-  3. Sensor validation acceptance criteria — COMPLETE
-  4. SimulationHarness interface contract — COMPLETE
-  5. Backlog reconciliation — COMPLETE
+- Problems currently owned: execution sequencing, merge decisions, milestone assessment
+- Writable scopes: `.agents/`, `docs/`, `TASKS.md`
+- Review-only: all implementation code
+- Blocked scopes: none
+- No-duplication check: YES
+- Approved to execute: YES
 
-- Writable scopes currently claimed:
-  - `.agents/`
-  - `docs/` (excluding future `docs/research/`)
-  - `TASKS.md`
+## Milestone Status (as of sprint 3)
 
-- Review-only scopes:
-  - `simulators/` (all code and tests)
-  - `tests/`
-  - `firmware/common/`
-  - `tools/`
-  - `examples/`
-  - `.agents/orgs/codex/`
-  - `.agents/orgs/kimi/`
+| Milestone | % | Key blocker |
+|---|---|---|
+| M1: Per-Sensor Proof | ~85% | Remaining validation matrix gaps (Wave B4) |
+| M2: Single-Node Assembly | ~40% → targeting ~85% after Wave A | 6 orientation/filter tests |
+| M3: Node Runtime | ~20% | Cadence + transport tested, more needed |
+| M4: RF/Sync | 0% | Blocked on RF medium implementation |
+| M5-M6: Calibration + Multi-node | 0% | Blocked on mag environment |
+| M7: Platform Port | 0% | Blocked on M1-M3 completion |
 
-- Blocked or contested scopes: None
-- No-duplication check completed: YES
-- Approved to execute: YES (operator gave go-ahead 2026-03-29)
+## Next Activation Trigger
 
-## Completed Deliverables (2026-03-29 Sprint)
-
-| # | Deliverable | File | Owner |
-|---|---|---|---|
-| 1 | Pose inference v1 requirements | `docs/pose-inference-requirements.md` | Pose Inference teammate |
-| 2 | Pose inference feasibility analysis | `docs/pose-inference-feasibility.md` | Pose Inference teammate |
-| 3 | Sensor validation acceptance matrix | `docs/sensor-validation-matrix.md` | Systems Architect (lead) |
-| 4 | SimulationHarness interface spec | `docs/simulation-harness-interface.md` | Systems Architect (lead) |
-| 5 | Unified execution plan | `docs/SIMULATION_TASKS.md` | Systems Architect (lead) |
-| 6 | ORG_STATUS planning gate | `.agents/orgs/claude/ORG_STATUS.md` | Systems Architect (lead) |
-| 7 | Dev journal entry | `simulators/docs/DEV_JOURNAL.md` | Systems Architect (lead) |
-
-## Reviews
-
-- Requested from: Codex (implementation feasibility), Kimi (adversarial)
-- Received from: none yet
-- Findings outstanding: none
-
-## Next Actions (when operator gives go-ahead)
-
-1. Review Board: review first Codex Wave 1 deliverables when produced
-2. Systems Architect: plan Milestones 3-7 task breakdown after M1/M2 progress
-3. Pose Inference: define first two kinematic simulation experiments for Fusion team
-
-## Integration State
-
-- Ready for top-level integration: yes (all docs, no code conflicts)
+Claude org activates next when:
+- Codex completes Wave A (experiments 1-6) — Review Board signoff cycle
+- Or Codex requests architectural guidance on RF/sync or mag infrastructure
