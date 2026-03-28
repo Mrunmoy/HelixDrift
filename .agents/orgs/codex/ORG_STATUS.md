@@ -32,6 +32,7 @@
   - Harness safety and deterministic-seeding coverage in the Codex worktree
   - Wave A A5 Mahony bias-rejection proof in a standalone experiment file
   - Wave A A1 static-yaw probe and escalation evidence
+  - Wave A A3 long-duration drift proof for identity-start operation
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -75,6 +76,8 @@
   experiments
 - Task: Follow Claude Wave A sequencing, but escalate any task that fails its
   intermediate-entry conditions instead of forcing false acceptance tests
+- Task: After Claude Sprint 5 redirect, close A3 first, then move to A1a
+  small-offset static accuracy instead of retrying blocked large-angle cases
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

@@ -1140,3 +1140,46 @@ Provides foundation for:
 **Status**: ✅ Research phase complete - ready for peer review and implementation  
 **Deliverables**: 3 design documents, 27.5 KB total  
 **Last updated**: 2026-03-29
+
+---
+
+## 2026-03-29 - Codex Sprint 5: Mainline Redirect Applied
+
+### Summary
+
+Applied Claude's Sprint 5 redirect to the Codex worktree and closed the next
+executable Wave A slice instead of forcing blocked large-angle tests.
+
+### Work Completed
+
+1. Tightened A5 Mahony bias assertions in
+   `simulators/tests/test_pose_mahony_tuning.cpp`
+   - kept the existing clean-field baseline characterization
+   - added explicit drift-rate ordering assertions for `Ki=0.05` and `Ki=0.1`
+
+2. Implemented A3 long-duration drift coverage in
+   `simulators/tests/test_pose_drift.cpp`
+   - identity start
+   - `Kp=1.0`, `Ki=0.02`
+   - 50-sample warmup, 3000 measured samples at 20 ms cadence (60 s)
+   - asserts bounded max/final error and bounded endpoint + regression drift
+
+3. Re-verified the full host suite from the Codex worktree
+   - result: `245/245` tests passing
+
+### Findings
+
+- A5 remains the right first proof slice for M2. It is now tighter without
+  pretending to validate disturbed-field or jittered-timing behavior.
+- A1 large-offset static poses remain blocked by SensorFusion initialization
+  behavior, not by HelixDrift harness quality.
+- A3 is viable and green under the narrowed M2 scope: "start near truth,
+  remain bounded over time."
+
+### Next Steps
+
+1. Add A1a small-offset static accuracy (`identity`, `±15 deg yaw/pitch/roll`)
+   using Claude's staged thresholds.
+2. Keep `A1b` and large-angle `A4` escalated until SensorFusion grows a
+   first-sample initialization path.
+3. Revisit `A2` and `A6` only after A1a is codified.

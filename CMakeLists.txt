@@ -113,6 +113,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_virtual_sensor_assembly.cpp
         simulators/tests/test_virtual_mocap_node_harness.cpp
         simulators/tests/test_sim_metrics.cpp
+        simulators/tests/test_pose_drift.cpp
         simulators/tests/test_pose_mahony_tuning.cpp
         simulators/tests/test_lps22df_simulator.cpp
         simulators/tests/test_bmm350_simulator.cpp
