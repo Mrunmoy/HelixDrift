@@ -24,6 +24,11 @@
     implemented in the simulators
   - Host-side virtual sensor-assembly harness for reusable dual-bus,
     three-sensor composition
+  - Host-side virtual mocap node harness with cadence, capture transport, and
+    timestamp-mapping proof
+  - Basic pose-quality metrics suitable for bounded host assertions
+  - Short-horizon motion-regression assertions on the virtual node harness
+  - Batched run support with summary pose-error stats for future experiments
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -59,8 +64,9 @@
 ## Current Work
 
 - Task: Add deterministic per-sensor simulator seeding and document standalone sensor proof criteria
-- Task: Deliver the Sensor Validation slice and build a reusable virtual sensor
-  assembly harness for host integration work
+- Task: Deliver the Sensor Validation slice, reusable sensor-assembly harness,
+  virtual mocap node harness, and first pose-metric assertions for host
+  integration work
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

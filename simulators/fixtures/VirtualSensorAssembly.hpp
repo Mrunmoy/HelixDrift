@@ -56,6 +56,12 @@ public:
         return imu_.init() && mag_.init() && baro_.init();
     }
 
+    void setSeed(uint32_t seed) {
+        imuSim_->setSeed(seed);
+        magSim_->setSeed(seed + 1u);
+        baroSim_->setSeed(seed + 2u);
+    }
+
     void advanceTimeUs(uint64_t deltaUs) {
         delay_->timestampUs += deltaUs;
     }

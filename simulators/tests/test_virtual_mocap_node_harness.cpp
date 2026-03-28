@@ -74,3 +74,71 @@ TEST(VirtualMocapNodeHarnessTest, FlatPoseStaysWithinBoundedAngularError) {
     EXPECT_TRUE(std::isfinite(errorDeg));
     EXPECT_LT(errorDeg, 15.0f);
 }
+
+TEST(VirtualMocapNodeHarnessTest, ConstantYawMotionStaysWithinBoundedErrorForShortRun) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+    harness.assembly().gimbal().setRotationRate({0.0f, 0.0f, 0.314f});
+
+    for (int i = 0; i < 25; ++i) {
+        ASSERT_TRUE(harness.stepMotionAndTick(20000));
+    }
+
+    const float errorDeg =
+        angularErrorDeg(harness.assembly().gimbal().getOrientation(), harness.lastFrame().orientation);
+
+    EXPECT_TRUE(std::isfinite(errorDeg));
+    EXPECT_LT(errorDeg, 35.0f);
+}
+
+TEST(VirtualMocapNodeHarnessTest, StaticQuarterTurnConvergesWithinBoundedError) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+    harness.assembly().gimbal().setOrientation(sf::Quaternion::fromAxisAngle(0.0f, 0.0f, 1.0f, 45.0f));
+    harness.assembly().gimbal().syncToSensors();
+
+    for (int i = 0; i < 20; ++i) {
+        ASSERT_TRUE(harness.tick());
+        if (i != 19) {
+            harness.advanceTimeUs(20000);
+        }
+    }
+
+    const float errorDeg =
+        angularErrorDeg(harness.assembly().gimbal().getOrientation(), harness.lastFrame().orientation);
+
+    EXPECT_TRUE(std::isfinite(errorDeg));
+    EXPECT_LT(errorDeg, 55.0f);
+}
+
+TEST(VirtualMocapNodeHarnessTest, RunForDurationCollectsExpectedSamplesAndStats) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+
+    const NodeRunResult result = harness.runForDuration(100000, 20000);
+
+    ASSERT_EQ(result.samples.size(), 5u);
+    EXPECT_EQ(result.samples.front().timestampUs, 20000u);
+    EXPECT_EQ(result.samples.back().timestampUs, 100000u);
+    EXPECT_TRUE(std::isfinite(result.rmsErrorDeg));
+    EXPECT_TRUE(std::isfinite(result.maxErrorDeg));
+    EXPECT_GE(result.maxErrorDeg, 0.0f);
+    EXPECT_GE(result.rmsErrorDeg, 0.0f);
+}
+
+TEST(VirtualMocapNodeHarnessTest, RunForDurationTracksShortYawMotionWithFiniteErrors) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+    harness.assembly().gimbal().setRotationRate({0.0f, 0.0f, 0.314f});
+
+    const NodeRunResult result = harness.runForDuration(200000, 20000);
+
+    ASSERT_EQ(result.samples.size(), 10u);
+    EXPECT_TRUE(std::isfinite(result.rmsErrorDeg));
+    EXPECT_TRUE(std::isfinite(result.maxErrorDeg));
+    EXPECT_LT(result.maxErrorDeg, 40.0f);
+}

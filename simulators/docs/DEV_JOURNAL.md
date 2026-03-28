@@ -213,6 +213,114 @@ Result:
 - Long-horizon return-to-origin drift is still too weak to justify a strict
   quantitative threshold today.
 
+### Feature: Short-Horizon Motion Regression On Virtual Node Harness
+
+#### Intent
+
+Start using the virtual node harness for actual motion-quality regression rather
+than only structural checks. The goal is to add bounded short-horizon pose
+assertions without overstating what the current fusion stack can guarantee.
+
+#### Design Summary
+
+- Extend `VirtualMocapNodeHarness` with a single helper that advances gimbal
+  motion, synchronizes sensors, advances time, and ticks the node loop.
+- Add short-horizon regression tests for:
+  - constant yaw motion
+  - static quarter-turn convergence
+- Keep thresholds honest to current observed behavior rather than encoding
+  aspirational performance.
+
+#### Tests Added First
+
+- `VirtualMocapNodeHarnessTest.ConstantYawMotionStaysWithinBoundedErrorForShortRun`
+- `VirtualMocapNodeHarnessTest.StaticQuarterTurnConvergesWithinBoundedError`
+
+#### Implementation Summary
+
+- Added `stepMotionAndTick()` and `lastFrame()` to
+  `simulators/fixtures/VirtualMocapNodeHarness.hpp`.
+- Added two bounded motion-regression tests to
+  `simulators/tests/test_virtual_mocap_node_harness.cpp`.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "VirtualMocapNodeHarnessTest"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `220/220` host tests passing
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- The current motion-regression thresholds are intentionally coarse and only
+  cover short-horizon behavior.
+- Oscillation, compound motion, and return-to-origin quality remain future
+  work.
+- Convergence quality on static non-identity poses is still weak enough that
+  tighter bounds would currently fail.
+
+### Feature: Batched Node Runs And Summary Error Stats
+
+#### Intent
+
+Make the virtual node harness useful for upcoming experiment work by supporting
+batched runs and summary pose-error statistics, so future tests do not need to
+rebuild sample collection and error aggregation from scratch.
+
+#### Design Summary
+
+- Add a simple `NodeRunResult` with per-sample truth/fused orientation pairs,
+  angular error, RMS error, and max error.
+- Keep the implementation inside the existing virtual node harness rather than
+  introducing a larger new simulation subsystem prematurely.
+- Reuse the shared angular-error helper added earlier.
+
+#### Tests Added First
+
+- `VirtualMocapNodeHarnessTest.RunForDurationCollectsExpectedSamplesAndStats`
+- `VirtualMocapNodeHarnessTest.RunForDurationTracksShortYawMotionWithFiniteErrors`
+
+#### Implementation Summary
+
+- Added `CapturedNodeSample` and `NodeRunResult` to
+  `simulators/fixtures/VirtualMocapNodeHarness.hpp`.
+- Added `runForDuration()` plus summary-stat computation.
+- Kept summary metrics deliberately small: RMS error and max error only.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "VirtualMocapNodeHarnessTest"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `222/222` host tests passing
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- The batched run support is still quaternion-only and does not yet capture
+  health telemetry or richer sensor traces.
+- Summary metrics are intentionally minimal and do not yet include drift rate,
+  convergence time, or CSV export.
+
 ## 2026-03-29 - Day 1 (COMPLETE)
 
 ### Summary
