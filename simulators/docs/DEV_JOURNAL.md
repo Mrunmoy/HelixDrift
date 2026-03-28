@@ -1,5 +1,73 @@
 # Simulator Development Journal
 
+## 2026-03-29 - Claude Org Sprint 3: Execution Sequencing
+
+### Feature: Next-Wave Planning and Codex Harness Review
+
+#### Owning Team
+
+Claude / Systems Architect + Review Board
+
+#### Intent
+
+Review Codex harness hardening commit (23cd2ed), incorporate Kimi's
+adversarial review and RF/sync/mag specs, and produce an execution-sequencing
+document that gives Codex a clear, ordered implementation ladder with no
+duplicated work and no milestone thrash.
+
+#### Deliverables
+
+1. `docs/CODEX_NEXT_WAVES.md` — execution plan: Wave A (6 orientation/filter
+   tests, start now) and Wave B (CSV export, motion profiles, calibration,
+   sensor validation gaps). Explicitly defers RF/sync (M4) and mag
+   environment (M5-M6) until M2 closes.
+2. Updated `TASKS.md` — reconciled with Wave A/B structure, milestone summary,
+   and reference doc links.
+3. Updated `.agents/orgs/claude/ORG_STATUS.md`
+4. Codex 23cd2ed review: APPROVED FOR MERGE (all Sprint 2 conditions met).
+
+#### Review Findings (23cd2ed)
+
+- setSeed() propagation: confirmed
+- Configurable MocapNodePipeline::Config: confirmed
+- lastFrame() assert guard: confirmed
+- Bonus: NodeRunResult + runForDuration() + computeSummary()
+- Minor: driftRateDegPerMin uses (last-first)/elapsed instead of linear
+  regression. Acceptable simplification, noted.
+
+#### Kimi Inputs Assessed
+
+- Adversarial review: valid concerns for hardware transition (I2C timing,
+  temperature drift, Allan variance, mag disturbances). Not blocking for
+  M1-M2 simulation-first proof. Queued for M5-M6.
+- RF/sync spec: well-structured, ~24h implementation. Queued for M4 after
+  M2 closes.
+- Mag risk spec: well-structured, ~31h implementation. Queued for M5-M6.
+
+#### Key Decision
+
+Codex stays focused on closing M2. No interleaving with RF/sync or mag
+infrastructure. One milestone at a time minimizes wasted effort and merge
+churn.
+
+---
+
+## 2026-03-29 - Claude Org Sprint 2: Review + Experiments
+
+### Feature: Codex Wave 1 Review and Experiment Specs
+
+#### Owning Team
+
+Claude / Review Board + Systems Architect + Pose Inference
+
+#### Deliverables
+
+- `docs/CLAUDE_ORG_SPRINT2_REPORT.md` — review findings (1 blocker, 5
+  warnings), milestone assessment (M1 ~85%, M2 ~40%), 7 experiment specs
+  for Codex, consolidated next-step recommendations.
+
+---
+
 ## 2026-03-29 - Claude Org Architecture Sprint
 
 ### Feature: Design Docs for Simulation Testing Infrastructure
