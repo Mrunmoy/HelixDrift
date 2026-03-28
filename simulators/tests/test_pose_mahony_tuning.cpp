@@ -21,7 +21,10 @@ BiasRunMetrics runStationaryBiasCase(float gyroBiasZRadPerSec, float mahonyKi) {
 
     VirtualMocapNodeHarness harness(config);
     harness.setSeed(42);
-    EXPECT_TRUE(harness.initAll());
+    if (!harness.initAll()) {
+        ADD_FAILURE() << "VirtualMocapNodeHarness initAll() failed";
+        return {};
+    }
     harness.resetAndSync();
     harness.assembly().imuSim().setGyroBias({0.0f, 0.0f, gyroBiasZRadPerSec});
 
@@ -43,7 +46,7 @@ TEST(PoseMahonyTuningTest, GyroZBiasWithoutIntegralFeedbackShowsPositiveHeadingD
     const BiasRunMetrics baseline = runStationaryBiasCase(0.01f, 0.0f);
 
     ASSERT_EQ(baseline.run.samples.size(), 1500u);
-    EXPECT_GT(baseline.driftRateDegPerMin, 0.5f);
+    EXPECT_GT(baseline.driftRateDegPerMin, 0.5f); // Idealized clean-field floor for current M2 proof.
     EXPECT_GT(baseline.run.finalErrorDeg, 3.0f);
     EXPECT_GT(baseline.run.maxErrorDeg, 3.0f);
 }
@@ -62,8 +65,40 @@ TEST(PoseMahonyTuningTest, IntegralFeedbackReducesHeadingErrorFromGyroZBias) {
     EXPECT_LT(ki005.run.rmsErrorDeg, noIntegral.run.rmsErrorDeg);
     EXPECT_LT(ki01.run.rmsErrorDeg, ki005.run.rmsErrorDeg);
 
+    EXPECT_LT(ki005.driftRateDegPerMin, 0.0f);
+    EXPECT_LT(ki01.driftRateDegPerMin, 0.0f);
     EXPECT_LT(ki005.run.finalErrorDeg, 2.0f);
     EXPECT_LT(ki01.run.finalErrorDeg, 0.5f);
     EXPECT_LT(ki005.run.maxErrorDeg, 3.0f);
     EXPECT_LT(ki01.run.maxErrorDeg, 2.5f);
+}
+
+TEST(PoseMahonyTuningTest, GyroZBiasRemainsHarderToRejectThanGyroXBiasInCurrentHarness) {
+    VirtualMocapNodeHarness::Config config{};
+    config.pipeline.mahonyKp = 1.0f;
+    config.pipeline.mahonyKi = 0.1f;
+
+    VirtualMocapNodeHarness xBiasHarness(config);
+    VirtualMocapNodeHarness zBiasHarness(config);
+    xBiasHarness.setSeed(42);
+    zBiasHarness.setSeed(42);
+
+    ASSERT_TRUE(xBiasHarness.initAll());
+    ASSERT_TRUE(zBiasHarness.initAll());
+    xBiasHarness.resetAndSync();
+    zBiasHarness.resetAndSync();
+
+    xBiasHarness.assembly().imuSim().setGyroBias({0.01f, 0.0f, 0.0f});
+    zBiasHarness.assembly().imuSim().setGyroBias({0.0f, 0.0f, 0.01f});
+
+    const NodeRunResult xBias = xBiasHarness.runWithWarmup(50, 1500, 20000);
+    const NodeRunResult zBias = zBiasHarness.runWithWarmup(50, 1500, 20000);
+
+    ASSERT_EQ(xBias.samples.size(), 1500u);
+    ASSERT_EQ(zBias.samples.size(), 1500u);
+    // In the current clean-field simulator, heading correction against a Z-axis
+    // gyro bias remains the harder case. Keep this as characterization, not a
+    // universal physical claim.
+    EXPECT_GT(zBias.finalErrorDeg, xBias.finalErrorDeg);
+    EXPECT_GT(zBias.rmsErrorDeg, xBias.rmsErrorDeg);
 }
