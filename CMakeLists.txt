@@ -37,10 +37,14 @@ add_library(helix_simulators STATIC
     simulators/sensors/Lps22dfSimulator.cpp
     simulators/sensors/Lsm6dsoSimulator.cpp
     simulators/sensors/Bmm350Simulator.cpp
+    simulators/storage/At24CxxSimulator.cpp
+    simulators/gimbal/VirtualGimbal.cpp
 )
 target_include_directories(helix_simulators PUBLIC
     simulators/i2c
     simulators/sensors
+    simulators/storage
+    simulators/gimbal
     external/SensorFusion/drivers/hal
     external/SensorFusion/middleware/common
 )
@@ -91,10 +95,14 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_lps22df_simulator.cpp
         simulators/tests/test_bmm350_simulator.cpp
         simulators/tests/test_lsm6dso_simulator.cpp
+        simulators/tests/test_at24cxx_simulator.cpp
+        simulators/tests/test_virtual_gimbal.cpp
     )
     target_include_directories(helix_integration_tests PRIVATE
         simulators/i2c
         simulators/sensors
+        simulators/storage
+        simulators/gimbal
         external/SensorFusion/drivers/hal
         external/SensorFusion/middleware/common
     )
