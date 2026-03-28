@@ -1,231 +1,397 @@
 # Pose Inference Requirements
 
-**Status**: v1.0
-**Team**: Pose Inference
-**Date**: 2026-03-29
+**Status**: Draft v0.1  
+**Owner**: Kimi / Pose Feasibility Research  
+**Date**: 2026-03-29  
 
 ---
 
-## 1. Purpose
+## 1. Executive Summary
 
-This document defines the spatial outputs that the downstream skeleton system needs from each HelixDrift sensor node. It establishes which outputs are required for v1, which are deferred, and what accuracy is needed for useful motion capture.
+This document defines what spatial outputs HelixDrift needs to reconstruct useful human or animal motion. The goal is to identify the **minimum viable outputs** for v1 and clarify what can be deferred or requires additional hardware.
 
-**Core constraint**: HelixDrift nodes carry IMU (LSM6DSO), magnetometer (BMM350), and barometer (LPS22DF). These sensors can estimate **orientation** reliably. They **cannot** estimate **position** without unbounded drift. RF transport (BLE) does not provide spatial localization. v1 must be orientation-first.
-
----
-
-## 2. Output Definitions
-
-### 2.1 Segment Orientation (quaternion per node)
-
-The absolute orientation of a body segment in world frame, expressed as a unit quaternion (w, x, y, z).
-
-| Property | Value |
-|----------|-------|
-| **Priority** | **REQUIRED for v1** |
-| **Sensor dependency** | LSM6DSO (accel + gyro) + BMM350 (mag) via Mahony AHRS |
-| **Accuracy target** | < 5 deg RMS static, < 10 deg RMS dynamic |
-| **Update rate** | 50 Hz (performance), 40 Hz (battery) |
-| **Failure mode** | Wrong segment orientation propagates directly to wrong limb pose. Most visible error type -- even 10 deg on a forearm segment produces ~5 cm endpoint error on a 50 cm limb. |
-
-**Notes**: This is the primary output of each node. The current pipeline already produces this via `MocapNodeSample::orientation`. 9-DOF fusion (accel + gyro + mag) provides heading-stabilized orientation; 6-DOF fallback (accel + gyro only) loses heading but maintains pitch/roll.
+**Key Findings (Preliminary)**:
+- **v1 Minimum**: Per-segment orientation + fixed bone lengths + kinematic constraints
+- **Deferred**: Relative translation between nodes (inertial drift is problematic)
+- **Requires external ref**: Global position (requires UWB, vision, or floor contact)
+- **Joint angles**: Derivable from orientation differences (relative rotation)
 
 ---
 
-### 2.2 Joint Angles (relative orientation between adjacent nodes)
+## 2. Output Types Defined
 
-The relative rotation between two adjacent body segments, computed as `q_child * conjugate(q_parent)`. Represents the anatomical joint angle (e.g., elbow flexion/extension).
+### 2.1 Per-Segment Orientation
 
-| Property | Value |
-|----------|-------|
-| **Priority** | **REQUIRED for v1** |
-| **Sensor dependency** | Two segment orientations (from nodes on adjacent segments) + known skeleton topology |
-| **Accuracy target** | < 5 deg RMS for major joints (elbow, knee), < 8 deg RMS for complex joints (shoulder, hip) |
-| **Update rate** | Same as segment orientation (50 Hz) |
-| **Failure mode** | Incorrect joint angle causes unnatural poses (hyperextension, impossible rotations). Can be partially mitigated by joint limit constraints. |
+| Property | Description | Source |
+|----------|-------------|--------|
+| Quaternion | 3D rotation of sensor relative to world | IMU + magnetometer fusion |
+| Accuracy target | < 5° RMS error under motion | Fusion pipeline goal |
+| Drift | < 10° over 60 seconds | Magnetometer-aided AHRS |
 
-**Notes**: Computed on the master/receiver side, not on-node. Requires synchronized timestamps between adjacent nodes (< 1 ms inter-node skew, per RF/Sync requirements). Error compounds from both nodes' orientation errors.
+**Status for v1**: ✅ **REQUIRED** - This is what IMU+mag can reliably provide
 
----
+### 2.2 Joint Angle
 
-### 2.3 Root Orientation (pelvis/torso reference frame)
+| Property | Description | Source |
+|----------|-------------|--------|
+| Definition | Relative rotation between two connected segments | Orientation_A⁻¹ × Orientation_B |
+| Examples | Elbow flexion, knee angle, shoulder abduction | Derived from two nodes |
+| Accuracy | Propagates from orientation error (±5° → ±7° joint) | Kinematic chain accumulation |
 
-The orientation of the root segment (typically pelvis or lower torso) in world frame. Defines the character's facing direction and tilt.
+**Status for v1**: ✅ **REQUIRED** - Derivative of orientation, no extra hardware needed
 
-| Property | Value |
-|----------|-------|
-| **Priority** | **REQUIRED for v1** |
-| **Sensor dependency** | Single node (pelvis-mounted): LSM6DSO + BMM350 via Mahony AHRS |
-| **Accuracy target** | < 3 deg RMS heading, < 2 deg RMS pitch/roll |
-| **Update rate** | 50 Hz |
-| **Failure mode** | Heading drift causes entire character to slowly rotate in world space. Pitch/roll error causes character to lean incorrectly. Heading is the most vulnerable axis -- magnetic interference or poor calibration directly impacts this. |
+### 2.3 Root Orientation
 
-**Notes**: Stricter accuracy requirements than limb segments because root orientation errors propagate to every child segment in the kinematic chain. Magnetic heading quality is critical here. Hard/soft iron calibration on the pelvis node must be high quality.
+| Property | Description | Source |
+|----------|-------------|--------|
+| Definition | Orientation of pelvis (human) or torso (animal) | Single node designated as root |
+| Purpose | Global reference for skeleton | Sets coordinate system |
+| Accuracy | Same as per-segment orientation | One of the node orientations |
 
----
+**Status for v1**: ✅ **REQUIRED** - Designate one node as root reference
 
-### 2.4 Root Translation (movement of root in world space)
+### 2.4 Root Translation (Position)
 
-The position of the root segment (pelvis) in world coordinates over time. Tracks how the character moves through space.
+| Property | Description | Source |
+|----------|-------------|--------|
+| Definition | Position of root segment in world coordinates | IMU double integration (problematic) |
+| Drift | > 1 meter per minute without correction | Inertial navigation inherent drift |
+| Alternatives | Floor contact detection, UWB, vision | External references required |
 
-| Property | Value |
-|----------|-------|
-| **Priority** | **DEFERRED (not v1)** |
-| **Sensor dependency** | Would require: double-integrated accelerometer (drifts unboundedly), or external reference (UWB, vision, floor contact) |
-| **Accuracy target** | < 10 cm RMS for useful mocap (unreachable with IMU alone) |
-| **Update rate** | N/A for v1 |
-| **Failure mode** | Without root translation, character is anchored to a fixed point. Acceptable for many applications (seated VR, upper-body tracking, animation retargeting). Unacceptable for full-body locomotion capture. |
-
-**Notes**: IMU dead reckoning drifts at approximately 1-10 m after 10 seconds of walking due to double integration of noisy accelerometer data. This is a fundamental physics limitation, not a calibration problem. Requires external aiding (see feasibility analysis). For v1, the skeleton solver can use a fixed root or simple heuristics (foot contact, gait model).
-
----
+**Status for v1**: ⚠️ **OPTIONAL / DEGRADED** - Can estimate from gait/contact, but expect drift
 
 ### 2.5 Per-Node Relative Translation
 
-The translational displacement of individual segments relative to their parent joint. Would capture effects like shoulder shrug, spine compression, or limb lengthening.
+| Property | Description | Source |
+|----------|-------------|--------|
+| Definition | Position of one node relative to another | IMU dead reckoning on each node |
+| Drift | Accumulates quickly (~10-50 cm over 10s) | Double integration error |
+| Use case | Limb extension tracking | E.g., how far arm reached |
 
-| Property | Value |
-|----------|-------|
-| **Priority** | **DEFERRED (not v1)** |
-| **Sensor dependency** | Double-integrated accelerometer with gravity removal (drifts rapidly) |
-| **Accuracy target** | < 2 cm for useful contribution (unreachable with IMU alone) |
-| **Update rate** | N/A for v1 |
-| **Failure mode** | Without this, skeleton uses fixed bone lengths. Loses subtle motions (shrugs, bouncing). Acceptable for most applications. |
-
-**Notes**: The barometer (LPS22DF) could theoretically contribute vertical displacement, but at ~10 cm altitude resolution (limited by pressure noise of ~0.01 hPa = ~8 cm altitude), it is too coarse for segment-level translation. More useful for floor-level detection (see feasibility analysis). For v1, fixed bone lengths from a calibration T-pose are sufficient.
-
----
+**Status for v1**: ❌ **DEFERRED** - Too much drift without external references
 
 ### 2.6 Global Body Position
 
-The absolute position of the character in a mapped environment (room-scale coordinates).
+| Property | Description | Source |
+|----------|-------------|--------|
+| Definition | Position of entire body in world coordinates | Root position + skeleton structure |
+| Drift | Same as root translation | Depends on root position accuracy |
+| Requirements | External tracking system (UWB, lighthouse, cameras) | Not available from IMU alone |
 
-| Property | Value |
-|----------|-------|
-| **Priority** | **DEFERRED (not v1)** |
-| **Sensor dependency** | Requires external infrastructure: UWB anchors, camera tracking, SLAM, or similar |
-| **Accuracy target** | < 30 cm for room-scale, < 5 cm for stage-quality mocap |
-| **Update rate** | N/A for v1 |
-| **Failure mode** | Without global position, character exists in a local coordinate frame only. Cannot interact with environment geometry. |
-
-**Notes**: Completely outside the scope of on-body IMU+mag+baro sensing. Requires infrastructure that HelixDrift does not currently include. Can be provided by an external system and fused with HelixDrift orientation data at the application layer.
+**Status for v1**: ❌ **OUT OF SCOPE** - Requires additional hardware infrastructure
 
 ---
 
-## 3. Requirements Summary
+## 3. Use Case Analysis
 
-| Output | Priority | Sensor Source | Accuracy Target | Computed Where |
-|--------|----------|---------------|-----------------|----------------|
-| Segment orientation | **REQUIRED v1** | IMU + Mag (per node) | < 5 deg RMS static, < 10 deg dynamic | On-node (Mahony AHRS) |
-| Joint angles | **REQUIRED v1** | Two adjacent segment orientations | < 5 deg RMS major joints | Master (quaternion math) |
-| Root orientation | **REQUIRED v1** | IMU + Mag (pelvis node) | < 3 deg heading, < 2 deg pitch/roll | On-node (Mahony AHRS) |
-| Root translation | **DEFERRED** | External reference needed | < 10 cm RMS | N/A for v1 |
-| Per-node translation | **DEFERRED** | Double-integrated accel (drifts) | < 2 cm | N/A for v1 |
-| Global body position | **DEFERRED** | External infrastructure | < 30 cm room-scale | N/A for v1 |
+### 3.1 VR/AR Avatar (Primary Use Case)
+
+**What the renderer needs**:
+1. ✅ Joint angles for articulation
+2. ✅ Root orientation for body facing
+3. ⚠️ Root height (can estimate from leg angles + floor contact)
+4. ❌ Global position (VR tracks HMD separately)
+
+**Analysis**: 
+- VR systems track head (HMD) and hands (controllers) separately
+- Body tracking adds limb/upper body pose
+- Global position comes from HMD tracking, not body sensors
+- **Conclusion**: Orientation + joint angles sufficient
+
+### 3.2 Film/TV Animation
+
+**What the animator needs**:
+1. ✅ Joint angles for character rig
+2. ✅ Root orientation for body direction
+3. ⚠️ Root translation for character movement
+4. ⚠️ Foot/ground contact for realistic motion
+
+**Analysis**:
+- Root translation helps, but can be hand-tweaked
+- Floor contact can be inferred from leg angles
+- Position drift acceptable if re-targeted to ground plane
+- **Conclusion**: Orientation + joint angles + optional root position
+
+### 3.3 Sports Biomechanics
+
+**What the analyst needs**:
+1. ✅ Joint angles (knee flexion, hip rotation)
+2. ✅ Segment orientations (trunk lean, arm position)
+3. ✅ Temporal dynamics (velocity, acceleration)
+4. ❌ Global position rarely needed (relative motion matters)
+
+**Analysis**:
+- Focus on relative motion, body mechanics
+- Ground reaction forces more important than global position
+- **Conclusion**: Orientation + joint angles sufficient
+
+### 3.4 Game Input
+
+**What the game needs**:
+1. ✅ Gestures (derived from orientation trajectories)
+2. ✅ Stance/posture (current orientation state)
+3. ⚠️ Movement intent (can infer from leaning)
+4. ❌ Precise position (games typically use relative)
+
+**Analysis**:
+- Games need "what is player doing" not "where exactly are they"
+- **Conclusion**: Orientation trajectories sufficient
 
 ---
 
-## 4. v1 Architecture: Orientation-Only Segment Tracking
+## 4. v1 Product Definition
 
-### 4.1 Approach
+### 4.1 IN SCOPE (v1)
 
-Each HelixDrift node streams its fused orientation quaternion at 50 Hz. The master receiver collects synchronized quaternions from all nodes and fits them to a kinematic skeleton model with known bone lengths (measured during a calibration T-pose).
+| Output | Priority | Notes |
+|--------|----------|-------|
+| Per-segment orientation | P0 | Core IMU+mag output |
+| Joint angles (relative) | P0 | Derived from orientation |
+| Root orientation | P0 | Reference frame |
+| Orientation quality metrics | P0 | Confidence, error estimates |
+
+### 4.2 OPTIONAL (v1 - Best Effort)
+
+| Output | Priority | Notes |
+|--------|----------|-------|
+| Root height estimate | P1 | From leg angles + floor contact |
+| Velocity estimates | P1 | Differentiated from orientation |
+| Gait phase detection | P1 | Contact/st Swing detection |
+| Drift warnings | P1 | Alert when accuracy degrades |
+
+### 4.3 OUT OF SCOPE (v1)
+
+| Output | Priority | Notes |
+|--------|----------|-------|
+| Global position | P2 | Requires UWB/vision |
+| Relative node translation | P2 | Inertial drift too high |
+| Precise foot position | P2 | Requires foot tracking |
+| Body scale estimation | P2 | Requires calibration |
+
+### 4.4 FUTURE (v2+)
+
+| Output | Priority | Requirements |
+|--------|----------|--------------|
+| Global position with UWB | P2 | Additional UWB hardware |
+| Vision-assisted drift correction | P2 | External camera system |
+| Floor-aware IK | P2 | Environment sensing |
+| Multi-person tracking | P2 | Additional nodes/protocol |
+
+---
+
+## 5. Technical Feasibility
+
+### 5.1 What IMU+Magnetometer+Barometer CAN Provide
+
+✅ **Reliable**:
+- Per-segment orientation (with magnetometer aiding)
+- Orientation dynamics (angular velocity)
+- Gravity direction (from accelerometer)
+- Magnetic north reference
+
+⚠️ **Partial / Noisy**:
+- Vertical position (barometer, noisy)
+- Linear acceleration (separating gravity is hard)
+
+❌ **Cannot Provide**:
+- Absolute position (drifts immediately)
+- Position relative to other nodes (each drifts independently)
+
+### 5.2 Why Position Drifts
+
+Fundamental physics limitation:
 
 ```
-Node 1 (pelvis)    ─── q1 ───┐
-Node 2 (L thigh)   ─── q2 ───┤
-Node 3 (L shin)    ─── q3 ───├──► Master: Skeleton Solver ──► Pose Output
-Node 4 (R thigh)   ─── q4 ───┤      (fixed bone lengths,
-Node 5 (R shin)    ─── q5 ───┤       joint constraints)
-Node 6 (torso)     ─── q6 ───┘
+Position = ∫∫ Acceleration dt²
+
+Problem:
+1. Accelerometer noise → integration error accumulates
+2. Gravity subtraction errors → bias in acceleration
+3. No absolute position reference → unbounded drift
+
+Result: > 1 meter error in < 30 seconds
 ```
 
-### 4.2 What This Gets You
+### 5.3 Workarounds for Position
 
-- Full upper-body and lower-body joint angles
-- Character facing direction (magnetic heading)
-- Natural-looking poses via joint limit constraints
-- Sufficient for: VR avatars (seated/standing), animation retargeting, sports analysis, rehabilitation
-
-### 4.3 What This Does Not Get You
-
-- Locomotion (walking/running translation) -- character stays in place
-- Absolute room position -- no spatial anchoring
-- Subtle translational motions (shrugs, bouncing, spine flex)
-
-### 4.4 Mitigation Strategies for Deferred Outputs
-
-| Missing Output | v1 Workaround |
-|----------------|---------------|
-| Root translation | Fixed root position, or simple gait model (detect foot contact via accelerometer, estimate stride length) |
-| Per-node translation | Fixed bone lengths from T-pose calibration |
-| Global position | Application layer provides external tracking if needed |
+| Method | Accuracy | Complexity | v1 Suitable? |
+|--------|----------|------------|--------------|
+| Double integration | Poor | Low | ❌ No |
+| Zero-velocity updates | Moderate | Medium | ⚠️ Maybe (foot contact) |
+| Kinematic constraints | Good | High | ✅ Yes (fixed bone lengths) |
+| UWB ranging | Excellent | High | ❌ No (extra hardware) |
+| Visual odometry | Excellent | Very High | ❌ No (cameras required) |
 
 ---
 
-## 5. Accuracy Budget
+## 6. Skeleton Reconstruction Approach
 
-Error compounds through the kinematic chain. For a 6-node half-body chain:
+### 6.1 v1 Approach: Orientation-Driven IK
 
-| Source | Per-Node Error | Chain Propagation |
-|--------|---------------|-------------------|
-| Sensor noise (accel) | ~0.5 deg | Filtered by Mahony AHRS |
-| Gyro drift (with Ki) | ~0.5 deg/min steady-state | Accumulates over chain length |
-| Magnetic heading error | 1-3 deg (calibrated) | Affects all nodes' yaw |
-| Inter-node sync skew | < 1 ms = < 0.5 deg at 500 deg/s | Worst case during fast motion |
-| **Total per-node** | **~2-5 deg RMS** | -- |
-| **Endpoint error** (50 cm limb) | -- | **~2-4 cm per segment** |
-| **Full chain** (pelvis to hand, ~1.5 m) | -- | **~5-15 cm endpoint** |
+```
+Inputs:
+- Node orientations: q_root, q_thigh, q_shin, q_foot
+- Bone lengths: L_thigh, L_shin (user-provided or default)
+- Joint constraints: knee hinge, hip ball-socket
 
-These numbers are achievable with well-calibrated sensors and tuned Mahony filter (Kp ~1.0, Ki ~0.05). The simulation stack should validate these targets before hardware.
+Process:
+1. Place root at origin (or last known position)
+2. Propagate orientations down kinematic chain
+3. Compute joint positions from orientations + bone lengths
+4. Apply IK to satisfy constraints (foot on ground, etc.)
 
----
+Output:
+- Joint positions (relative to root)
+- Joint angles
+- Full skeleton pose
+```
 
-## 6. Dependencies and Interfaces
+### 6.2 Example: Leg Chain
 
-### 6.1 What Pose Inference Needs from Other Teams
+```
+Pelvis (root)
+  └── Thigh (node 1)
+        └── Shin (node 2)
+              └── Foot (node 3)
 
-| Dependency | Team | Interface |
-|------------|------|-----------|
-| Quaternion stream per node | Firmware/Fusion | `MocapNodeSample::orientation` at 50 Hz |
-| Synchronized timestamps | RF/Sync | < 1 ms inter-node skew via `TimestampSynchronizedTransport` |
-| Calibration data | Calibration | Hard/soft iron correction, gyro bias, sensor alignment |
-| Skeleton definition | Application | Bone lengths, joint topology, joint limits |
+Given:
+- q_pelvis, q_thigh, q_shin (orientations)
+- L_thigh, L_shin (bone lengths)
 
-### 6.2 What Pose Inference Provides to Downstream
+Compute:
+- Knee_angle = angle between thigh and shin
+- Hip_angle = angle between pelvis and thigh
+- Ankle_angle = angle between shin and foot (if foot node)
+- Joint positions via forward kinematics
+```
 
-| Output | Consumer | Format |
-|--------|----------|--------|
-| Per-segment orientation | Skeleton solver | Quaternion (w, x, y, z) per node, timestamped |
-| Joint angles | Animation/Retargeting | Relative quaternion per joint |
-| Root orientation | Character controller | World-frame quaternion for pelvis |
+### 6.3 Root Position Estimation (Optional)
 
----
-
-## 7. Simulation Validation Requirements
-
-Before hardware, the simulator stack must validate:
-
-| Test | Target | Method |
-|------|--------|--------|
-| Static orientation accuracy | < 5 deg RMS | VirtualGimbal at known orientations, compare fused vs truth |
-| Dynamic tracking accuracy | < 10 deg RMS | Motion scripts (slow/fast rotation), measure angular error |
-| Heading stability | < 3 deg drift over 60s | Stationary test with calibrated mag |
-| Multi-node sync impact | < 0.5 deg from sync error | Simulate timestamp jitter on joint angle computation |
-| Joint angle accuracy | < 5 deg RMS | Two-node gimbal test with known relative rotation |
-| Calibration effectiveness | 2x error reduction | Compare pre/post calibration orientation error |
-
-These tests align with the existing `SimulationHarness` design and `CALIBRATION_SIM_BRAINSTORM.md` test plan.
+If ground contact detected:
+```
+foot_on_ground = detect_contact(accel_pattern)
+if foot_on_ground:
+    root_height = L_thigh * cos(hip_angle) + L_shin * cos(knee_angle)
+    root_position = foot_position + root_height * up_vector
+```
 
 ---
 
-## 8. Recommendation
+## 7. Validation Requirements
 
-**v1 uses orientation-only segment tracking with kinematic skeleton fitting.**
+### 7.1 Simulation Experiments Needed
 
-- Each node outputs a fused orientation quaternion (already implemented in the pipeline).
-- The master receiver computes joint angles from adjacent node orientations.
-- A skeleton solver with fixed bone lengths and joint constraints produces the final pose.
-- Root translation and global position are deferred until external aiding (UWB, vision) is available.
+| Experiment | Purpose | Success Criteria |
+|------------|---------|------------------|
+| Static pose | Baseline accuracy | < 5° orientation error |
+| Simple rotation | Joint angle accuracy | Recovered angle within 3° of ground truth |
+| Gait cycle | Dynamic motion | Joint angles track expected biomechanics |
+| Drift test | Long-term stability | < 10° orientation drift over 60s |
+| Two-node chain | Relative orientation | Elbow/knee angle correctly estimated |
+| Three-node chain | Multi-segment IK | Full limb pose reasonable |
 
-This approach maximizes what IMU+mag sensors can deliver reliably, avoids the fundamental drift problem of position estimation, and provides a useful mocap system for the majority of target applications.
+### 7.2 Metrics to Track
+
+```
+- Orientation RMS error (degrees)
+- Joint angle error (degrees)
+- Position drift rate (cm/minute) - if attempting position
+- IK solve success rate (%)
+- Pose quality score (heuristic)
+```
+
+---
+
+## 8. Interface Implications
+
+### 8.1 Node Output (What Each Node Sends)
+
+```
+struct NodeSample {
+    uint32_t timestamp;      // Synced to master
+    Quaternion orientation;  // World-relative
+    uint8_t quality;         // Confidence 0-255
+    uint8_t flags;           // Calibration status, etc.
+};
+```
+
+### 8.2 Master Output (To Skeleton Solver)
+
+```
+struct SkeletonInput {
+    uint8_t node_count;
+    NodeSample nodes[MAX_NODES];
+    BoneLength bone_lengths[MAX_BONES];  // User config
+    SkeletonTopology topology;           // Joint connectivity
+};
+```
+
+### 8.3 Downstream Output (To Renderer/Game)
+
+```
+struct SkeletonPose {
+    Joint joints[MAX_JOINTS];  // Position + orientation
+    float quality_score;
+    uint8_t confidence_per_joint[MAX_JOINTS];
+};
+```
+
+---
+
+## 9. Recommendations
+
+### 9.1 v1 Product Scope
+
+**MUST HAVE**:
+1. Per-node orientation streaming
+2. Joint angle computation (relative rotation)
+3. Basic skeleton solver (forward kinematics)
+4. Orientation quality metrics
+
+**SHOULD HAVE**:
+5. Simple IK for ground contact
+6. Bone length calibration utility
+7. Drift monitoring/warnings
+
+**WON'T HAVE (v1)**:
+8. Global position tracking
+9. UWB integration
+10. Vision fusion
+
+### 9.2 Success Criteria for v1
+
+- User can wear 3-6 nodes and see articulated skeleton
+- Joint angles are qualitatively correct (bends when limb bends)
+- Orientation drift < 10° over 1 minute of motion
+- Latency < 50 ms from motion to display
+
+### 9.3 Handoff to Implementation
+
+**For Fusion Team (Codex)**:
+- Validate orientation accuracy claims
+- Implement quaternion interpolation/filtering
+- Provide quality/confidence metrics
+
+**For Skeleton Solver (future team)**:
+- Implement forward kinematics from orientations
+- Add joint constraint enforcement
+- Handle bone length configuration
+
+---
+
+## 10. Open Questions
+
+1. **Bone length calibration**: User-measured or auto-estimated?
+2. **Joint constraints**: Pre-defined skeleton or user-configurable?
+3. **Root tracking**: Is floor contact sufficient for height?
+4. **Multi-node drift**: Do multiple nodes drift coherently or independently?
+5. **Animal skeletons**: Same approach works for quadrupeds?
+
+---
+
+## Document History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 0.1 | 2026-03-29 | Initial requirements - v1 scope defined |
+

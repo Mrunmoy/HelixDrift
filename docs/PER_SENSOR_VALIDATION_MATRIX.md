@@ -33,6 +33,8 @@ Every sensor simulator should satisfy these categories:
 - `WHO_AM_I` returns the correct device ID
 - probe succeeds on the virtual bus
 - control registers retain written values where appropriate
+- configured accel and gyro full-scale selections change raw counts
+  consistently for the same physical input
 
 ### Physical Measurement Behavior
 
@@ -85,6 +87,7 @@ Every sensor simulator should satisfy these categories:
 - `WHO_AM_I` returns the correct device ID
 - probe succeeds
 - writable control registers retain expected values
+- software reset clears writable control registers as expected
 
 ### Physical Measurement Behavior
 
@@ -104,15 +107,20 @@ Every sensor simulator should satisfy these categories:
 
 - when seeded, repeated noisy pressure runs with the same setup should match
 
-## Current High-Value Gap
+## Current High-Value Gaps
 
-The simulator suite already exercises many of the categories above, but
-reproducibility is not yet consistently exposed as explicit API across all
-sensors. Deterministic seeding is required to make later quantitative
-calibration and regression tests robust and debuggable.
+Deterministic seeding is now exposed explicitly across all three sensors and is
+covered by standalone tests. The next bounded gaps are:
 
-## Immediate Codex Task
+1. stronger register-behavior proof for simulated device reset and configuration
+2. broader quantitative checks that tie configured sensor scale or calibration
+   settings to raw output counts
+3. tighter statistical validation of configured noise behavior without making
+   the tests brittle
 
-1. add deterministic seed control to each sensor simulator
-2. add standalone tests proving same-seed reproducibility
-3. keep the change strictly inside the Sensor Validation scope
+## Current Codex Focus
+
+1. keep converting standalone matrix items into explicit host tests
+2. prefer already-supported simulator behavior before introducing new simulator
+   features
+3. stay within the Sensor Validation scope until the next planning handoff

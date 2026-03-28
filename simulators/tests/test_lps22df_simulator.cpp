@@ -50,6 +50,33 @@ TEST_F(Lps22dfSimulatorTest, CtrlReg3ReadWrite) {
     EXPECT_EQ(readData, writeData);
 }
 
+// Test software reset via CTRL_REG2 clears writable control registers
+TEST_F(Lps22dfSimulatorTest, SoftwareResetClearsWritableControlRegisters) {
+    uint8_t ctrlReg1 = 0x38;
+    uint8_t ctrlReg3 = 0x04;
+    uint8_t ctrlReg4 = 0x80;
+    EXPECT_TRUE(bus.writeRegister(LPS22DF_ADDR, 0x10, &ctrlReg1, 1));
+    EXPECT_TRUE(bus.writeRegister(LPS22DF_ADDR, 0x12, &ctrlReg3, 1));
+    EXPECT_TRUE(bus.writeRegister(LPS22DF_ADDR, 0x13, &ctrlReg4, 1));
+
+    uint8_t swReset = 0x04;  // SWRESET bit in CTRL_REG2
+    EXPECT_TRUE(bus.writeRegister(LPS22DF_ADDR, 0x11, &swReset, 1));
+
+    uint8_t readCtrl1 = 0xFF;
+    uint8_t readCtrl2 = 0xFF;
+    uint8_t readCtrl3 = 0xFF;
+    uint8_t readCtrl4 = 0xFF;
+    EXPECT_TRUE(bus.readRegister(LPS22DF_ADDR, 0x10, &readCtrl1, 1));
+    EXPECT_TRUE(bus.readRegister(LPS22DF_ADDR, 0x11, &readCtrl2, 1));
+    EXPECT_TRUE(bus.readRegister(LPS22DF_ADDR, 0x12, &readCtrl3, 1));
+    EXPECT_TRUE(bus.readRegister(LPS22DF_ADDR, 0x13, &readCtrl4, 1));
+
+    EXPECT_EQ(readCtrl1, 0x00);
+    EXPECT_EQ(readCtrl2, 0x00);
+    EXPECT_EQ(readCtrl3, 0x00);
+    EXPECT_EQ(readCtrl4, 0x00);
+}
+
 // Test STATUS register exists and can be read
 TEST_F(Lps22dfSimulatorTest, StatusRegisterCanBeRead) {
     uint8_t status;

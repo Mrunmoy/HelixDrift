@@ -110,6 +110,9 @@ if(HELIXDRIFT_BUILD_TESTS)
     # Integration tests (simulators)
     add_executable(helix_integration_tests
         simulators/tests/test_virtual_i2c_bus.cpp
+        simulators/tests/test_virtual_sensor_assembly.cpp
+        simulators/tests/test_virtual_mocap_node_harness.cpp
+        simulators/tests/test_sim_metrics.cpp
         simulators/tests/test_lps22df_simulator.cpp
         simulators/tests/test_bmm350_simulator.cpp
         simulators/tests/test_lsm6dso_simulator.cpp
@@ -118,7 +121,9 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_sensor_fusion_integration.cpp
     )
     target_include_directories(helix_integration_tests PRIVATE
+        firmware/common
         simulators/i2c
+        simulators/fixtures
         simulators/sensors
         simulators/storage
         simulators/gimbal

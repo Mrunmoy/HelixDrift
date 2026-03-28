@@ -11,7 +11,7 @@
 | Team | Worktree | Mission | Write Scope | Status |
 |---|---|---|---|---|
 | Sensors | repo root | Prove each sensor independently and improve simulator fidelity | `simulators/i2c/`, `simulators/sensors/`, `simulators/tests/` | active |
-| Fusion |  | Defer until sensor validation scope is stable | review-only for now | blocked |
+| Fusion | repo root | Build host-side virtual sensor and node harnesses on top of the proven simulator stack | `simulators/fixtures/`, `simulators/tests/`, `tests/` | active |
 | Host Tools |  | Defer until sensor validation needs evidence tooling changes | review-only for now | idle |
 | nRF52 |  | Defer until simulation proof work advances | `examples/nrf52-mocap-node/`, `tools/nrf/` | idle |
 
@@ -20,8 +20,13 @@
 - Problems currently owned:
   - Per-sensor validation matrix and standalone proof criteria
   - Deterministic simulator behavior needed for quantitative sensor tests
+  - Register-behavior and scale-behavior proof items that are already
+    implemented in the simulators
+  - Host-side virtual sensor-assembly harness for reusable dual-bus,
+    three-sensor composition
 - Writable scopes currently claimed:
   - `simulators/sensors/`
+  - `simulators/fixtures/`
   - `simulators/tests/`
   - `docs/`
   - `simulators/docs/DEV_JOURNAL.md`
@@ -54,6 +59,8 @@
 ## Current Work
 
 - Task: Add deterministic per-sensor simulator seeding and document standalone sensor proof criteria
+- Task: Deliver the Sensor Validation slice and build a reusable virtual sensor
+  assembly harness for host integration work
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

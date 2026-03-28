@@ -1,8 +1,41 @@
 # Simulator Development Journal
 
+## 2026-03-29 - Claude Org Architecture Sprint
+
+### Feature: Design Docs for Simulation Testing Infrastructure
+
+#### Intent
+
+Produce the design documents that unblock Codex implementation teams.
+
+#### Owning Team
+
+Claude / Systems Architect
+
+#### Deliverables
+
+1. `docs/sensor-validation-matrix.md` — per-sensor quantitative acceptance
+   criteria (~56 test criteria across 3 sensors + cross-sensor checks)
+2. `docs/simulation-harness-interface.md` — full interface contract for
+   SimulationHarness class, types, metrics, CSV export
+3. `docs/SIMULATION_TASKS.md` — unified execution plan mapping 17 tasks
+   across 4 waves to 3 Codex teams
+4. `docs/pose-inference-requirements.md` — v1 spatial output requirements
+   (produced by Pose Inference teammate)
+5. `docs/pose-inference-feasibility.md` — approach comparison and v1
+   recommendation (produced by Pose Inference teammate)
+
+#### Review Status
+
+- Self-reviewed by Claude / Systems Architect
+- Awaiting Codex implementation-feasibility review
+- Awaiting Kimi adversarial review
+
+---
+
 ## 2026-03-29 - Day 2 (IN PROGRESS)
 
-### Feature: Deterministic Sensor Seeding
+### Feature: Deterministic Sensor Seeding And Standalone Sensor Proof Tightening
 
 #### Intent
 
@@ -15,6 +48,8 @@ quantitative regression and calibration tests.
 - Add an explicit `setSeed(uint32_t)` API to each of the three sensor
   simulators.
 - Prove the behavior with one standalone determinism test per sensor.
+- Tighten standalone proof with bounded register or scale-behavior tests that
+  are already supported by the simulators.
 - Keep the change strictly within the Sensor Validation scope.
 
 #### Tests Added First
@@ -22,6 +57,9 @@ quantitative regression and calibration tests.
 - `Lsm6dsoSimulatorDeterminismTest.SameSeedProducesIdenticalNoisyAccelSamples`
 - `Bmm350SimulatorTest.SameSeedProducesIdenticalNoisyMagSamples`
 - `Lps22dfSimulatorDeterminismTest.SameSeedProducesIdenticalNoisyPressureSamples`
+- `Lsm6dsoSimulatorTest.AccelRawCountsTrackConfiguredFullScale`
+- `Lsm6dsoSimulatorTest.GyroRawCountsTrackConfiguredFullScale`
+- `Lps22dfSimulatorTest.SoftwareResetClearsWritableControlRegisters`
 
 #### Implementation Summary
 
@@ -29,6 +67,10 @@ quantitative regression and calibration tests.
   - `Lsm6dsoSimulator`
   - `Bmm350Simulator`
   - `Lps22dfSimulator`
+- Added standalone proof that:
+  - LSM6DSO raw output scales correctly with configured accel and gyro
+    full-scale settings
+  - LPS22DF software reset clears writable control registers as expected
 - Added a standalone per-sensor validation design artifact:
   - `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 
@@ -42,7 +84,7 @@ Command run:
 
 Result:
 
-- `204/204` host tests passing
+- `207/207` host tests passing
 
 #### Review Status
 
@@ -50,10 +92,126 @@ Result:
 
 #### Open Risks
 
-- Deterministic seeding is now explicit, but broader quantitative calibration
-  coverage is still incomplete.
+- Deterministic seeding and a few high-value standalone proof items are now
+  explicit, but broader quantitative calibration coverage is still incomplete.
 - Sensor validation criteria now exist as a document, but not all matrix items
   are yet enforced in tests.
+
+### Feature: Virtual Sensor Assembly Harness
+
+#### Intent
+
+Reduce repeated dual-I2C and three-sensor setup in integration tests by
+creating one reusable host-only assembly harness that composes the proven
+simulators, gimbal, and real SensorFusion drivers.
+
+#### Design Summary
+
+- Add a reusable `VirtualSensorAssembly` fixture under `simulators/fixtures/`.
+- Keep the harness host-only and test-oriented rather than moving it into
+  platform-independent firmware code.
+- Prove the harness independently, then refactor the existing
+  `SensorFusionIntegrationTest` to consume it.
+
+#### Tests Added First
+
+- `VirtualSensorAssemblyTest.RegistersDevicesOnExpectedBuses`
+- `VirtualSensorAssemblyTest.InitAllInitializesThreeSensorAssembly`
+- `VirtualSensorAssemblyTest.GimbalSyncPropagatesPoseToAllSensors`
+
+#### Implementation Summary
+
+- Added `simulators/fixtures/VirtualSensorAssembly.hpp`.
+- Added `simulators/tests/test_virtual_sensor_assembly.cpp`.
+- Refactored `simulators/tests/test_sensor_fusion_integration.cpp` to use the
+  new harness instead of rebuilding the same assembly setup inline.
+- Updated `CMakeLists.txt` to include the fixture directory and new test file.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "VirtualSensorAssemblyTest|SensorFusionIntegrationTest"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `210/210` host tests passing
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- The assembly harness proves composition and removes setup duplication, but the
+  full virtual-node runtime harness still does not exist yet.
+- Clocking, transport capture, and cadence assertions are still separate work.
+
+### Feature: Virtual Mocap Node Harness And Basic Pose Metrics
+
+#### Intent
+
+Move beyond raw assembly composition and prove that the host-side node runtime
+can execute end to end: simulator sensors into real SensorFusion pipeline, into
+`MocapNodeLoop`, through timestamp mapping, and into a capture transport.
+
+#### Design Summary
+
+- Build a host-only `VirtualMocapNodeHarness` on top of the reusable
+  `VirtualSensorAssembly`.
+- Keep clock, capture transport, anchor queue, and sync filter test-oriented
+  and deterministic.
+- Add a small shared angular-error helper for bounded pose assertions without
+  overcommitting to long-horizon drift claims that the current fusion stack
+  does not yet satisfy.
+
+#### Tests Added First
+
+- `VirtualMocapNodeHarnessTest.EmitsQuaternionFramesAtConfiguredCadence`
+- `VirtualMocapNodeHarnessTest.CapturesFiniteQuaternionFromRealPipeline`
+- `VirtualMocapNodeHarnessTest.AnchorMapsLocalTimestampIntoRemoteTime`
+- `VirtualMocapNodeHarnessTest.FlatPoseStaysWithinBoundedAngularError`
+- `SimMetricsTest.AngularErrorIsZeroForIdentity`
+- `SimMetricsTest.AngularErrorHandlesQuaternionDoubleCover`
+- `SimMetricsTest.AngularErrorMatchesKnownRightAngle`
+- `SimMetricsTest.AngularErrorMatchesKnownHalfTurn`
+
+#### Implementation Summary
+
+- Added `simulators/fixtures/VirtualMocapNodeHarness.hpp`.
+- Added `simulators/fixtures/SimMetrics.hpp`.
+- Added `simulators/tests/test_virtual_mocap_node_harness.cpp`.
+- Added `simulators/tests/test_sim_metrics.cpp`.
+- Wired the new tests into `CMakeLists.txt`.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "VirtualMocapNodeHarnessTest|SimMetricsTest|SensorFusionIntegrationTest.FullRotation360DegreesReturnsToStart"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `218/218` host tests passing
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- The harness currently captures quaternion output only; health-frame capture is
+  still absent.
+- The flat-pose metric is bounded, but longer motion scripts and stronger
+  orientation-quality thresholds remain future work.
+- Long-horizon return-to-origin drift is still too weak to justify a strict
+  quantitative threshold today.
 
 ## 2026-03-29 - Day 1 (COMPLETE)
 
@@ -630,4 +788,3 @@ Provides foundation for:
 **Status**: ✅ Research phase complete - ready for peer review and implementation  
 **Deliverables**: 3 design documents, 27.5 KB total  
 **Last updated**: 2026-03-29
-

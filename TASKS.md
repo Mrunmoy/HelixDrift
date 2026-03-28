@@ -31,9 +31,9 @@ current intended primary target is nRF52.
 - [ ] Rebase backlog and docs around simulation-first system proof
 
 ## Next Up (Priority Order)
-1. [ ] Add explicit per-sensor validation matrix for IMU, magnetometer, and barometer before fusion-level testing
+1. [x] Add explicit per-sensor validation matrix for IMU, magnetometer, and barometer before fusion-level testing
 2. [ ] Expand single-sensor simulator tests to cover scale, bias, noise, orientation response, and driver init/probe behavior with quantitative thresholds
-3. [ ] Add host-side virtual sensor-assembly harness that combines the three proven sensors into one node-level test fixture
+3. [x] Add host-side virtual sensor-assembly harness that combines the three proven sensors into one node-level test fixture
 4. [ ] Add host-side virtual mocap node harness combining simulator sensors, SensorFusion pipeline, `MocapNodeLoop`, timestamp mapping, and a fake transport
 5. [ ] Add scripted motion regression suite for known pose, constant-rate rotation, oscillation, compound rotation, and return-to-origin scenarios
 6. [ ] Define orientation quality metrics and assert them in tests (max angular error, RMS error, drift after N seconds)
