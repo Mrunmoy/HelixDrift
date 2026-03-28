@@ -233,16 +233,50 @@ These should become explicit outputs of tests and validation reports:
 - end-to-end frame latency in milliseconds
 - packet loss and reordering counts in impaired simulations
 
+## Kimi Review Deliverables (2026-03-29)
+
+Adversarial review completed. Three implementation-facing specs delivered:
+
+| Document | Purpose | Target Milestone |
+|----------|---------|------------------|
+| `docs/ADVERSARIAL_REVIEW_CODEX_WAVE.md` | Identify idealizations that will cause hardware test failures | All |
+| `docs/RF_SYNC_SIMULATION_SPEC.md` | Host-simulation spec for RF transport and time sync | Milestone 4 |
+| `docs/MAGNETIC_CALIBRATION_RISK_SPEC.md` | Disturbance scenarios, calibration states, measurable outputs | Milestone 5-6 |
+
+### Critical Findings from Adversarial Review
+
+The current simulators contain idealizations that **will cause real-hardware tests to fail**:
+
+1. **Magnetometer**: Static Earth field (no body interference, no furniture effects)
+2. **IMU**: White noise only (no bias random walk, no Allan variance characteristics)
+3. **Timing**: Perfect clocks (no drift between nodes)
+4. **I2C**: Instantaneous transactions (no timing model)
+
+These gaps must be addressed before hardware bring-up.
+
+### Recommended Priority Adjustment
+
+- **Milestone 4 (RF/Sync)**: Proceed using `RF_SYNC_SIMULATION_SPEC.md`
+- **Milestone 5 (Calibration)**: Add MagneticEnvironment before calibration validation
+- **Milestone 6 (Multi-node)**: Required: disturbance modeling for realistic magnetic testing
+
 ## Immediate Next Tasks
 
-1. Add a per-sensor validation matrix and close any remaining single-sensor
-   tolerance gaps before expanding fusion work.
-2. Add a virtual sensor-assembly host test harness that composes the three
-   proven sensors into one node fixture.
-3. Add a virtual-node host test harness that composes simulator sensors with
-   `MocapNodeLoop` and a capture transport.
-4. Add reusable quaternion-error helpers and assert actual angular thresholds.
-5. Add a virtual master-node timebase and anchor source for sync tests.
-6. Add a transport impairment queue for latency, jitter, and loss testing.
-7. Add the first two-node kinematic scenario before spending more effort on
+### Codex (Implementation)
+1. ✅ ~~Add a per-sensor validation matrix~~ **COMPLETE**
+2. ✅ ~~Add a virtual sensor-assembly host test harness~~ **COMPLETE**
+3. ✅ ~~Add a virtual-node host test harness~~ **COMPLETE**
+4. ✅ ~~Add reusable quaternion-error helpers~~ **COMPLETE**
+5. ⏳ **NEW**: Implement `VirtualRFMedium` from `RF_SYNC_SIMULATION_SPEC.md` (Milestone 4)
+6. ⏳ **NEW**: Implement `VirtualSyncNode` and `VirtualSyncMaster` (Milestone 4)
+7. ⏳ **NEW**: Implement `MagneticEnvironment` from `MAGNETIC_CALIBRATION_RISK_SPEC.md` (Milestone 5)
+8. ⏳ **NEW**: Implement `CalibratedMagSensor` with calibration state machine (Milestone 5)
+9. Add a transport impairment queue for latency, jitter, and loss testing.
+10. Add the first two-node kinematic scenario before spending more effort on
    platform-specific example code.
+
+### Kimi (Review/Spec)
+1. ✅ ~~Adversarial review of Codex wave~~ **COMPLETE**
+2. ✅ ~~RF/Sync simulation spec~~ **COMPLETE**
+3. ✅ ~~Magnetic/calibration risk spec~~ **COMPLETE**
+4. Monitor implementation against specs, provide follow-up review

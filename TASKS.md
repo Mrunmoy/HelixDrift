@@ -1,6 +1,6 @@
 # HelixDrift Task List
 
-This is the execution backlog for HelixDrift.  
+This is the execution backlog for HelixDrift.
 Rule: if a fix belongs to SensorFusion, fix it in `SensorFusion` first, push it, then update this repo's submodule pointer.
 
 ## Current Status (2026-03-29)
@@ -10,7 +10,13 @@ Rule: if a fix belongs to SensorFusion, fix it in `SensorFusion` first, push it,
 - [x] SensorFusion submodule integrated
 - [x] nRF mocap node example compiles off-target
 - [x] Host and simulator tests passing (`./build.py --clean --host-only -t`)
-- [x] Single-node simulator integration green (`201/201` host tests passing)
+- [x] Single-node simulator integration green (218+ host tests passing)
+- [x] Per-sensor validation matrix defined
+- [x] Virtual sensor-assembly harness delivered
+- [x] Virtual mocap node harness with configurable Kp/Ki, setSeed, RunResult
+- [x] SimMetrics angular error utility delivered
+- [x] Pose inference v1 requirements defined (orientation-only)
+- [x] Pose inference feasibility analysis complete
 
 ## Mission Focus
 
@@ -26,29 +32,63 @@ IMU + magnetometer + barometer can:
 MCU targets are implementation platforms, not the core product goal. The
 current intended primary target is nRF52.
 
-## In Progress
-- [ ] Document "clone -> build -> run tests" quickstart in one page
-- [ ] Rebase backlog and docs around simulation-first system proof
+## Active Focus: Close M2 (Single-Node Orientation Validation)
 
-## Next Up (Priority Order)
-1. [x] Add explicit per-sensor validation matrix for IMU, magnetometer, and barometer before fusion-level testing
-2. [ ] Expand single-sensor simulator tests to cover scale, bias, noise, orientation response, and driver init/probe behavior with quantitative thresholds
-3. [x] Add host-side virtual sensor-assembly harness that combines the three proven sensors into one node-level test fixture
-4. [x] Add host-side virtual mocap node harness combining simulator sensors, SensorFusion pipeline, `MocapNodeLoop`, timestamp mapping, and a fake transport
-5. [ ] Add scripted motion regression suite for known pose, constant-rate rotation, oscillation, compound rotation, and return-to-origin scenarios
-6. [ ] Define orientation quality metrics and assert them in tests (max angular error, RMS error, drift after N seconds)
-7. [ ] Add master-node timebase simulator and anchor-flow tests for multi-node sync
-8. [ ] Add network impairment simulator for latency, jitter, packet loss, and packet reordering
-9. [ ] Add two-node kinematic validation scenarios for relative joint-angle recovery
-10. [ ] Add three-node body-chain scenarios to validate master-aligned time fusion
-11. [ ] Wire the validated common runtime into the nRF52 example path
-12. [ ] Keep ESP32-S3 support optional and secondary unless it provides clear value
-13. [ ] Document "clone -> build -> run tests" quickstart in one page
+See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criteria.
 
-## Detailed Backlog
+### Wave A — Immediate (Codex / Fusion)
 
-See `docs/SIMULATION_BACKLOG.md` for milestone sequencing, acceptance criteria,
-and file-level implementation targets.
+| # | Task | Acceptance | Status |
+|---|------|-----------|--------|
+| A1 | Static multi-pose orientation accuracy (7 poses) | Per-pose RMS < 3°, overall < 5° | pending |
+| A2 | Dynamic single-axis tracking (yaw/pitch/roll 30°/s) | Per-axis RMS < 8°, max < 20° | pending |
+| A3 | 60s heading drift (Kp=1.0, Ki=0.02, clean) | Max error < 10°, drift < 2°/min | pending |
+| A4 | Mahony Kp/Ki convergence sweep (12 combos) | Kp≥1: converge < 2s, steady-state < 3° | pending |
+| A5 | Gyro bias rejection via Ki (0.01 rad/s bias) | Ki=0: drift > 5°/min; Ki=0.05: < 2°/min | pending |
+| A6 | Two-node joint angle recovery (5 poses) | Error < 5° all poses, < 7° max | pending |
+
+### Wave B — After Wave A
+
+| # | Task | Owner | Status |
+|---|------|-------|--------|
+| B1 | CSV export + Python plot script | Codex / Host Tools | pending |
+| B2 | Motion profile JSON library (12 files) | Codex / Fusion | pending |
+| B3 | Hard iron calibration effectiveness test | Codex / Sensor Validation | pending |
+| B4 | Sensor validation matrix remaining gaps | Codex / Sensor Validation | pending |
+
+### Deferred — M4+ (after M2 closes)
+
+| Task | Milestone | Blocked By |
+|------|-----------|-----------|
+| VirtualRFMedium + VirtualSyncNode/Master | M4 | RF/sync spec review |
+| Network impairment tests | M4 | VirtualRFMedium |
+| Multi-node sync convergence | M4 | VirtualSyncNode |
+| MagneticEnvironment class | M5-M6 | Mag risk spec review |
+| CalibratedMagSensor + disturbance scenarios | M5-M6 | MagneticEnvironment |
+| Three-node body-chain scenarios | M6 | M4 + M5 |
+| Wire validated runtime into nRF52 | M7 | M1-M3 complete |
+
+## Milestone Summary
+
+| Milestone | % | Current Focus |
+|-----------|---|---------------|
+| M1: Per-Sensor Proof | ~85% | Wave B4 closes remaining gaps |
+| M2: Single-Node Assembly | ~40% | **Wave A closes this** |
+| M3: Node Runtime | ~20% | Partial from harness work |
+| M4: RF/Sync | 0% | Deferred — Kimi spec ready |
+| M5-M6: Calibration + Multi-node | 0% | Deferred — Kimi spec ready |
+| M7: Platform Port (nRF52) | 0% | Deferred |
+
+## Reference Documents
+
+- Execution plan: `docs/CODEX_NEXT_WAVES.md`
+- Simulation backlog: `docs/SIMULATION_BACKLOG.md`
+- Sensor validation criteria: `docs/sensor-validation-matrix.md`
+- Harness interface spec: `docs/simulation-harness-interface.md`
+- Pose requirements: `docs/pose-inference-requirements.md`
+- RF/sync spec: `docs/RF_SYNC_SIMULATION_SPEC.md`
+- Mag risk spec: `docs/MAGNETIC_CALIBRATION_RISK_SPEC.md`
+- Claude review reports: `docs/CLAUDE_ORG_SPRINT2_REPORT.md`
 
 ## Done Definition (per task)
 - [ ] Tests first (or test update first) and green
