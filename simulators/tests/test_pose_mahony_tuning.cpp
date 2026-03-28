@@ -46,7 +46,7 @@ TEST(PoseMahonyTuningTest, GyroZBiasWithoutIntegralFeedbackShowsPositiveHeadingD
     const BiasRunMetrics baseline = runStationaryBiasCase(0.01f, 0.0f);
 
     ASSERT_EQ(baseline.run.samples.size(), 1500u);
-    EXPECT_GT(baseline.driftRateDegPerMin, 0.5f); // Idealized clean-field floor for current M2 proof.
+    EXPECT_GT(baseline.driftRateDegPerMin, 0.5f); // Clean-field drift should still be meaningfully positive.
     EXPECT_GT(baseline.run.finalErrorDeg, 3.0f);
     EXPECT_GT(baseline.run.maxErrorDeg, 3.0f);
 }
@@ -67,6 +67,8 @@ TEST(PoseMahonyTuningTest, IntegralFeedbackReducesHeadingErrorFromGyroZBias) {
 
     EXPECT_LT(ki005.driftRateDegPerMin, 0.0f);
     EXPECT_LT(ki01.driftRateDegPerMin, 0.0f);
+    EXPECT_LT(ki005.driftRateDegPerMin, noIntegral.driftRateDegPerMin);
+    EXPECT_LT(ki01.driftRateDegPerMin, ki005.driftRateDegPerMin);
     EXPECT_LT(ki005.run.finalErrorDeg, 2.0f);
     EXPECT_LT(ki01.run.finalErrorDeg, 0.5f);
     EXPECT_LT(ki005.run.maxErrorDeg, 3.0f);
