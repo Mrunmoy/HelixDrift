@@ -92,25 +92,20 @@ TEST(VirtualMocapNodeHarnessTest, ConstantYawMotionStaysWithinBoundedErrorForSho
     EXPECT_LT(errorDeg, 35.0f);
 }
 
-TEST(VirtualMocapNodeHarnessTest, StaticQuarterTurnConvergesWithinBoundedError) {
+TEST(VirtualMocapNodeHarnessTest, StaticQuarterTurnStartsNearTruthOnFirstMeasuredSample) {
     VirtualMocapNodeHarness harness;
     ASSERT_TRUE(harness.initAll());
     harness.resetAndSync();
     harness.assembly().gimbal().setOrientation(sf::Quaternion::fromAxisAngle(0.0f, 0.0f, 1.0f, 45.0f));
     harness.assembly().gimbal().syncToSensors();
 
-    for (int i = 0; i < 20; ++i) {
-        ASSERT_TRUE(harness.tick());
-        if (i != 19) {
-            harness.advanceTimeUs(20000);
-        }
-    }
+    const NodeRunResult result = harness.runWithWarmup(0, 1, 20000);
 
-    const float errorDeg =
-        angularErrorDeg(harness.assembly().gimbal().getOrientation(), harness.lastFrame().orientation);
+    ASSERT_EQ(result.samples.size(), 1u);
+    const float errorDeg = result.finalErrorDeg;
 
     EXPECT_TRUE(std::isfinite(errorDeg));
-    EXPECT_LT(errorDeg, 55.0f);
+    EXPECT_LT(errorDeg, 2.0f);
 }
 
 TEST(VirtualMocapNodeHarnessTest, RunForDurationCollectsExpectedSamplesAndStats) {
