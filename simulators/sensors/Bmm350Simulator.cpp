@@ -12,11 +12,20 @@ Bmm350Simulator::Bmm350Simulator() : rng_(42) {
     // CHIP_ID is read-only
     registers_[REG_CHIP_ID] = CHIP_ID_VALUE;
     
-    // Default PMU status is suspended
-    registers_[REG_PMU_CMD_STATUS] = 0x00;
+    // Default PMU status is normal mode (so init() can succeed)
+    registers_[REG_PMU_CMD_STATUS] = 0x01;  // PMU_NORMAL in bits 0-1
     
     // Default OTP status
     registers_[REG_OTP_STATUS] = 0x01;  // Data valid by default
+    
+    // Set default OTP data that init() expects
+    // These are the word addresses read by readOtp()
+    otpData_[0x0D] = 2500;   // T0 reference (~25.00 * 100)
+    otpData_[0x0E] = 0;      // offsetX
+    otpData_[0x0F] = 0;      // offsetY
+    otpData_[0x10] = 0;      // offsetZ (high byte) + sensX (low byte)
+    otpData_[0x11] = 0;      // sensY (low byte)
+    otpData_[0x12] = 0;      // tcoX (low) + tcoY (high)
 }
 
 bool Bmm350Simulator::probe() {
@@ -64,6 +73,24 @@ bool Bmm350Simulator::writeRegister(uint8_t reg, const uint8_t* data, size_t len
         // CHIP_ID is read-only
         if (addr == REG_CHIP_ID) {
             continue;
+        }
+        
+        // Handle CMD register (0x7E) - soft reset
+        if (addr == REG_CMD) {
+            if (data[i] == 0xB6) {
+                // Soft reset command - clear OTP status but keep defaults
+                registers_[REG_OTP_STATUS] = 0x01;  // Keep valid
+                registers_[REG_PMU_CMD_STATUS] = 0x00;  // Back to suspend
+            }
+            registers_[addr] = data[i];
+            continue;
+        }
+        
+        // Handle PMU_CMD (0x06) - mode change
+        if (addr == REG_PMU_CMD) {
+            uint8_t mode = data[i] & 0x03;
+            // Update PMU_CMD_STATUS to reflect the mode
+            registers_[REG_PMU_CMD_STATUS] = (registers_[REG_PMU_CMD_STATUS] & ~0x03) | mode;
         }
         
         // Handle special registers
