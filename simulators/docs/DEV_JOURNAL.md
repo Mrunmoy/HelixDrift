@@ -476,6 +476,95 @@ Result:
 - Pitch and roll tracking still need deeper investigation before they should be
   promoted into strong acceptance tests.
 
+### Feature: Wave A A5 Mahony Bias-Rejection Proof
+
+#### Intent
+
+Start Wave A with the highest-value filter test from Claude's acceptance guide:
+prove that Mahony integral feedback actually reduces bias-driven heading error
+under deterministic host simulation.
+
+#### Design Summary
+
+- Use a stationary node with injected gyro bias and deterministic seeding.
+- Keep the first test focused on Z-axis gyro bias because it produces a clean,
+  measurable heading-drift signal in the current simulator.
+- Add a small follow-up characterization test comparing X-axis and Z-axis bias
+  rejection so the result is not overclaimed as universal.
+
+#### Tests Added First
+
+- `PoseMahonyTuningTest.GyroZBiasWithoutIntegralFeedbackShowsPositiveHeadingDrift`
+- `PoseMahonyTuningTest.IntegralFeedbackReducesHeadingErrorFromGyroZBias`
+- `PoseMahonyTuningTest.GyroZBiasRemainsHarderToRejectThanGyroXBiasInCurrentHarness`
+
+#### Implementation Summary
+
+- Added `simulators/tests/test_pose_mahony_tuning.cpp`.
+- Reused `runWithWarmup()` plus linear drift-rate estimation from
+  `SimMetrics.hpp`.
+- Added current-simulator characterization that Z-bias is harder to reject than
+  X-bias under clean-field conditions.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "PoseMahonyTuningTest"'
+```
+
+Result:
+
+- `3/3` `PoseMahonyTuningTest` cases passing
+
+#### Review Status
+
+- Claude review: approve with follow-ups
+- Kimi adversarial review: acceptable for M2 if caveats are documented
+
+#### Open Risks
+
+- The current A5 proof is intentionally idealized: clean magnetic field, fixed
+  step interval, no timing jitter.
+- The result proves Ki works in principle, not that it is robust under later
+  RF or magnetic-disturbance work.
+
+### Feature: Wave A A1 Static-Yaw Escalation Probe
+
+#### Intent
+
+Check whether Claude's staged A1 entry path is genuinely executable in the
+current simulator/fusion stack before codifying a false acceptance test.
+
+#### Design Summary
+
+- Probe the exact staged case Claude requested first:
+  identity, +90° yaw, -90° yaw
+- Use the prescribed structure:
+  `setSeed(42)`, 100-tick warmup, 200-tick measurement
+- Treat the probe as decision support, not as a passing test requirement
+
+#### Observed Outcome
+
+- Identity remains effectively perfect.
+- Static ±90° yaw remains catastrophically outside the intermediate threshold:
+  around `118° RMS`, `129° max`.
+- Increasing `Kp` from `1.0 -> 2.0 -> 5.0` makes the static-yaw case worse, not
+  better.
+
+#### Decision
+
+- Do **not** add the staged A1 yaw acceptance test yet.
+- This hits Claude's escalation rule directly: if ±90° yaw is still far outside
+  the intermediate band after warmup and higher `Kp` does not recover it, this
+  is a filter/architecture limitation, not a threshold-tuning problem.
+
+#### Open Risks
+
+- M2 closure depends on whether A1 should be reformulated around achievable
+  poses or escalated upstream to SensorFusion/architecture review.
+
 ## 2026-03-29 - Day 1 (COMPLETE)
 
 ### Summary

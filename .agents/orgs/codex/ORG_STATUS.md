@@ -30,6 +30,8 @@
   - Scripted yaw motion-regression assertions on the virtual node harness
   - Batched run support with summary pose-error stats for future experiments
   - Harness safety and deterministic-seeding coverage in the Codex worktree
+  - Wave A A5 Mahony bias-rejection proof in a standalone experiment file
+  - Wave A A1 static-yaw probe and escalation evidence
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -71,6 +73,8 @@
 - Task: Close M2 Wave A incrementally from the Codex worktree, starting with
   harness-safety coverage and scripted yaw regressions before broader pose
   experiments
+- Task: Follow Claude Wave A sequencing, but escalate any task that fails its
+  intermediate-entry conditions instead of forcing false acceptance tests
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)
