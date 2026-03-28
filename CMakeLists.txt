@@ -31,6 +31,15 @@ target_include_directories(helix_ota PUBLIC
     firmware/common/ota
 )
 
+# Simulator library
+add_library(helix_simulators STATIC
+    simulators/i2c/VirtualI2CBus.cpp
+)
+target_include_directories(helix_simulators PUBLIC
+    simulators/i2c
+    external/SensorFusion/drivers/hal
+)
+
 if(HELIXDRIFT_BUILD_TESTS)
     enable_testing()
     include(FetchContent)
@@ -41,6 +50,7 @@ if(HELIXDRIFT_BUILD_TESTS)
     )
     FetchContent_MakeAvailable(googletest)
 
+    # Unit tests (existing)
     add_executable(helix_tests
         tests/test_blink_engine.cpp
         tests/test_mocap_ble_sender.cpp
@@ -69,4 +79,20 @@ if(HELIXDRIFT_BUILD_TESTS)
     )
     include(GoogleTest)
     gtest_discover_tests(helix_tests)
+
+    # Integration tests (simulators)
+    add_executable(helix_integration_tests
+        simulators/tests/test_virtual_i2c_bus.cpp
+    )
+    target_include_directories(helix_integration_tests PRIVATE
+        simulators/i2c
+        external/SensorFusion/drivers/hal
+    )
+    target_link_libraries(helix_integration_tests PRIVATE
+        helix_simulators
+        GTest::gtest_main
+        GTest::gmock
+    )
+    include(GoogleTest)
+    gtest_discover_tests(helix_integration_tests)
 endif()
