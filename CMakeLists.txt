@@ -34,10 +34,13 @@ target_include_directories(helix_ota PUBLIC
 # Simulator library
 add_library(helix_simulators STATIC
     simulators/i2c/VirtualI2CBus.cpp
+    simulators/sensors/Lps22dfSimulator.cpp
 )
 target_include_directories(helix_simulators PUBLIC
     simulators/i2c
+    simulators/sensors
     external/SensorFusion/drivers/hal
+    external/SensorFusion/middleware/common
 )
 
 if(HELIXDRIFT_BUILD_TESTS)
@@ -83,10 +86,13 @@ if(HELIXDRIFT_BUILD_TESTS)
     # Integration tests (simulators)
     add_executable(helix_integration_tests
         simulators/tests/test_virtual_i2c_bus.cpp
+        simulators/tests/test_lps22df_simulator.cpp
     )
     target_include_directories(helix_integration_tests PRIVATE
         simulators/i2c
+        simulators/sensors
         external/SensorFusion/drivers/hal
+        external/SensorFusion/middleware/common
     )
     target_link_libraries(helix_integration_tests PRIVATE
         helix_simulators
