@@ -321,6 +321,161 @@ Result:
 - Summary metrics are intentionally minimal and do not yet include drift rate,
   convergence time, or CSV export.
 
+### Feature: Deterministic Harness Seeding Coverage
+
+#### Intent
+
+Prove that the deterministic sensor-seeding work already implemented in the
+simulator stack actually propagates through the reusable assembly and virtual
+node harness layers, so future quantitative pose tests are reproducible by
+construction rather than by accident.
+
+#### Design Summary
+
+- Add an assembly-level regression that compares two independently constructed
+  three-sensor stacks with the same seed and the same injected noise.
+- Add a harness-level regression that compares two noisy virtual node runs and
+  requires identical summary statistics.
+- Keep this slice test-only because the production hooks already existed.
+
+#### Tests Added First
+
+- `VirtualSensorAssemblyTest.SameSeedProducesDeterministicNoisyReadingsAcrossAssemblies`
+- `VirtualMocapNodeHarnessTest.SameSeedProducesDeterministicRunStatisticsAcrossHarnesses`
+
+#### Implementation Summary
+
+- Added deterministic noisy-readback coverage in
+  `simulators/tests/test_virtual_sensor_assembly.cpp`.
+- Added deterministic noisy-run coverage in
+  `simulators/tests/test_virtual_mocap_node_harness.cpp`.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "(VirtualSensorAssemblyTest|VirtualMocapNodeHarnessTest)"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `229/229` host tests passing after the follow-on harness slices
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- Deterministic seeding is now covered, but stronger long-duration pose metrics
+  still need to be built on top of that deterministic base.
+
+### Feature: Harness Config And Safety Coverage
+
+#### Intent
+
+Cover the harness hardening changes directly in tests so the worktree branch
+does not rely on review-by-inspection for key safety and configuration
+behavior.
+
+#### Design Summary
+
+- Assert that an empty harness exposes `hasFrames() == false`.
+- Death-test the guarded `lastFrame()` path.
+- Verify that the struct-based harness config controls node ID and cadence.
+- Cover the `runForDuration(..., stepUs = 0)` edge case explicitly.
+
+#### Tests Added First
+
+- `VirtualMocapNodeHarnessTest.EmptyHarnessHasNoFrames`
+- `VirtualMocapNodeHarnessTest.LastFrameDiesWhenNoFramesHaveBeenCaptured`
+- `VirtualMocapNodeHarnessTest.ConfigConstructorUsesConfiguredNodeIdAndCadence`
+- `VirtualMocapNodeHarnessTest.RunForDurationReturnsEmptyResultWhenStepIsZero`
+
+#### Implementation Summary
+
+- Added four coverage-oriented harness tests in
+  `simulators/tests/test_virtual_mocap_node_harness.cpp`.
+- Kept this slice test-only because the production behavior was already
+  implemented in the prior harness commit.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "VirtualMocapNodeHarnessTest|VirtualSensorAssemblyTest"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `229/229` host tests passing after the follow-on harness slices
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- The guarded API is now covered, but the next real quality gap is still
+  broader pose-accuracy proof, not harness safety.
+
+### Feature: Scripted Yaw Motion Regressions
+
+#### Intent
+
+Convert the earliest stable motion scenarios into real regression tests without
+pretending that broad multi-axis pose accuracy is already solved.
+
+#### Design Summary
+
+- Probe several scripted motions and only promote the ones that show stable,
+  bounded behavior in the current fusion stack.
+- Start with yaw-dominant scenarios because they are measurably stronger than
+  snap-static pitch/roll cases in the current simulator/fusion combination.
+- Use `NodeRunResult` metrics directly so future experiment files can inherit a
+  consistent measurement path.
+
+#### Tests Added First
+
+- `VirtualMocapNodeHarnessTest.YawSweepThenHoldStaysWithinBoundedError`
+- `VirtualMocapNodeHarnessTest.FullTurnThenHoldReturnsNearStartOrientation`
+- `VirtualMocapNodeHarnessTest.YawOscillationThenHoldRemainsWithinTightBound`
+
+#### Implementation Summary
+
+- Added three scripted yaw regression tests to
+  `simulators/tests/test_virtual_mocap_node_harness.cpp`.
+- Chose bounded thresholds from measured behavior rather than from aspirational
+  product targets.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "VirtualMocapNodeHarnessTest"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `229/229` host tests passing
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- Yaw scenarios are now covered, but direct static multi-pose accuracy remains
+  weak enough that Claude Wave A acceptance thresholds would currently fail.
+- Pitch and roll tracking still need deeper investigation before they should be
+  promoted into strong acceptance tests.
+
 ## 2026-03-29 - Day 1 (COMPLETE)
 
 ### Summary

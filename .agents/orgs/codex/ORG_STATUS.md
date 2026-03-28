@@ -3,15 +3,15 @@
 ## Org Lead
 
 - Lead session: Codex main session
-- Lead worktree: repo root
-- Integration worktree: not yet assigned
+- Lead worktree: `.worktrees/codex-active`
+- Integration worktree: `.worktrees/codex-active`
 
 ## Active Teams
 
 | Team | Worktree | Mission | Write Scope | Status |
 |---|---|---|---|---|
-| Sensors | repo root | Prove each sensor independently and improve simulator fidelity | `simulators/i2c/`, `simulators/sensors/`, `simulators/tests/` | active |
-| Fusion | repo root | Build host-side virtual sensor and node harnesses on top of the proven simulator stack | `simulators/fixtures/`, `simulators/tests/`, `tests/` | active |
+| Sensors | `.worktrees/codex-active` | Prove each sensor independently and improve simulator fidelity | `simulators/i2c/`, `simulators/sensors/`, `simulators/tests/` | active |
+| Fusion | `.worktrees/codex-active` | Build host-side virtual sensor and node harnesses on top of the proven simulator stack | `simulators/fixtures/`, `simulators/tests/`, `tests/` | active |
 | Host Tools |  | Defer until sensor validation needs evidence tooling changes | review-only for now | idle |
 | nRF52 |  | Defer until simulation proof work advances | `examples/nrf52-mocap-node/`, `tools/nrf/` | idle |
 
@@ -27,8 +27,9 @@
   - Host-side virtual mocap node harness with cadence, capture transport, and
     timestamp-mapping proof
   - Basic pose-quality metrics suitable for bounded host assertions
-  - Short-horizon motion-regression assertions on the virtual node harness
+  - Scripted yaw motion-regression assertions on the virtual node harness
   - Batched run support with summary pose-error stats for future experiments
+  - Harness safety and deterministic-seeding coverage in the Codex worktree
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -67,6 +68,9 @@
 - Task: Deliver the Sensor Validation slice, reusable sensor-assembly harness,
   virtual mocap node harness, and first pose-metric assertions for host
   integration work
+- Task: Close M2 Wave A incrementally from the Codex worktree, starting with
+  harness-safety coverage and scripted yaw regressions before broader pose
+  experiments
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)
@@ -81,4 +85,5 @@
 
 - Ready to merge into codex integration: yes
 - Waiting on fixes: no
-- Ready for top-level integration: pending peer review
+- Ready for top-level integration: yes, once the shared tree is clean enough to
+  merge `codex/active`
