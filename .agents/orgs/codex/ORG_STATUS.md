@@ -36,6 +36,8 @@
   - Wave A A6 two-node joint-angle proof for near-identity initialization
   - Additional A1a and A2 probe evidence showing current redirected thresholds
     are still too aggressive for the present SensorFusion behavior
+  - SensorFusion first-sample Mahony seeding fix committed locally in the
+    submodule to replace identity-only startup
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -85,6 +87,9 @@
   changes justify codifying them as acceptance tests
 - Task: Use A6 joint-angle recovery as the next valid M2 proof slice because it
   remains accurate despite the blocked absolute static-offset path
+- Task: Carry the local SensorFusion seeding commit through Helix as a
+  submodule-pointer update because it meaningfully improves static yaw startup
+  while leaving pitch/roll and dynamic-tracking limits still open
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

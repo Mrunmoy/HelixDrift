@@ -1247,3 +1247,61 @@ path is currently the strongest next M2 proof after A3.
 3. Escalate SensorFusion initialization as the likely prerequisite for both
    blocked large-angle cases and the unexpectedly poor small-offset absolute
    cases.
+
+---
+
+## 2026-03-29 - Codex Sprint 5: SensorFusion Init Escalation Landed
+
+### Summary
+
+Implemented the first escalated SensorFusion fix locally in the submodule:
+Mahony is no longer forced to start from identity on the first pipeline sample.
+
+### SensorFusion Change
+
+Local submodule commit:
+
+- `214c28a` `sensorfusion: seed mahony from first sensor sample`
+
+What changed:
+
+- `MahonyAHRS` gained one-shot initialization helpers:
+  - `initFromSensors(accel, mag)`
+  - `initFromAccel(accel)`
+- `MocapNodePipeline` now seeds the filter exactly once on the first successful
+  sample before entering the steady-state update loop
+- submodule tests were added for:
+  - large-yaw first-sample seeding in `test_mahony_ahrs.cpp`
+  - pipeline first-step orientation seeding in `test_mocap_node_pipeline.cpp`
+
+### Impact On HelixDrift
+
+Observed improvement:
+
+- the quarter-turn harness case moved from `90 deg` startup error back down to
+  under `1 deg` (`truth +45 deg`, fused about `+44.7 deg`)
+- the full Helix host suite remains green after the submodule update
+
+Still not sufficient to close all redirected Wave A work:
+
+- `A1a` improved only for small yaw offsets and is still outside Claude's
+  staged thresholds for pitch/roll
+- `A2` dynamic tracking remains outside the redirected acceptance targets,
+  especially on pitch/roll
+
+### Current Interpretation
+
+This is a real partial unblock, not a full resolution:
+
+- SensorFusion startup was a genuine issue and is now better
+- the remaining pitch/roll and dynamic-tracking gaps are separate from the
+  identity-only-start problem and still need follow-up investigation
+
+### Current M2 Proof Set
+
+What is now solid:
+
+- `A3` long-duration drift
+- `A5` Ki bias rejection
+- `A6` two-node joint-angle recovery
+- improved first-sample static yaw startup via the submodule fix
