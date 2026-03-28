@@ -191,3 +191,54 @@ TEST(VirtualMocapNodeHarnessTest, RunForDurationComputesFinalAndDriftMetrics) {
     EXPECT_FLOAT_EQ(result.finalErrorDeg, result.samples.back().angularErrorDeg);
     EXPECT_TRUE(std::isfinite(result.driftRateDegPerMin));
 }
+
+TEST(VirtualMocapNodeHarnessTest, EmptyHarnessHasNoFrames) {
+    VirtualMocapNodeHarness harness;
+
+    EXPECT_FALSE(harness.hasFrames());
+}
+
+TEST(VirtualMocapNodeHarnessTest, LastFrameDiesWhenNoFramesHaveBeenCaptured) {
+    VirtualMocapNodeHarness harness;
+
+    EXPECT_DEATH(static_cast<void>(harness.lastFrame()), "");
+}
+
+TEST(VirtualMocapNodeHarnessTest, ConfigConstructorUsesConfiguredNodeIdAndCadence) {
+    VirtualMocapNodeHarness::Config config{};
+    config.nodeId = 9;
+    config.outputPeriodUs = 10000;
+    config.pipeline.preferMag = false;
+
+    VirtualMocapNodeHarness harness(config);
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+
+    EXPECT_EQ(harness.config().nodeId, 9u);
+    EXPECT_EQ(harness.config().outputPeriodUs, 10000u);
+    EXPECT_FALSE(harness.config().pipeline.preferMag);
+
+    ASSERT_TRUE(harness.tick());
+    ASSERT_TRUE(harness.hasFrames());
+    EXPECT_EQ(harness.lastFrame().nodeId, 9u);
+    EXPECT_EQ(harness.lastFrame().timestampUs, 0u);
+
+    harness.advanceTimeUs(9999);
+    EXPECT_FALSE(harness.tick());
+    harness.advanceTimeUs(1);
+    EXPECT_TRUE(harness.tick());
+    EXPECT_EQ(harness.lastFrame().timestampUs, 10000u);
+}
+
+TEST(VirtualMocapNodeHarnessTest, RunForDurationReturnsEmptyResultWhenStepIsZero) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+
+    const NodeRunResult result = harness.runForDuration(100000, 0);
+
+    EXPECT_TRUE(result.samples.empty());
+    EXPECT_EQ(result.rmsErrorDeg, 0.0f);
+    EXPECT_EQ(result.maxErrorDeg, 0.0f);
+    EXPECT_EQ(result.finalErrorDeg, 0.0f);
+    EXPECT_EQ(result.driftRateDegPerMin, 0.0f);
+}
