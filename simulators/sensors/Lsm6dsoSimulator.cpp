@@ -189,6 +189,10 @@ void Lsm6dsoSimulator::setGyroScale(const sf::Vec3& scale) {
     gyroScale_ = scale;
 }
 
+void Lsm6dsoSimulator::setSeed(uint32_t seed) {
+    rng_.seed(seed);
+}
+
 void Lsm6dsoSimulator::setTemperature(float tempC) {
     temperature_ = tempC;
 }

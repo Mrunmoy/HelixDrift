@@ -144,6 +144,10 @@ void Lps22dfSimulator::setTemperatureBias(float bias) {
     temperatureBias_ = bias;
 }
 
+void Lps22dfSimulator::setSeed(uint32_t seed) {
+    rng_.seed(seed);
+}
+
 float Lps22dfSimulator::getPressure() const {
     float pressure;
     if (pressureOverride_) {

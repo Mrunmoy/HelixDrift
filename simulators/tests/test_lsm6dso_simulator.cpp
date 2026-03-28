@@ -276,6 +276,50 @@ TEST_F(Lsm6dsoSimulatorTest, GyroScale_AppliedCorrectly) {
     EXPECT_NEAR(x, expectedX_dps, 0.5f);
 }
 
+TEST_F(Lsm6dsoSimulatorTest, AccelRawCountsTrackConfiguredFullScale) {
+    imu.setOrientation(Quaternion{1.0f, 0.0f, 0.0f, 0.0f});
+
+    uint8_t accel2gCfg = 0x00;  // FS_XL = 0 => 2g
+    ASSERT_TRUE(bus.writeRegister(IMU_ADDR, Lsm6dsoSimulator::REG_CTRL1_XL, &accel2gCfg, 1));
+
+    uint8_t buf2g[6];
+    ASSERT_TRUE(bus.readRegister(IMU_ADDR, Lsm6dsoSimulator::REG_OUTX_L_A, buf2g, sizeof(buf2g)));
+    int16_t rawZ2g = static_cast<int16_t>(buf2g[4] | (buf2g[5] << 8));
+
+    uint8_t accel8gCfg = 0x0C;  // FS_XL = 3 => 8g
+    ASSERT_TRUE(bus.writeRegister(IMU_ADDR, Lsm6dsoSimulator::REG_CTRL1_XL, &accel8gCfg, 1));
+
+    uint8_t buf8g[6];
+    ASSERT_TRUE(bus.readRegister(IMU_ADDR, Lsm6dsoSimulator::REG_OUTX_L_A, buf8g, sizeof(buf8g)));
+    int16_t rawZ8g = static_cast<int16_t>(buf8g[4] | (buf8g[5] << 8));
+
+    EXPECT_GT(rawZ2g, 0);
+    EXPECT_GT(rawZ8g, 0);
+    EXPECT_NEAR(static_cast<float>(rawZ2g) / static_cast<float>(rawZ8g), 4.0f, 0.1f);
+}
+
+TEST_F(Lsm6dsoSimulatorTest, GyroRawCountsTrackConfiguredFullScale) {
+    imu.setRotationRate(0.0f, 0.0f, 1.0f);
+
+    uint8_t gyro250dpsCfg = 0x00;  // FS_G = 0 => 250 dps
+    ASSERT_TRUE(bus.writeRegister(IMU_ADDR, Lsm6dsoSimulator::REG_CTRL2_G, &gyro250dpsCfg, 1));
+
+    uint8_t buf250[6];
+    ASSERT_TRUE(bus.readRegister(IMU_ADDR, Lsm6dsoSimulator::REG_OUTX_L_G, buf250, sizeof(buf250)));
+    int16_t rawZ250 = static_cast<int16_t>(buf250[4] | (buf250[5] << 8));
+
+    uint8_t gyro1000dpsCfg = 0x08;  // FS_G = 4 => 1000 dps
+    ASSERT_TRUE(bus.writeRegister(IMU_ADDR, Lsm6dsoSimulator::REG_CTRL2_G, &gyro1000dpsCfg, 1));
+
+    uint8_t buf1000[6];
+    ASSERT_TRUE(bus.readRegister(IMU_ADDR, Lsm6dsoSimulator::REG_OUTX_L_G, buf1000, sizeof(buf1000)));
+    int16_t rawZ1000 = static_cast<int16_t>(buf1000[4] | (buf1000[5] << 8));
+
+    EXPECT_GT(rawZ250, 0);
+    EXPECT_GT(rawZ1000, 0);
+    EXPECT_NEAR(static_cast<float>(rawZ250) / static_cast<float>(rawZ1000), 4.0f, 0.1f);
+}
+
 // Test 16: Noise injection adds variation (statistical test)
 TEST_F(Lsm6dsoSimulatorTest, Noise_AddsVariation) {
     imu.setAccelNoiseStdDev(0.01f); // 0.01g noise
@@ -307,6 +351,29 @@ TEST_F(Lsm6dsoSimulatorTest, Noise_AddsVariation) {
     // For 0.01g noise, we expect std dev around 0.01g
     EXPECT_GT(stdDevZ, 0.005f); // Should have some variation
     EXPECT_LT(stdDevZ, 0.02f);  // But not too much
+}
+
+TEST(Lsm6dsoSimulatorDeterminismTest, SameSeedProducesIdenticalNoisyAccelSamples) {
+    Lsm6dsoSimulator imuA;
+    Lsm6dsoSimulator imuB;
+
+    imuA.setSeed(1234);
+    imuB.setSeed(1234);
+
+    imuA.setOrientation(Quaternion{1.0f, 0.0f, 0.0f, 0.0f});
+    imuB.setOrientation(Quaternion{1.0f, 0.0f, 0.0f, 0.0f});
+    imuA.setAccelNoiseStdDev(0.02f);
+    imuB.setAccelNoiseStdDev(0.02f);
+
+    for (int sample = 0; sample < 8; ++sample) {
+        uint8_t bufA[6];
+        uint8_t bufB[6];
+        ASSERT_TRUE(imuA.readRegister(Lsm6dsoSimulator::REG_OUTX_L_A, bufA, sizeof(bufA)));
+        ASSERT_TRUE(imuB.readRegister(Lsm6dsoSimulator::REG_OUTX_L_A, bufB, sizeof(bufB)));
+        for (size_t i = 0; i < sizeof(bufA); ++i) {
+            EXPECT_EQ(bufA[i], bufB[i]);
+        }
+    }
 }
 
 // Test 17: Bulk read from OUT_TEMP_L gets temp + gyro + accel

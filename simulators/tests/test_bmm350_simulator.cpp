@@ -423,6 +423,31 @@ TEST(Bmm350SimulatorTest, NoiseInjection) {
     EXPECT_NEAR(meanX, 25.0f, 2.0f);  // Within 2 std dev
 }
 
+TEST(Bmm350SimulatorTest, SameSeedProducesIdenticalNoisyMagSamples) {
+    Bmm350Simulator simA;
+    Bmm350Simulator simB;
+
+    simA.setSeed(4321);
+    simB.setSeed(4321);
+    simA.setOrientation(Quaternion{1.0f, 0.0f, 0.0f, 0.0f});
+    simB.setOrientation(Quaternion{1.0f, 0.0f, 0.0f, 0.0f});
+
+    Bmm350Simulator::ErrorConfig errors;
+    errors.noiseStdDev = 0.4f;
+    simA.setErrors(errors);
+    simB.setErrors(errors);
+
+    for (int sample = 0; sample < 8; ++sample) {
+        uint8_t bufA[9];
+        uint8_t bufB[9];
+        ASSERT_TRUE(simA.readRegister(Bmm350Simulator::REG_MAG_X_XLSB, bufA, sizeof(bufA)));
+        ASSERT_TRUE(simB.readRegister(Bmm350Simulator::REG_MAG_X_XLSB, bufB, sizeof(bufB)));
+        for (size_t i = 0; i < sizeof(bufA); ++i) {
+            EXPECT_EQ(bufA[i], bufB[i]);
+        }
+    }
+}
+
 // ============================================================================
 // TDD Test 15: Bias injection
 // ============================================================================

@@ -88,6 +88,7 @@ public:
      * @param bias Bias in °C to add to all temperature readings
      */
     void setTemperatureBias(float bias);
+    void setSeed(uint32_t seed);
     
     /**
      * @brief Get current altitude

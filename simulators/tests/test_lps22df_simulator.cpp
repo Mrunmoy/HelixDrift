@@ -259,3 +259,25 @@ TEST_F(Lps22dfSimulatorTest, SetTemperature) {
     
     EXPECT_NEAR(tempC, 30.0f, 0.1f);
 }
+
+TEST(Lps22dfSimulatorDeterminismTest, SameSeedProducesIdenticalNoisyPressureSamples) {
+    Lps22dfSimulator sensorA;
+    Lps22dfSimulator sensorB;
+
+    sensorA.setSeed(9876);
+    sensorB.setSeed(9876);
+    sensorA.setAltitude(123.0f);
+    sensorB.setAltitude(123.0f);
+    sensorA.setPressureNoiseStdDev(0.7f);
+    sensorB.setPressureNoiseStdDev(0.7f);
+
+    for (int sample = 0; sample < 8; ++sample) {
+        uint8_t bufA[3];
+        uint8_t bufB[3];
+        ASSERT_TRUE(sensorA.readRegister(0x28, bufA, sizeof(bufA)));
+        ASSERT_TRUE(sensorB.readRegister(0x28, bufB, sizeof(bufB)));
+        for (size_t i = 0; i < sizeof(bufA); ++i) {
+            EXPECT_EQ(bufA[i], bufB[i]);
+        }
+    }
+}

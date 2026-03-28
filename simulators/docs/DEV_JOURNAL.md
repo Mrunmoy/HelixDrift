@@ -1,5 +1,60 @@
 # Simulator Development Journal
 
+## 2026-03-29 - Day 2 (IN PROGRESS)
+
+### Feature: Deterministic Sensor Seeding
+
+#### Intent
+
+Strengthen standalone sensor proof by making noisy simulator output
+reproducible across runs. This is a prerequisite for higher-confidence
+quantitative regression and calibration tests.
+
+#### Design Summary
+
+- Add an explicit `setSeed(uint32_t)` API to each of the three sensor
+  simulators.
+- Prove the behavior with one standalone determinism test per sensor.
+- Keep the change strictly within the Sensor Validation scope.
+
+#### Tests Added First
+
+- `Lsm6dsoSimulatorDeterminismTest.SameSeedProducesIdenticalNoisyAccelSamples`
+- `Bmm350SimulatorTest.SameSeedProducesIdenticalNoisyMagSamples`
+- `Lps22dfSimulatorDeterminismTest.SameSeedProducesIdenticalNoisyPressureSamples`
+
+#### Implementation Summary
+
+- Added `setSeed(uint32_t)` to:
+  - `Lsm6dsoSimulator`
+  - `Bmm350Simulator`
+  - `Lps22dfSimulator`
+- Added a standalone per-sensor validation design artifact:
+  - `docs/PER_SENSOR_VALIDATION_MATRIX.md`
+
+#### Verification
+
+Command run:
+
+```bash
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `204/204` host tests passing
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- Deterministic seeding is now explicit, but broader quantitative calibration
+  coverage is still incomplete.
+- Sensor validation criteria now exist as a document, but not all matrix items
+  are yet enforced in tests.
+
 ## 2026-03-29 - Day 1 (COMPLETE)
 
 ### Summary
@@ -378,3 +433,201 @@ nix develop
 **Status**: ✅ COMPLETE - 126/126 tests passing  
 **Branch**: feature/sensor-simulators  
 **Last updated**: 2026-03-29
+
+
+---
+
+## 2026-03-29 - Kimi Org: RF/Sync Research Phase Complete
+
+### Summary
+Completed all three research questions for RF/Sync architecture. Delivered comprehensive design documents for timing requirements, protocol selection, and sync architecture.
+
+---
+
+### Research Q1: Timing Budget Analysis
+
+**Deliverable**: `docs/rf-sync-requirements.md`
+
+**Key Findings**:
+- End-to-end latency targets: < 20 ms for VR/AR, < 50 ms for animation
+- Transport layer budget: < 5-10 ms one-way (derived from component breakdown)
+- Inter-node sync accuracy: < 1 ms skew required for kinematic chains
+- Clock drift tolerance: 50 ppm per node, requires periodic anchor updates (50-100 ms)
+
+**Analysis Method**:
+1. Surveyed human perception thresholds for motion-to-visual delay
+2. Decomposed system into components (sampling, fusion, transport, render)
+3. Assigned budgets based on use case priorities
+4. Derived transport requirements from end-to-end targets
+
+**Output**: 7-page requirements document with use case matrix, component breakdown, and quantitative targets.
+
+---
+
+### Research Q2: Protocol Comparison
+
+**Deliverable**: `docs/rf-protocol-comparison.md`
+
+**Options Evaluated**:
+1. **BLE Standard** - ❌ Too slow (15-20 ms round-trip minimum)
+2. **BLE 5.2 Isochronous** - ⚠️ Promising but complex, marginal latency
+3. **Proprietary 2.4 GHz (Nordic ESB)** - ✅ **Recommended** (sub-ms latency)
+4. **802.15.4 (Thread/Zigbee)** - ❌ Too slow (50-200 ms)
+5. **BLE + Timeslot Hybrid** - ⚠️ Advanced option for production
+
+**Recommendation**: Proprietary 2.4 GHz (Nordic ESB/Gazell) for v1
+
+**Rationale**:
+- Sub-millisecond round-trip easily meets < 5 ms transport budget
+- < 1% duty cycle enables all-day wearable use
+- Star topology supports 6+ nodes with TDMA
+- Proven in gaming peripherals with similar requirements
+
+**Trade-offs**:
+- ✅ Best latency and power
+- ✅ Simple implementation
+- ❌ No phone/tablet compatibility
+- ❌ Custom protocol (ecosystem lock-in)
+
+**Output**: 8-page comparison with decision matrix and recommendation.
+
+---
+
+### Research Q3: Sync Architecture Design
+
+**Deliverable**: `docs/rf-sync-architecture.md`
+
+**Proposed Architecture**:
+- **Physical**: Nordic Proprietary 2.4 GHz
+- **Topology**: Star (1 master, up to 8 nodes)
+- **Access**: TDMA (Time Division Multiple Access)
+- **Sync**: Master-driven anchor broadcasts
+- **Target**: < 5 ms one-way, < 1 ms inter-node skew
+
+**Key Design Elements**:
+
+1. **TDMA Frame Structure**:
+   - Superframe: 10-20 ms repeating
+   - Anchor slot: 200 µs (broadcast)
+   - Data slots: 800 µs per node (up to 6 nodes)
+   - Guard time: 100-150 µs between slots
+
+2. **Packet Formats**:
+   - ANCHOR: 16 bytes (type, seq, timestamp, slot assignments)
+   - DATA: 20 bytes (type, node_id, timestamp, quaternion Q15, flags)
+
+3. **Sync Algorithm**:
+   - Master broadcasts anchor with `t_master_anchor`
+   - Node records `t_node_anchor` at reception
+   - Calculate offset: `offset = t_master - t_node`
+   - Track drift rate between anchors
+   - Convert timestamps: `t_master = t_node + offset + drift_correction`
+
+4. **Expected Accuracy**:
+   - Quantization: < 0.5 µs
+   - Drift (50 ppm): ~5 µs over 100 ms
+   - Radio jitter: ~10-50 µs
+   - **Total skew: < 200 µs** (well under 1 ms requirement)
+
+**Handoff for Implementation**:
+- API contracts for `SyncFilter` and `TDMAScheduler`
+- Host simulation plan (VirtualMasterClock, VirtualNodeClock)
+- Phase roadmap: host sim → protocol validation → nRF52 port
+
+**Output**: 11-page architecture with packet formats, algorithms, and implementation roadmap.
+
+---
+
+### Time Investment
+
+| Task | Duration |
+|------|----------|
+| Q1: Timing requirements | ~45 min |
+| Q2: Protocol comparison | ~40 min |
+| Q3: Architecture design | ~60 min |
+| Documentation + handoff | ~15 min |
+| **Total** | **~2.5 hours** |
+
+---
+
+### Files Created
+
+```
+docs/
+├── rf-sync-requirements.md      (7.2 KB) - Q1 deliverable
+├── rf-protocol-comparison.md    (8.6 KB) - Q2 deliverable
+└── rf-sync-architecture.md      (11.7 KB) - Q3 deliverable
+
+.agents/orgs/kimi/
+└── ORG_STATUS.md                (updated with planning gate and status)
+```
+
+---
+
+### Next Steps for Implementation
+
+**Owner**: Codex / RF And Sync team (when assigned)
+
+1. Host simulation components:
+   - `VirtualMasterClock` - generates anchor timestamps
+   - `VirtualNodeClock` - simulates independent node clocks with drift
+   - `SyncFilter` - implements sync algorithm from architecture doc
+   - `TDMAScheduler` - manages slot allocation
+
+2. Test harness:
+   - `tests/test_rf_sync.cpp` - validate sync under simulated drift
+   - Multi-node scenarios (6 nodes)
+   - Impairment injection (loss, jitter, delay)
+
+3. Validation metrics:
+   - Mean/max sync skew per node
+   - Convergence time
+   - Drift estimation accuracy
+
+---
+
+### Review Requests
+
+Per `.agents/MODEL_ASSIGNMENT.md` review routing:
+
+1. **Claude / Systems Architect**: Review architecture coherence, integration with pose inference
+2. **Codex / Implementation Feasibility**: Review API contracts, estimate implementation effort
+3. **Claude / Systems Architect** (final signoff): Architecture approval
+
+---
+
+### Risks and Open Questions
+
+| Risk | Status | Notes |
+|------|--------|-------|
+| TDMA complexity | Mitigated | Start with fixed schedule, add dynamic later |
+| ESB library limitations | Known | Fallback to raw radio if needed |
+| Power consumption | Under investigation | 36-57% duty cycle at 50-100 Hz - may need optimization |
+| Multi-node interference | To test | Implement in simulation first |
+
+**Open Questions**:
+1. Dynamic slot allocation: Should master adjust slots based on node activity?
+2. Acknowledgment policy: Explicit ACK vs implicit (next anchor)?
+3. Security: Is encryption needed for v1?
+4. BLE coexistence: How to share radio with BLE for OTA/config?
+
+---
+
+### Impact on Project
+
+This research unblocks:
+- ✅ SIMULATION_BACKLOG.md Milestone 4 (Master-Node Time Sync)
+- ✅ SIMULATION_BACKLOG.md Milestone 5 (Network Impairment)
+- ✅ SIMULATION_BACKLOG.md Milestone 6 (Multi-Node Body Kinematics)
+
+Provides foundation for:
+- VirtualMasterClock implementation
+- SyncFilter algorithm
+- Multi-node simulation harness
+
+---
+
+**Status**: ✅ Research phase complete - ready for peer review and implementation  
+**Deliverables**: 3 design documents, 27.5 KB total  
+**Last updated**: 2026-03-29
+

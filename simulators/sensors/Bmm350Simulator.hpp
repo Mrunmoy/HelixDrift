@@ -67,6 +67,7 @@ public:
     void setOrientation(const sf::Quaternion& q);
     void setEarthField(const sf::Vec3& field);
     void setTemperature(float tempC);
+    void setSeed(uint32_t seed);
 
     // Error injection
     void setErrors(const ErrorConfig& errors);

@@ -117,6 +117,10 @@ void Bmm350Simulator::setTemperature(float tempC) {
     temperature_ = tempC;
 }
 
+void Bmm350Simulator::setSeed(uint32_t seed) {
+    rng_.seed(seed);
+}
+
 void Bmm350Simulator::setErrors(const ErrorConfig& errors) {
     errors_ = errors;
     if (errors.noiseStdDev > 0) {

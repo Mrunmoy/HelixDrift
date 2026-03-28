@@ -55,7 +55,8 @@ public:
     void setGyroNoiseStdDev(float stddev);        // in rad/s
     void setAccelScale(const sf::Vec3& scale);    // multiplicative
     void setGyroScale(const sf::Vec3& scale);     // multiplicative
-    
+    void setSeed(uint32_t seed);
+
     // Temperature control
     void setTemperature(float tempC);
 
