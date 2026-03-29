@@ -1,0 +1,43 @@
+{
+  "sample_count": 10,
+  "duration_seconds": 1.18,
+  "angular_error": {
+    "rms_deg": 1.1796185824239969,
+    "max_deg": 2.5,
+    "final_deg": 0.05,
+    "mean_deg": 0.8300000000000001,
+    "std_deg": 0.8382123835878351,
+    "p95_deg": 2.2749999999999995,
+    "p99_deg": 2.455
+  },
+  "drift_analysis": {
+    "drift_rate_deg_per_min": -816.6666666666667,
+    "drift_rate_computed_from": "first_to_last_sample",
+    "convergence_time_seconds": 0.18,
+    "convergence_threshold_deg": 3.0
+  },
+  "acceptance_criteria": {
+    "passed": false,
+    "checks": {
+      "rms": {
+        "threshold": 5.0,
+        "actual": 1.1796185824239969,
+        "passed": true
+      },
+      "max": {
+        "threshold": 10.0,
+        "actual": 2.5,
+        "passed": true
+      },
+      "drift": {
+        "threshold": 2.0,
+        "actual": -816.6666666666667,
+        "passed": false
+      }
+    }
+  },
+  "statistics": {
+    "computation_timestamp": "auto",
+    "warmup_discarded": 50
+  }
+}

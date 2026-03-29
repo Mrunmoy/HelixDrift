@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "experiment_id": "test_run",
+  "experiment_family": "Wave_A",
+  "description": "Test run for validation",
+  "timestamp_iso": "2026-03-29T10:30:00Z",
+  "hostname": "workstation-01",
+  "git_commit": "abc123",
+  "simulator_config": {
+    "mahony_kp": 1.0,
+    "mahony_ki": 0.02,
+    "seed": 42,
+    "output_period_us": 20000
+  },
+  "gimbal_config": {
+    "initial_orientation": {
+      "w": 1.0,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "rotation_rate_dps": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "motion_profile": "static"
+  },
+  "sensor_errors": {
+    "gyro_bias_rad_s": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "gyro_noise_std": 0.001,
+    "accel_bias_g": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "mag_hard_iron_ut": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    }
+  },
+  "execution": {
+    "warmup_samples": 50,
+    "measured_samples": 200,
+    "total_ticks": 250,
+    "duration_seconds": 5.0
+  }
+}
