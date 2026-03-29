@@ -7,6 +7,34 @@ using sim::VirtualI2CBus;
 using sf::Quaternion;
 using sf::Vec3;
 
+namespace {
+
+Vec3 readMagUt(Bmm350Simulator& sim) {
+    uint8_t magData[9];
+    EXPECT_TRUE(sim.readRegister(Bmm350Simulator::REG_MAG_X_XLSB, magData, sizeof(magData)));
+
+    auto decode24 = [](const uint8_t* buf) -> int32_t {
+        uint32_t raw = static_cast<uint32_t>(buf[0]) |
+                       (static_cast<uint32_t>(buf[1]) << 8) |
+                       (static_cast<uint32_t>(buf[2]) << 16);
+        if (raw & 0x100000) {
+            return static_cast<int32_t>(raw | 0xFFE00000);
+        }
+        return static_cast<int32_t>(raw);
+    };
+
+    const int32_t rawX = decode24(&magData[0]);
+    const int32_t rawY = decode24(&magData[3]);
+    const int32_t rawZ = decode24(&magData[6]);
+    return Vec3{
+        static_cast<float>(rawX) / Bmm350Simulator::UT_SCALE_XY,
+        static_cast<float>(rawY) / Bmm350Simulator::UT_SCALE_XY,
+        static_cast<float>(rawZ) / Bmm350Simulator::UT_SCALE_Z,
+    };
+}
+
+} // namespace
+
 // ============================================================================
 // TDD Test 1: CHIP_ID returns 0x33
 // ============================================================================
@@ -134,6 +162,17 @@ TEST(Bmm350SimulatorTest, MagDataChangesWithOrientation) {
     EXPECT_NEAR(y, 25.0f, 1.0f);
 }
 
+TEST(Bmm350SimulatorTest, MagDataPitchRotationProjectsEarthFieldCorrectly) {
+    Bmm350Simulator sim;
+
+    sim.setOrientation(Quaternion::fromAxisAngle(0, 1, 0, 90.0f));
+
+    const Vec3 mag = readMagUt(sim);
+    EXPECT_NEAR(mag.x, 40.0f, 1.0f);
+    EXPECT_NEAR(mag.y, 0.0f, 1.0f);
+    EXPECT_NEAR(mag.z, -25.0f, 1.0f);
+}
+
 // ============================================================================
 // TDD Test 6: Hard iron error injection
 // ============================================================================
@@ -175,6 +214,32 @@ TEST(Bmm350SimulatorTest, HardIronErrorInjection) {
     EXPECT_NEAR(x, 30.0f, 0.5f);  // 25 + 5
     EXPECT_NEAR(y, -3.0f, 0.5f);  // 0 - 3
     EXPECT_NEAR(z, 42.0f, 0.5f);  // 40 + 2
+}
+
+TEST(Bmm350SimulatorTest, HardIronOffsetRemainsConstantAcrossOrientations) {
+    Bmm350Simulator baseline;
+    Bmm350Simulator shifted;
+
+    Bmm350Simulator::ErrorConfig errors;
+    errors.hardIron = Vec3{10.0f, -15.0f, 8.0f};
+    shifted.setErrors(errors);
+
+    const Quaternion poses[] = {
+        Quaternion{1.0f, 0.0f, 0.0f, 0.0f},
+        Quaternion::fromAxisAngle(0, 0, 1, 90.0f),
+        Quaternion::fromAxisAngle(0, 1, 0, 90.0f),
+    };
+
+    for (const auto& pose : poses) {
+        baseline.setOrientation(pose);
+        shifted.setOrientation(pose);
+        const Vec3 base = readMagUt(baseline);
+        const Vec3 withHardIron = readMagUt(shifted);
+
+        EXPECT_NEAR(withHardIron.x - base.x, 10.0f, 1.5f);
+        EXPECT_NEAR(withHardIron.y - base.y, -15.0f, 1.5f);
+        EXPECT_NEAR(withHardIron.z - base.z, 8.0f, 1.5f);
+    }
 }
 
 // ============================================================================
@@ -421,6 +486,30 @@ TEST(Bmm350SimulatorTest, NoiseInjection) {
     // The mean should still be close to expected
     float meanX = sumX / samples;
     EXPECT_NEAR(meanX, 25.0f, 2.0f);  // Within 2 std dev
+}
+
+TEST(Bmm350SimulatorTest, NoiseStdDevMatchesConfiguredValue) {
+    Bmm350Simulator sim;
+
+    Bmm350Simulator::ErrorConfig errors;
+    errors.noiseStdDev = 0.5f;
+    sim.setErrors(errors);
+
+    float sumX = 0.0f;
+    float sumXSq = 0.0f;
+    constexpr int kSamples = 500;
+    for (int i = 0; i < kSamples; ++i) {
+        const Vec3 mag = sim.getMagData();
+        sumX += mag.x;
+        sumXSq += mag.x * mag.x;
+    }
+
+    const float meanX = sumX / static_cast<float>(kSamples);
+    const float varianceX = (sumXSq / static_cast<float>(kSamples)) - (meanX * meanX);
+    const float stdDevX = std::sqrt(std::max(varianceX, 0.0f));
+
+    EXPECT_NEAR(meanX, 25.0f, 0.2f);
+    EXPECT_NEAR(stdDevX, 0.5f, 0.08f);
 }
 
 TEST(Bmm350SimulatorTest, SameSeedProducesIdenticalNoisyMagSamples) {

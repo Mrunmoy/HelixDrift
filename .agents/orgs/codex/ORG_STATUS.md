@@ -49,6 +49,8 @@
   - Wave B `B2` motion-profile JSON catalog with loader coverage
   - Wave B `B4` first validation-gap closure batch for LPS extremes and LSM
     baseline physical/noise checks
+  - Wave B `B4` BMM orientation/error batch for pitch projection, hard-iron
+    constancy, and noise statistics
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`

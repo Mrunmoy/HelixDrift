@@ -1613,6 +1613,30 @@ consume stable traces later.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: Sensor Validation Gap Closure — BMM Orientation And Error Checks
+
+**Intent:**  
+Keep `B4` moving by tightening the standalone BMM350 proof instead of leaving
+the magnetometer lane at only identity and simple yaw coverage.
+
+**Changes made:**
+
+1. Added a 90-degree pitch-orientation projection check for the default earth
+   field.
+2. Added a hard-iron constancy test across multiple orientations to prove the
+   offset remains additive rather than pose-dependent.
+3. Added an empirical noise-standard-deviation check for configured BMM350
+   noise.
+4. Factored a small local helper in the test file to decode register reads
+   back into microtesla consistently.
+
+**Result:**  
+`B4` is now much less about broad missing basics and more about the remaining
+calibration-oriented or tighter recovery-oriented cases.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: Sensor Validation Gap Closure — LPS Extremes And LSM Baselines
 
 **Intent:**  
