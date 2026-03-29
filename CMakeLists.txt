@@ -133,6 +133,7 @@ if(HELIXDRIFT_BUILD_TESTS)
     )
 
     add_library(helix_sensorfusion STATIC
+        external/SensorFusion/drivers/calibration/CalibrationStore.cpp
         external/SensorFusion/drivers/lsm6dso/LSM6DSO.cpp
         external/SensorFusion/drivers/bmm350/BMM350.cpp
         external/SensorFusion/drivers/lps22df/LPS22DF.cpp
@@ -140,6 +141,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         external/SensorFusion/middleware/ahrs/MahonyAHRS.cpp
     )
     target_include_directories(helix_sensorfusion PUBLIC
+        external/SensorFusion/drivers/calibration
         external/SensorFusion/drivers/lsm6dso
         external/SensorFusion/drivers/bmm350
         external/SensorFusion/drivers/lps22df
@@ -160,6 +162,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_pose_axis_characterization.cpp
         simulators/tests/test_pose_gain_characterization.cpp
         simulators/tests/test_pose_joint_angle.cpp
+        simulators/tests/test_pose_calibration_effectiveness.cpp
         simulators/tests/test_pose_mahony_tuning.cpp
         simulators/tests/test_pose_orientation_accuracy.cpp
         simulators/tests/test_lps22df_simulator.cpp
