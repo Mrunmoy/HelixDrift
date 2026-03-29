@@ -35,6 +35,7 @@ struct CapturedNodeSample {
 
 struct NodeRunResult {
     std::vector<CapturedNodeSample> samples;
+    float meanErrorDeg = 0.0f;
     float rmsErrorDeg = 0.0f;
     float maxErrorDeg = 0.0f;
     float finalErrorDeg = 0.0f;
@@ -177,21 +178,56 @@ public:
         return result;
     }
 
+    NodeRunResult runWithWarmup(uint32_t warmupSteps, uint32_t measuredSteps, uint64_t stepUs = 20000) {
+        NodeRunResult result{};
+        if (stepUs == 0 || measuredSteps == 0) {
+            return result;
+        }
+
+        for (uint32_t i = 0; i < warmupSteps; ++i) {
+            if (!stepMotionAndTick(stepUs)) {
+                return result;
+            }
+        }
+
+        for (uint32_t i = 0; i < measuredSteps; ++i) {
+            if (!stepMotionAndTick(stepUs)) {
+                break;
+            }
+
+            const auto& frame = captureTransport_.frames.back();
+            const sf::Quaternion truth = assembly_.gimbal().getOrientation();
+            const float errorDeg = angularErrorDeg(truth, frame.orientation);
+            result.samples.push_back(CapturedNodeSample{
+                frame.timestampUs,
+                truth,
+                frame.orientation,
+                errorDeg,
+            });
+        }
+
+        computeSummary(result);
+        return result;
+    }
+
 private:
     static void computeSummary(NodeRunResult& result) {
         if (result.samples.empty()) {
             return;
         }
 
+        float errorSum = 0.0f;
         float squaredErrorSum = 0.0f;
         float maxError = 0.0f;
         for (const auto& sample : result.samples) {
+            errorSum += sample.angularErrorDeg;
             squaredErrorSum += sample.angularErrorDeg * sample.angularErrorDeg;
             if (sample.angularErrorDeg > maxError) {
                 maxError = sample.angularErrorDeg;
             }
         }
 
+        result.meanErrorDeg = errorSum / static_cast<float>(result.samples.size());
         result.maxErrorDeg = maxError;
         result.rmsErrorDeg = std::sqrt(squaredErrorSum / static_cast<float>(result.samples.size()));
         result.finalErrorDeg = result.samples.back().angularErrorDeg;

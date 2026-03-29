@@ -419,6 +419,250 @@ Result:
 - Summary metrics are intentionally minimal and do not yet include drift rate,
   convergence time, or CSV export.
 
+### Feature: Deterministic Harness Seeding Coverage
+
+#### Intent
+
+Prove that the deterministic sensor-seeding work already implemented in the
+simulator stack actually propagates through the reusable assembly and virtual
+node harness layers, so future quantitative pose tests are reproducible by
+construction rather than by accident.
+
+#### Design Summary
+
+- Add an assembly-level regression that compares two independently constructed
+  three-sensor stacks with the same seed and the same injected noise.
+- Add a harness-level regression that compares two noisy virtual node runs and
+  requires identical summary statistics.
+- Keep this slice test-only because the production hooks already existed.
+
+#### Tests Added First
+
+- `VirtualSensorAssemblyTest.SameSeedProducesDeterministicNoisyReadingsAcrossAssemblies`
+- `VirtualMocapNodeHarnessTest.SameSeedProducesDeterministicRunStatisticsAcrossHarnesses`
+
+#### Implementation Summary
+
+- Added deterministic noisy-readback coverage in
+  `simulators/tests/test_virtual_sensor_assembly.cpp`.
+- Added deterministic noisy-run coverage in
+  `simulators/tests/test_virtual_mocap_node_harness.cpp`.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "(VirtualSensorAssemblyTest|VirtualMocapNodeHarnessTest)"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `229/229` host tests passing after the follow-on harness slices
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- Deterministic seeding is now covered, but stronger long-duration pose metrics
+  still need to be built on top of that deterministic base.
+
+### Feature: Harness Config And Safety Coverage
+
+#### Intent
+
+Cover the harness hardening changes directly in tests so the worktree branch
+does not rely on review-by-inspection for key safety and configuration
+behavior.
+
+#### Design Summary
+
+- Assert that an empty harness exposes `hasFrames() == false`.
+- Death-test the guarded `lastFrame()` path.
+- Verify that the struct-based harness config controls node ID and cadence.
+- Cover the `runForDuration(..., stepUs = 0)` edge case explicitly.
+
+#### Tests Added First
+
+- `VirtualMocapNodeHarnessTest.EmptyHarnessHasNoFrames`
+- `VirtualMocapNodeHarnessTest.LastFrameDiesWhenNoFramesHaveBeenCaptured`
+- `VirtualMocapNodeHarnessTest.ConfigConstructorUsesConfiguredNodeIdAndCadence`
+- `VirtualMocapNodeHarnessTest.RunForDurationReturnsEmptyResultWhenStepIsZero`
+
+#### Implementation Summary
+
+- Added four coverage-oriented harness tests in
+  `simulators/tests/test_virtual_mocap_node_harness.cpp`.
+- Kept this slice test-only because the production behavior was already
+  implemented in the prior harness commit.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "VirtualMocapNodeHarnessTest|VirtualSensorAssemblyTest"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `229/229` host tests passing after the follow-on harness slices
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- The guarded API is now covered, but the next real quality gap is still
+  broader pose-accuracy proof, not harness safety.
+
+### Feature: Scripted Yaw Motion Regressions
+
+#### Intent
+
+Convert the earliest stable motion scenarios into real regression tests without
+pretending that broad multi-axis pose accuracy is already solved.
+
+#### Design Summary
+
+- Probe several scripted motions and only promote the ones that show stable,
+  bounded behavior in the current fusion stack.
+- Start with yaw-dominant scenarios because they are measurably stronger than
+  snap-static pitch/roll cases in the current simulator/fusion combination.
+- Use `NodeRunResult` metrics directly so future experiment files can inherit a
+  consistent measurement path.
+
+#### Tests Added First
+
+- `VirtualMocapNodeHarnessTest.YawSweepThenHoldStaysWithinBoundedError`
+- `VirtualMocapNodeHarnessTest.FullTurnThenHoldReturnsNearStartOrientation`
+- `VirtualMocapNodeHarnessTest.YawOscillationThenHoldRemainsWithinTightBound`
+
+#### Implementation Summary
+
+- Added three scripted yaw regression tests to
+  `simulators/tests/test_virtual_mocap_node_harness.cpp`.
+- Chose bounded thresholds from measured behavior rather than from aspirational
+  product targets.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "VirtualMocapNodeHarnessTest"'
+./build.py --clean --host-only -t
+```
+
+Result:
+
+- `229/229` host tests passing
+
+#### Review Status
+
+- Peer review rounds not yet requested
+
+#### Open Risks
+
+- Yaw scenarios are now covered, but direct static multi-pose accuracy remains
+  weak enough that Claude Wave A acceptance thresholds would currently fail.
+- Pitch and roll tracking still need deeper investigation before they should be
+  promoted into strong acceptance tests.
+
+### Feature: Wave A A5 Mahony Bias-Rejection Proof
+
+#### Intent
+
+Start Wave A with the highest-value filter test from Claude's acceptance guide:
+prove that Mahony integral feedback actually reduces bias-driven heading error
+under deterministic host simulation.
+
+#### Design Summary
+
+- Use a stationary node with injected gyro bias and deterministic seeding.
+- Keep the first test focused on Z-axis gyro bias because it produces a clean,
+  measurable heading-drift signal in the current simulator.
+- Add a small follow-up characterization test comparing X-axis and Z-axis bias
+  rejection so the result is not overclaimed as universal.
+
+#### Tests Added First
+
+- `PoseMahonyTuningTest.GyroZBiasWithoutIntegralFeedbackShowsPositiveHeadingDrift`
+- `PoseMahonyTuningTest.IntegralFeedbackReducesHeadingErrorFromGyroZBias`
+- `PoseMahonyTuningTest.GyroZBiasRemainsHarderToRejectThanGyroXBiasInCurrentHarness`
+
+#### Implementation Summary
+
+- Added `simulators/tests/test_pose_mahony_tuning.cpp`.
+- Reused `runWithWarmup()` plus linear drift-rate estimation from
+  `SimMetrics.hpp`.
+- Added current-simulator characterization that Z-bias is harder to reject than
+  X-bias under clean-field conditions.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure -R "PoseMahonyTuningTest"'
+```
+
+Result:
+
+- `3/3` `PoseMahonyTuningTest` cases passing
+
+#### Review Status
+
+- Claude review: approve with follow-ups
+- Kimi adversarial review: acceptable for M2 if caveats are documented
+
+#### Open Risks
+
+- The current A5 proof is intentionally idealized: clean magnetic field, fixed
+  step interval, no timing jitter.
+- The result proves Ki works in principle, not that it is robust under later
+  RF or magnetic-disturbance work.
+
+### Feature: Wave A A1 Static-Yaw Escalation Probe
+
+#### Intent
+
+Check whether Claude's staged A1 entry path is genuinely executable in the
+current simulator/fusion stack before codifying a false acceptance test.
+
+#### Design Summary
+
+- Probe the exact staged case Claude requested first:
+  identity, +90° yaw, -90° yaw
+- Use the prescribed structure:
+  `setSeed(42)`, 100-tick warmup, 200-tick measurement
+- Treat the probe as decision support, not as a passing test requirement
+
+#### Observed Outcome
+
+- Identity remains effectively perfect.
+- Static ±90° yaw remains catastrophically outside the intermediate threshold:
+  around `118° RMS`, `129° max`.
+- Increasing `Kp` from `1.0 -> 2.0 -> 5.0` makes the static-yaw case worse, not
+  better.
+
+#### Decision
+
+- Do **not** add the staged A1 yaw acceptance test yet.
+- This hits Claude's escalation rule directly: if ±90° yaw is still far outside
+  the intermediate band after warmup and higher `Kp` does not recover it, this
+  is a filter/architecture limitation, not a threshold-tuning problem.
+
+#### Open Risks
+
+- M2 closure depends on whether A1 should be reformulated around achievable
+  poses or escalated upstream to SensorFusion/architecture review.
+
 ## 2026-03-29 - Day 1 (COMPLETE)
 
 ### Summary
@@ -994,3 +1238,256 @@ Provides foundation for:
 **Status**: ✅ Research phase complete - ready for peer review and implementation  
 **Deliverables**: 3 design documents, 27.5 KB total  
 **Last updated**: 2026-03-29
+
+---
+
+## 2026-03-29 - Codex Sprint 5: Mainline Redirect Applied
+
+### Summary
+
+Applied Claude's Sprint 5 redirect to the Codex worktree and closed the next
+executable Wave A slice instead of forcing blocked large-angle tests.
+
+### Work Completed
+
+1. Tightened A5 Mahony bias assertions in
+   `simulators/tests/test_pose_mahony_tuning.cpp`
+   - kept the existing clean-field baseline characterization
+   - added explicit drift-rate ordering assertions for `Ki=0.05` and `Ki=0.1`
+
+2. Implemented A3 long-duration drift coverage in
+   `simulators/tests/test_pose_drift.cpp`
+   - identity start
+   - `Kp=1.0`, `Ki=0.02`
+   - 50-sample warmup, 3000 measured samples at 20 ms cadence (60 s)
+   - asserts bounded max/final error and bounded endpoint + regression drift
+
+3. Re-verified the full host suite from the Codex worktree
+   - result: `245/245` tests passing
+
+### Findings
+
+- A5 remains the right first proof slice for M2. It is now tighter without
+  pretending to validate disturbed-field or jittered-timing behavior.
+- A1 large-offset static poses remain blocked by SensorFusion initialization
+  behavior, not by HelixDrift harness quality.
+- A3 is viable and green under the narrowed M2 scope: "start near truth,
+  remain bounded over time."
+
+### Next Steps
+
+1. Add A1a small-offset static accuracy (`identity`, `±15 deg yaw/pitch/roll`)
+   using Claude's staged thresholds.
+2. Keep `A1b` and large-angle `A4` escalated until SensorFusion grows a
+   first-sample initialization path.
+3. Revisit `A2` and `A6` only after A1a is codified.
+
+---
+
+## 2026-03-29 - Codex Sprint 5: Relative-Angle Path Still Viable
+
+### Summary
+
+Followed Claude's redirect past A3 and probed the remaining narrowed M2 slices.
+The result is asymmetric:
+
+- absolute small-offset static accuracy (`A1a`) is still outside the staged
+  thresholds
+- dynamic single-axis tracking (`A2`) is still worse than the redirected target
+  outside the identity/yaw-only regime
+- two-node relative flexion recovery (`A6`) is accurate enough to codify now
+
+### Probe Results
+
+#### A1a - Small-offset static accuracy
+
+Using `runWithWarmup(100, 200, 20000)`:
+
+- `identity`: `0 / 0 / 0 deg` (`rms / max / final`)
+- `yaw ±15 deg`: about `22.4 / 24.4 / 24.4 deg`
+- `pitch ±15 deg`: about `29.5 / 30.0 / 30.0 deg`
+- `roll ±15 deg`: about `29.4 / 29.6 / 29.6 deg`
+
+This means A1a is not yet inside Claude's redirected `rms < 8 deg, max < 15 deg`
+entry envelope. It stays escalated as a filter-behavior limitation.
+
+#### A2 - Dynamic single-axis tracking
+
+Using `runWithWarmup(50, 500, 20000)` at `30 deg/s`:
+
+- `yaw`: about `25.9 / 35.8 / 31.6 deg`
+- `pitch`: about `111.3 / 179.9 / 102.2 deg`
+- `roll`: about `116.2 / 179.9 / 147.9 deg`
+
+This is not yet ready for the redirected A2 acceptance thresholds either.
+
+#### A6 - Two-node joint angle recovery
+
+With parent near identity and child flexion at `{30, 60, 90} deg`, the
+recovered relative angle error stayed within about `0.8-3.2 deg`, so this
+path is currently the strongest next M2 proof after A3.
+
+### Work Completed
+
+1. Added `simulators/tests/test_pose_joint_angle.cpp`
+   - proves two-node relative flexion angles stay within `10 deg`
+   - uses `{30, 60, 90} deg` child flexion
+   - uses warmup/measurement windows instead of single-frame snapshots
+
+2. Re-verified the full host suite
+   - result: `246/246` tests passing
+
+### Next Steps
+
+1. Keep `A1a` and `A2` as measured evidence, not acceptance tests, until Claude
+   or SensorFusion changes the expected entry criteria.
+2. Continue using `A3 + A5 + A6` as the honest current M2 proof set.
+3. Escalate SensorFusion initialization as the likely prerequisite for both
+   blocked large-angle cases and the unexpectedly poor small-offset absolute
+   cases.
+
+---
+
+## 2026-03-29 - Codex Sprint 5: SensorFusion Init Escalation Landed
+
+### Summary
+
+Implemented the first escalated SensorFusion fix locally in the submodule:
+Mahony is no longer forced to start from identity on the first pipeline sample.
+
+### SensorFusion Change
+
+Local submodule commit:
+
+- `214c28a` `sensorfusion: seed mahony from first sensor sample`
+
+What changed:
+
+- `MahonyAHRS` gained one-shot initialization helpers:
+  - `initFromSensors(accel, mag)`
+  - `initFromAccel(accel)`
+- `MocapNodePipeline` now seeds the filter exactly once on the first successful
+  sample before entering the steady-state update loop
+- submodule tests were added for:
+  - large-yaw first-sample seeding in `test_mahony_ahrs.cpp`
+  - pipeline first-step orientation seeding in `test_mocap_node_pipeline.cpp`
+
+### Impact On HelixDrift
+
+Observed improvement:
+
+- the quarter-turn harness case moved from `90 deg` startup error back down to
+  under `1 deg` (`truth +45 deg`, fused about `+44.7 deg`)
+- the full Helix host suite remains green after the submodule update
+
+Still not sufficient to close all redirected Wave A work:
+
+- `A1a` improved only for small yaw offsets and is still outside Claude's
+  staged thresholds for pitch/roll
+- `A2` dynamic tracking remains outside the redirected acceptance targets,
+  especially on pitch/roll
+
+### Current Interpretation
+
+This is a real partial unblock, not a full resolution:
+
+- SensorFusion startup was a genuine issue and is now better
+- the remaining pitch/roll and dynamic-tracking gaps are separate from the
+  identity-only-start problem and still need follow-up investigation
+
+### Current M2 Proof Set
+
+What is now solid:
+
+- `A3` long-duration drift
+- `A5` Ki bias rejection
+- `A6` two-node joint-angle recovery
+- improved first-sample static yaw startup via the submodule fix
+
+### Feature: A4 Yaw Gain Characterization After Startup Seeding Fix
+
+**Intent:**  
+Use the current harness to check whether the next plausible Wave A tuning slice
+(`A4`) is actually moving in the expected direction after the SensorFusion
+first-sample initialization fix. The specific question was whether raising
+`MahonyKp` helps or hurts yaw behavior in the present simulator + filter stack.
+
+**Changes made:**
+
+1. Added `simulators/tests/test_pose_gain_characterization.cpp`.
+2. Added two characterization tests:
+   - small static `+15 deg` yaw offset after startup
+   - dynamic yaw tracking at `30 deg/s`
+3. Registered the new file in the integration-test target.
+
+**What was measured (seed = 42, clean sensors):**
+
+- Small static `+15 deg` yaw offset:
+  - `Kp=0.5`: RMS about `10.7 deg`, final about `12.9 deg`
+  - `Kp=1.0`: RMS about `15.1 deg`, final about `18.6 deg`
+  - `Kp=2.0`: RMS about `21.3 deg`, final about `25.3 deg`
+  - `Kp=5.0`: RMS about `28.1 deg`, final about `29.7 deg`
+- Dynamic yaw tracking at `30 deg/s`:
+  - `Kp=0.5`: RMS about `17.8 deg`, max about `25.4 deg`
+  - `Kp=1.0`: RMS about `23.3 deg`, max about `35.5 deg`
+  - `Kp=2.0`: RMS about `33.7 deg`, max about `54.3 deg`
+  - `Kp=5.0`: RMS about `80.0 deg`, max about `136.8 deg`
+
+**Interpretation:**
+
+- In the current yaw path, larger `Kp` is not helping convergence or tracking.
+  It is making both static-yaw hold and dynamic-yaw tracking worse.
+- This means the old "raise `Kp` if yaw is weak" assumption is false for the
+  present stack.
+- `A4` should currently be treated as a characterization/tuning slice, not an
+  acceptance-closing slice.
+
+**Result:**  
+Codex now has a committed, deterministic regression that protects this finding.
+If a later SensorFusion or simulator change improves yaw behavior, these tests
+should be revisited and potentially inverted into "improvement" tests.
+
+**Verification:**  
+`./build.py --host-only && ./build/host/helix_integration_tests --gtest_filter='PoseGainCharacterizationTest.*'`
+
+### Feature: Axis-Split Characterization For Redirected A1a/A2
+
+**Intent:**  
+Check whether the remaining redirected Wave A gap is broad "orientation is weak"
+or specifically "yaw is materially better than pitch/roll". This matters for
+whether Claude should split `A1a` and `A2` by axis instead of treating them as
+single acceptance buckets.
+
+**Changes made:**
+
+1. Added `simulators/tests/test_pose_axis_characterization.cpp`.
+2. Added two deterministic characterization tests:
+   - small static `15 deg` single-axis offsets for yaw, pitch, and roll
+   - dynamic `30 deg/s` single-axis tracking for yaw, pitch, and roll
+
+**What was measured (default config, seed = 42):**
+
+- Small static offsets:
+  - yaw: RMS about `15.1 deg`, max about `18.6 deg`
+  - pitch: RMS about `29.0 deg`, max about `29.9 deg`
+  - roll: RMS about `37.8 deg`, max about `40.7 deg`
+- Dynamic `30 deg/s` tracking:
+  - yaw: RMS about `23.6 deg`, max about `35.8 deg`
+  - pitch: RMS about `103.2 deg`, max about `179.9 deg`
+  - roll: RMS about `103.7 deg`, max about `179.9 deg`
+
+**Interpretation:**
+
+- Yaw is consistently and materially better than pitch/roll in the current
+  simulator + filter stack.
+- The remaining M2 gap is not uniform across axes; it is especially severe on
+  pitch/roll.
+- This supports a future Claude redirect that treats yaw as the first
+  recoverable axis instead of insisting on one combined A1a/A2 threshold.
+
+**Result:**  
+Codex now has deterministic regression coverage for the axis split itself, not
+just one-off probe output.
+
+**Verification:**  
+`./build.py --host-only && ./build/host/helix_integration_tests --gtest_filter='PoseAxisCharacterizationTest.*'`
