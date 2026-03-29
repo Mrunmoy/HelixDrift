@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <string>
@@ -13,6 +14,28 @@ namespace sim {
 inline bool shouldExport() {
     const char* value = std::getenv("HELIX_TEST_EXPORT");
     return value != nullptr && value[0] == '1' && value[1] == '\0';
+}
+
+inline std::string sanitizeCsvStem(const std::string& stem) {
+    std::string sanitized = stem;
+    for (char& ch : sanitized) {
+        const bool ok = (ch >= 'a' && ch <= 'z') ||
+                        (ch >= 'A' && ch <= 'Z') ||
+                        (ch >= '0' && ch <= '9') ||
+                        ch == '_' || ch == '-';
+        if (!ok) {
+            ch = '_';
+        }
+    }
+    return sanitized;
+}
+
+inline std::string defaultCsvPath(const std::string& testName) {
+    const std::filesystem::path outDir("test_output");
+    std::error_code ec;
+    std::filesystem::create_directories(outDir, ec);
+    const std::string stem = sanitizeCsvStem(testName);
+    return (outDir / (stem + ".csv")).string();
 }
 
 inline bool exportCsv(const NodeRunResult& result, const std::string& path) {

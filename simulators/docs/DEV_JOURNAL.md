@@ -1599,6 +1599,11 @@ gate that export behind `HELIX_TEST_EXPORT=1`.
    - env-gated no-op when export is disabled
    - env-gated write when export is enabled
 5. Wired the new test into `helix_integration_tests`.
+6. Added `defaultCsvPath()` so exported traces land under `test_output/`
+   with sanitized test-name stems.
+7. Wired a representative pose test to call `exportCsvIfEnabled()` so the
+   export path is exercised from real integration code, not only a dedicated
+   utility test.
 
 **Scope note:**  
 This is the C++ half of `B1`, not the whole task. Python analysis and plotting

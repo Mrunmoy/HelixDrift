@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -112,4 +113,12 @@ TEST(CsvExportTest, ExportIfEnabledWritesWhenEnvVarIsSetToOne) {
     EXPECT_NE(csv.find("1.500000"), std::string::npos);
 
     std::remove(path.c_str());
+}
+
+TEST(CsvExportTest, DefaultCsvPathUsesTestOutputDirectoryAndSanitizedStem) {
+    const std::string path = defaultCsvPath("CsvExportTest.Path Uses Spaces/Slashes");
+
+    EXPECT_NE(path.find("test_output/"), std::string::npos);
+    EXPECT_NE(path.find("CsvExportTest_Path_Uses_Spaces_Slashes.csv"), std::string::npos);
+    EXPECT_TRUE(std::filesystem::exists("test_output"));
 }

@@ -1,3 +1,4 @@
+#include "CsvExport.hpp"
 #include "VirtualMocapNodeHarness.hpp"
 
 #include <gtest/gtest.h>
@@ -67,4 +68,8 @@ TEST(PoseOrientationAccuracyTest, DynamicYawTrackingWithinLooseBound) {
     ASSERT_EQ(yaw.samples.size(), 500u);
     EXPECT_LT(yaw.rmsErrorDeg, 30.0f);
     EXPECT_LT(yaw.maxErrorDeg, 40.0f);
+
+    const std::string exportPath =
+        defaultCsvPath("PoseOrientationAccuracyTest.DynamicYawTrackingWithinLooseBound");
+    EXPECT_EQ(exportCsvIfEnabled(yaw, exportPath), shouldExport());
 }
