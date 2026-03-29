@@ -16,6 +16,7 @@ def nix_wrap(inner_cmd):
 
 
 def build_host(repo_root, run_tests):
+    run("git submodule update --init external/SensorFusion", repo_root)
     cmake_cfg = (
         "cmake -S . -B build/host -G Ninja "
         "-DHELIXDRIFT_BUILD_TESTS=ON -DHELIXDRIFT_BUILD_NRF_EXAMPLES=OFF"
@@ -39,7 +40,6 @@ def build_nrf(repo_root):
 
 
 def build_bootloader(repo_root):
-    """Build the MCUboot standalone bootloader for nRF52840."""
     run("rm -rf build/bootloader", repo_root)
     cmake_cfg = (
         "cmake -S bootloader -B build/bootloader -G Ninja "
@@ -51,11 +51,6 @@ def build_bootloader(repo_root):
 
 
 def sign_firmware(repo_root, key="keys/dev_signing_key.pem"):
-    """Sign the application image with imgtool.py.
-
-    Produces build/nrf/nrf52_mocap_node_signed.hex ready for flashing into
-    the primary slot (0x00010000).  The bootloader is flashed separately.
-    """
     app_hex = "build/nrf/nrf52_mocap_node.hex"
     signed_hex = "build/nrf/nrf52_mocap_node_signed.hex"
     sign_cmd = (
@@ -73,38 +68,19 @@ def sign_firmware(repo_root, key="keys/dev_signing_key.pem"):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="HelixDrift build orchestrator."
-    )
+    parser = argparse.ArgumentParser(description="HelixDrift build orchestrator.")
+    parser.add_argument("-t", "--test", action="store_true", help="Run host test suite after host build.")
+    parser.add_argument("--host-only", action="store_true", help="Build host targets only.")
+    parser.add_argument("--nrf-only", action="store_true", help="Build nRF target only.")
+    parser.add_argument("--bootloader", action="store_true", help="Build the MCUboot bootloader for nRF52840.")
+    parser.add_argument("--sign", action="store_true", help="Sign the nRF52 application image with imgtool.py after building.")
     parser.add_argument(
-        "-t", "--test", action="store_true",
-        help="Run host test suite after host build."
-    )
-    parser.add_argument(
-        "--host-only", action="store_true",
-        help="Build host targets only."
-    )
-    parser.add_argument(
-        "--nrf-only", action="store_true",
-        help="Build nRF target only."
-    )
-    parser.add_argument(
-        "--bootloader", action="store_true",
-        help="Build the MCUboot bootloader for nRF52840."
-    )
-    parser.add_argument(
-        "--sign", action="store_true",
-        help="Sign the nRF52 application image with imgtool.py after building."
-    )
-    parser.add_argument(
-        "--signing-key", default="keys/dev_signing_key.pem",
+        "--signing-key",
+        default="keys/dev_signing_key.pem",
         metavar="KEY",
-        help="Path to Ed25519 private key PEM for imgtool signing (default: keys/dev_signing_key.pem)."
+        help="Path to Ed25519 private key PEM for imgtool signing (default: keys/dev_signing_key.pem).",
     )
-    parser.add_argument(
-        "--clean", action="store_true",
-        help="Remove build directory before building."
-    )
+    parser.add_argument("--clean", action="store_true", help="Remove build directory before building.")
 
     args = parser.parse_args()
     repo_root = os.path.dirname(os.path.abspath(__file__))

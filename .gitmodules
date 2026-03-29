@@ -1,3 +1,6 @@
 [submodule "external/SensorFusion"]
 	path = external/SensorFusion
 	url = https://github.com/Mrunmoy/SensorFusion.git
+[submodule "third_party/esp-idf"]
+	path = third_party/esp-idf
+	url = https://github.com/espressif/esp-idf.git

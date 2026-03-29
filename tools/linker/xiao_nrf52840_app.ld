@@ -65,15 +65,15 @@ SECTIONS {
     } > RAM
 
     /* 8 KB main stack anchored at the top of RAM */
-    .stack (NOLOAD) : ORIGIN(RAM) + LENGTH(RAM) - 8K {
+    . = ORIGIN(RAM) + LENGTH(RAM) - 0x2000;
+    .stack (NOLOAD) : {
         _stack_bottom = .;
-        . += 8K;
+        . += 0x2000;
         _stack_top = .;
     } > RAM
 
     /DISCARD/ : {
         *(.ARM.exidx*)
         *(.ARM.extab*)
-        *(.eh_frame*)
     }
 }
