@@ -1393,3 +1393,44 @@ just one-off probe output.
 
 **Verification:**  
 `./build.py --host-only && ./build/host/helix_integration_tests --gtest_filter='PoseAxisCharacterizationTest.*'`
+
+### Feature: Yaw-Only Wave A Acceptance Slice After Sprint 6 Rescope
+
+**Intent:**  
+Apply Claude's Sprint 6 redirect directly: commit the yaw-only parts of `A1a`
+and `A2`, and stop pretending pitch/roll are threshold problems when the
+evidence points to a SensorFusion initialization convention mismatch.
+
+**Changes made:**
+
+1. Added `simulators/tests/test_pose_orientation_accuracy.cpp`.
+2. Added yaw-only `A1a` coverage:
+   - identity
+   - `+15 deg` yaw
+   - `-15 deg` yaw
+3. Added yaw-only `A2` coverage:
+   - `30 deg/s` yaw tracking from identity
+4. Added `docs/SENSORFUSION_INIT_CONVENTION_BUG.md` with a reproducible
+   submodule-facing bug note for pitch/roll init.
+
+**Acceptance encoded:**
+
+- Static yaw:
+  - identity RMS under `1 deg`
+  - `±15 deg` yaw RMS under `20 deg`
+  - `±15 deg` yaw max under `25 deg`
+- Dynamic yaw:
+  - RMS under `30 deg`
+  - max under `40 deg`
+
+**Interpretation:**
+
+- Yaw-only `A1a` is now a real committed acceptance slice, not just a probe.
+- Yaw-only `A2` is now committed as a bounded characterization/acceptance test
+  for the current filter behavior.
+- Pitch/roll remain blocked on the SensorFusion init convention bug. The next
+  submodule repro should compare `initFromSensors()` against a known `+15 deg`
+  pitch or roll quaternion within `1 deg`.
+
+**Verification:**  
+`./build.py --host-only && ./build/host/helix_integration_tests --gtest_filter='PoseOrientationAccuracyTest.*'`

@@ -118,6 +118,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_pose_gain_characterization.cpp
         simulators/tests/test_pose_joint_angle.cpp
         simulators/tests/test_pose_mahony_tuning.cpp
+        simulators/tests/test_pose_orientation_accuracy.cpp
         simulators/tests/test_lps22df_simulator.cpp
         simulators/tests/test_bmm350_simulator.cpp
         simulators/tests/test_lsm6dso_simulator.cpp
