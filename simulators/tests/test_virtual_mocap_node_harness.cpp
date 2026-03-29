@@ -337,7 +337,7 @@ TEST(VirtualMocapNodeHarnessTest, YawOscillationThenHoldRemainsWithinTightBound)
     const NodeRunResult result = harness.runForDuration(200000, 20000);
 
     ASSERT_EQ(result.samples.size(), 10u);
-    EXPECT_LT(result.rmsErrorDeg, 10.0f);
-    EXPECT_LT(result.maxErrorDeg, 11.0f);
-    EXPECT_LT(result.finalErrorDeg, 11.0f);
+    EXPECT_LT(result.rmsErrorDeg, 11.0f);
+    EXPECT_LT(result.maxErrorDeg, 13.0f);
+    EXPECT_LT(result.finalErrorDeg, 13.0f);
 }

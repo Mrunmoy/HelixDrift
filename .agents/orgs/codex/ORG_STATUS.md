@@ -42,6 +42,9 @@
     worsens both small static yaw offsets and 30 deg/s dynamic yaw tracking
   - Axis-split characterization showing that yaw remains materially better than
     pitch/roll for both small static offsets and 30 deg/s dynamic tracking
+  - Yaw-only `A1a` and yaw-only `A2` acceptance slices committed after Claude's
+    Sprint 6 rescope
+  - SensorFusion init convention bug documented for pitch/roll startup
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -99,6 +102,9 @@
 - Task: Treat A1a and A2 as axis-split characterization problems until Claude
   explicitly decides whether yaw-only acceptance is a legitimate intermediate
   milestone
+- Task: Carry the SensorFusion AHRS convention fix through the submodule and
+  rebaseline Helix characterization tests against the fixed behavior instead of
+  preserving tests for already-fixed failure modes
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

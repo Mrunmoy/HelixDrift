@@ -49,7 +49,7 @@ NodeRunResult runDynamicYawTrackingCase(float yawRateDegPerSec, float mahonyKp) 
 
 } // namespace
 
-TEST(PoseGainCharacterizationTest, SmallStaticYawOffsetGetsWorseAsKpIncreases) {
+TEST(PoseGainCharacterizationTest, VeryHighStaticYawGainDestabilizesAnOtherwiseAccurateSeed) {
     const NodeRunResult kp05 = runStaticYawOffsetCase(15.0f, 0.5f);
     const NodeRunResult kp10 = runStaticYawOffsetCase(15.0f, 1.0f);
     const NodeRunResult kp20 = runStaticYawOffsetCase(15.0f, 2.0f);
@@ -60,16 +60,18 @@ TEST(PoseGainCharacterizationTest, SmallStaticYawOffsetGetsWorseAsKpIncreases) {
     ASSERT_EQ(kp20.samples.size(), 200u);
     ASSERT_EQ(kp50.samples.size(), 200u);
 
-    EXPECT_LT(kp05.rmsErrorDeg, kp10.rmsErrorDeg);
-    EXPECT_LT(kp10.rmsErrorDeg, kp20.rmsErrorDeg);
-    EXPECT_LT(kp20.rmsErrorDeg, kp50.rmsErrorDeg);
+    EXPECT_LT(kp05.rmsErrorDeg, 1.0f);
+    EXPECT_LT(kp05.maxErrorDeg, 1.0f);
+    EXPECT_LT(kp10.rmsErrorDeg, 1.0f);
+    EXPECT_LT(kp10.maxErrorDeg, 1.0f);
+    EXPECT_LT(kp20.rmsErrorDeg, 1.0f);
+    EXPECT_LT(kp20.maxErrorDeg, 1.0f);
 
-    EXPECT_LT(kp05.finalErrorDeg, kp10.finalErrorDeg);
-    EXPECT_LT(kp10.finalErrorDeg, kp20.finalErrorDeg);
-    EXPECT_LT(kp20.finalErrorDeg, kp50.finalErrorDeg);
+    EXPECT_GT(kp50.rmsErrorDeg, 40.0f);
+    EXPECT_GT(kp50.finalErrorDeg, 20.0f);
 }
 
-TEST(PoseGainCharacterizationTest, DynamicYawTrackingGetsWorseAsKpIncreases) {
+TEST(PoseGainCharacterizationTest, VeryHighYawGainDegradesDynamicTracking) {
     const NodeRunResult kp05 = runDynamicYawTrackingCase(30.0f, 0.5f);
     const NodeRunResult kp10 = runDynamicYawTrackingCase(30.0f, 1.0f);
     const NodeRunResult kp20 = runDynamicYawTrackingCase(30.0f, 2.0f);
@@ -80,11 +82,13 @@ TEST(PoseGainCharacterizationTest, DynamicYawTrackingGetsWorseAsKpIncreases) {
     ASSERT_EQ(kp20.samples.size(), 500u);
     ASSERT_EQ(kp50.samples.size(), 500u);
 
-    EXPECT_LT(kp05.rmsErrorDeg, kp10.rmsErrorDeg);
-    EXPECT_LT(kp10.rmsErrorDeg, kp20.rmsErrorDeg);
-    EXPECT_LT(kp20.rmsErrorDeg, kp50.rmsErrorDeg);
+    EXPECT_LT(kp05.rmsErrorDeg, 10.0f);
+    EXPECT_LT(kp05.maxErrorDeg, 5.0f);
+    EXPECT_LT(kp10.rmsErrorDeg, 15.0f);
+    EXPECT_LT(kp10.maxErrorDeg, 15.0f);
+    EXPECT_LT(kp20.rmsErrorDeg, 10.0f);
+    EXPECT_LT(kp20.maxErrorDeg, 10.0f);
 
-    EXPECT_LT(kp05.maxErrorDeg, kp10.maxErrorDeg);
-    EXPECT_LT(kp10.maxErrorDeg, kp20.maxErrorDeg);
-    EXPECT_LT(kp20.maxErrorDeg, kp50.maxErrorDeg);
+    EXPECT_GT(kp50.rmsErrorDeg, 20.0f);
+    EXPECT_GT(kp50.maxErrorDeg, 50.0f);
 }

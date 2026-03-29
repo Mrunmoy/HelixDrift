@@ -46,7 +46,7 @@ NodeRunResult runDynamicAxisTrackingCase(float rateXDegPerSec,
 
 } // namespace
 
-TEST(PoseAxisCharacterizationTest, SmallStaticYawOffsetRemainsEasierThanPitchAndRoll) {
+TEST(PoseAxisCharacterizationTest, SmallStaticOffsetsSeedAccuratelyAcrossAxes) {
     const NodeRunResult yaw =
         runStaticAxisOffsetCase(sf::Quaternion::fromAxisAngle(0.0f, 0.0f, 1.0f, 15.0f));
     const NodeRunResult pitch =
@@ -58,10 +58,12 @@ TEST(PoseAxisCharacterizationTest, SmallStaticYawOffsetRemainsEasierThanPitchAnd
     ASSERT_EQ(pitch.samples.size(), 200u);
     ASSERT_EQ(roll.samples.size(), 200u);
 
-    EXPECT_LT(yaw.rmsErrorDeg, pitch.rmsErrorDeg);
-    EXPECT_LT(yaw.rmsErrorDeg, roll.rmsErrorDeg);
-    EXPECT_LT(yaw.maxErrorDeg, pitch.maxErrorDeg);
-    EXPECT_LT(yaw.maxErrorDeg, roll.maxErrorDeg);
+    EXPECT_LT(yaw.rmsErrorDeg, 1.0f);
+    EXPECT_LT(yaw.maxErrorDeg, 1.0f);
+    EXPECT_LT(pitch.rmsErrorDeg, 1.0f);
+    EXPECT_LT(pitch.maxErrorDeg, 1.0f);
+    EXPECT_LT(roll.rmsErrorDeg, 1.0f);
+    EXPECT_LT(roll.maxErrorDeg, 1.0f);
 }
 
 TEST(PoseAxisCharacterizationTest, DynamicYawTrackingRemainsEasierThanPitchAndRoll) {
