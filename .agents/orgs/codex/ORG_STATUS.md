@@ -67,6 +67,8 @@
   - M3 cadence-switch proof covering a mid-run change from 50 Hz to 40 Hz
   - M4 `VirtualRFMedium` core with deterministic latency, broadcast, and loss
     coverage
+  - M4 `ClockModel`, `VirtualSyncNode`, and `VirtualSyncMaster` basic sync
+    loop with drift, anchor reception, and six-node convergence coverage
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -142,6 +144,9 @@
   should come from a fresh milestone redirect rather than more evidence churn
 - Task: Start M4 with the additive RF slice only: `VirtualRFMedium` core and
   its basic latency, broadcast, and loss proofs
+- Task: Extend M4 from RF transport into the first sync loop: drifted
+  `VirtualSyncNode`, anchor-broadcast `VirtualSyncMaster`, and basic
+  single-node / loss / multi-node convergence tests
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

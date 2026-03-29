@@ -1849,3 +1849,38 @@ the same time.
 
 **Verification:**  
 `./build.py --host-only -t`
+
+### Feature: M4 Basic RF Sync Loop
+
+**Intent:**  
+Move M4 beyond raw transport by proving a minimal clock-drift and anchor-sync
+loop on top of the new RF medium.
+
+**Changes made:**
+
+1. Added `simulators/rf/ClockModel.hpp` with deterministic true-to-local clock
+   mapping and helper constructors for crystal/TCXO-like drift.
+2. Added `simulators/rf/RFSyncProtocol.hpp` with a small packet contract for
+   anchor beacons and transmitted mocap frames.
+3. Added `simulators/rf/VirtualSyncNode.*` to wrap the existing virtual node
+   harness with a drifted local clock and anchor-based offset estimation.
+4. Added `simulators/rf/VirtualSyncMaster.*` to broadcast anchors, receive
+   node frames, and summarize sync quality.
+5. Added `simulators/tests/test_sync_node_basic.cpp` for:
+   - local clock drift
+   - transmit timestamp domain
+   - received anchor timestamp capture
+6. Added `simulators/tests/test_rf_sync_basic.cpp` for:
+   - single-anchor offset estimation
+   - degraded sync under 50% packet loss
+   - six-node convergence under repeated anchors
+7. Expanded host CMake wiring so the RF sync layer can reuse the existing
+   virtual node harness safely.
+
+**Result:**  
+M4 now has a working minimal sync loop. The project can model a shared RF
+medium, drifted node clocks, anchor broadcasts, and basic multi-node alignment
+before any real radios are in play.
+
+**Verification:**  
+`./build.py --host-only -t`
