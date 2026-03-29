@@ -1,5 +1,35 @@
 # Simulator Development Journal
 
+## 2026-03-29 - Claude Org Sprint 4: Wave A Acceptance Guide
+
+### Feature: Realistic Threshold Calibration for Wave A
+
+#### Owning Team
+
+Claude / Systems Architect
+
+#### Intent
+
+Prevent wasted Codex effort by predicting which Wave A tasks will hit
+Mahony filter limitations vs. actual bugs, providing three-tier thresholds
+(target / intermediate / floor), and defining clear escalation criteria.
+
+#### Key Findings
+
+- Mahony with Kp=1.0, Ki=0.0 has a static accuracy floor of ~3-8° depending
+  on orientation axis and mag correction strength.
+- 180° initial error should NOT be tested (known Mahony antipodal issue).
+- Ki bias rejection (A5) is the highest-value test — should be done first.
+- Start with 0.005 rad/s bias, not 0.01 — the latter may overwhelm Ki=0.05.
+- Convergence from 90° yaw at Kp=1.0 takes 2-4s (mag correction is weak
+  compared to accel/gravity correction for pitch/roll).
+
+#### Deliverable
+
+`docs/WAVE_A_ACCEPTANCE_GUIDE.md`
+
+---
+
 ## 2026-03-29 - Claude Org Sprint 3: Execution Sequencing
 
 ### Feature: Next-Wave Planning and Codex Harness Review
