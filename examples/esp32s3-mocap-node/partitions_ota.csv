@@ -1,0 +1,19 @@
+# Custom partition table for XIAO ESP32-S3 (2 MB flash) with dual-OTA support.
+#
+# Layout:
+#   0x0000_0000  2nd-stage bootloader  ~32 KB  (ESP-IDF manages, not listed)
+#   0x0000_8000  Partition table         4 KB
+#   0x0000_9000  NVS                    16 KB
+#   0x0000_D000  OTA data               8 KB   (tracks active OTA slot)
+#   0x0000_F000  PHY init               4 KB
+#   0x0001_0000  OTA slot 0           960 KB   (active / factory image)
+#   0x0010_0000  OTA slot 1           960 KB   (update target)
+#
+# Total: 0x1F0000 = 1 MB 960 KB  < 2 MB flash
+#
+# Name,     Type,  SubType,  Offset,    Size,    Flags
+nvs,        data,  nvs,      0x9000,    0x4000,
+otadata,    data,  ota,      0xd000,    0x2000,
+phy_init,   data,  phy,      0xf000,    0x1000,
+ota_0,      app,   ota_0,    0x10000,   0xF0000,
+ota_1,      app,   ota_1,    0x100000,  0xF0000,

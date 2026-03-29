@@ -1,0 +1,63 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Unit (host)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Enable Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Configure host build
+        run: |
+          git submodule update --init external/SensorFusion
+          nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON'
+
+      - name: Build host targets
+        run: nix develop --command bash -lc 'cmake --build build/host --parallel'
+
+      - name: Run unit test executable
+        run: nix develop --command bash -lc './build/host/helix_tests'
+
+  integration:
+    name: Integration (host)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Enable Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Configure host build
+        run: |
+          git submodule update --init external/SensorFusion
+          nix develop --command bash -lc 'cmake -S . -B build/host -G Ninja -DHELIXDRIFT_BUILD_TESTS=ON'
+
+      - name: Build host targets
+        run: nix develop --command bash -lc 'cmake --build build/host --parallel'
+
+      - name: Run integration test executable
+        run: nix develop --command bash -lc './build/host/helix_integration_tests'
