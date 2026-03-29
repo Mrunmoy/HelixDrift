@@ -1744,3 +1744,41 @@ unfinished baseline validation.
 
 **Verification:**  
 `./build.py --host-only -t`
+
+### Feature: Python Analysis Sidecar Contract Bridge
+
+**Intent:**  
+Move `B1` beyond ad hoc CSV dumps by making the C++ export lane produce the raw
+artifact shape that the Python sidecar can actually consume.
+
+**Changes made:**
+
+1. Integrated the additive Python Phase 1 sidecar under `tools/analysis/`:
+   - schema validation
+   - metrics computation
+   - single-run CLI analysis
+   - unit tests for schema and metrics
+2. Added `.gitignore` coverage for Python cache files and generated
+   `experiments/runs/` analysis artifacts.
+3. Extended `CsvExport.hpp` with:
+   - `defaultAnalysisRunDir(...)`
+   - `AnalysisRunManifest`
+   - `exportAnalysisRun(...)`
+   - `exportAnalysisRunIfEnabled(...)`
+4. Added export tests that prove a manifest plus schema-compatible
+   `samples.csv` are written when requested.
+5. Updated the dynamic-yaw pose test to emit both the legacy plotting CSV and a
+   Python-sidecar-compatible run directory when `HELIX_TEST_EXPORT=1`.
+6. Verified the bridge manually by exporting a real host test run and feeding
+   the emitted run directory into `python3 -m tools.analysis.run_single_analysis`.
+
+**Result:**  
+`B1` is still in progress, but the main contract gap is closed: the C++ test
+lane can now produce artifacts that the Python sidecar can analyze without
+custom per-run reshaping.
+
+**Verification:**  
+- `python3 -m pytest tools/analysis/tests/ -v -p no:randomly`
+- `./build.py --host-only -t`
+- `HELIX_TEST_EXPORT=1 ctest --test-dir build/host -R PoseOrientationAccuracyTest.DynamicYawTrackingWithinLooseBound`
+- `python3 -m tools.analysis.run_single_analysis build/host/experiments/runs/...`
