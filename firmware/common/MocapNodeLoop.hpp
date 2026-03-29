@@ -48,6 +48,15 @@ public:
         return transport_.sendQuaternion(cfg_.nodeId, nowUs, sample.orientation);
     }
 
+    void updateCadence(uint64_t nowUs, uint32_t outputPeriodUs) {
+        cfg_.outputPeriodUs = outputPeriodUs;
+        if (initialized_) {
+            nextTickUs_ = nowUs + cfg_.outputPeriodUs;
+        }
+    }
+
+    uint32_t outputPeriodUs() const { return cfg_.outputPeriodUs; }
+
 private:
     bool isDue(uint64_t nowUs) {
         if (!initialized_) {

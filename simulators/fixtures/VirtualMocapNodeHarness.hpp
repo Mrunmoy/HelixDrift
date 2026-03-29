@@ -188,6 +188,11 @@ public:
         anchorQueue_.push(localTimestampUs, remoteTimestampUs);
     }
 
+    void setOutputPeriodUs(uint32_t outputPeriodUs) {
+        config_.outputPeriodUs = outputPeriodUs;
+        loop_.updateCadence(clock_.nowUs(), outputPeriodUs);
+    }
+
     VirtualClock& clock() { return clock_; }
     CaptureTransport& captureTransport() { return captureTransport_; }
     OffsetSyncFilter& syncFilter() { return syncFilter_; }

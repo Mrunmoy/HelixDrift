@@ -182,4 +182,29 @@ TEST(MocapNodeLoopTest, SampleHookCanTransformOrientationBeforeSend) {
     EXPECT_FLOAT_EQ(tx.lastQuat.z, 0.0f);
 }
 
+TEST(MocapNodeLoopTest, UpdateCadenceRebasesNextTickFromNow) {
+    FakeClock clock{};
+    FakePipeline pipeline{};
+    FakeTransport tx{};
+    helix::MocapNodeLoopConfig cfg{};
+    cfg.outputPeriodUs = 20000;
+
+    helix::MocapNodeLoopT<FakeClock, FakePipeline, FakeTransport, FakeSample> loop(
+        clock, pipeline, tx, cfg);
+
+    EXPECT_TRUE(loop.tick());
+    EXPECT_EQ(loop.outputPeriodUs(), 20000u);
+
+    clock.now = 5000;
+    loop.updateCadence(clock.nowUs(), 25000);
+    EXPECT_EQ(loop.outputPeriodUs(), 25000u);
+
+    clock.now = 29999;
+    EXPECT_FALSE(loop.tick());
+    clock.now = 30000;
+    EXPECT_TRUE(loop.tick());
+    EXPECT_EQ(tx.callCount, 2u);
+    EXPECT_EQ(tx.lastTimestampUs, 30000u);
+}
+
 } // namespace

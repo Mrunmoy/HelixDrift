@@ -222,6 +222,92 @@ TEST(VirtualMocapNodeHarnessTest, CapturesHealthFramesViaEmitter) {
     EXPECT_EQ(frame.telemetry.flags, 0xA5u);
 }
 
+TEST(VirtualMocapNodeHarnessTest, PipelineFailureAndRecoveryPreserveLoopProgress) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+
+    ASSERT_TRUE(harness.tick());
+    ASSERT_TRUE(harness.hasFrames());
+    EXPECT_EQ(harness.captureTransport().frames.size(), 1u);
+
+    harness.assembly().disconnectImu();
+    harness.advanceTimeUs(20000);
+    EXPECT_FALSE(harness.tick());
+    EXPECT_EQ(harness.captureTransport().frames.size(), 1u);
+
+    harness.assembly().reconnectImu();
+    harness.advanceTimeUs(20000);
+    EXPECT_TRUE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 2u);
+    EXPECT_EQ(harness.captureTransport().frames.back().timestampUs, 40000u);
+}
+
+TEST(VirtualMocapNodeHarnessTest, LateAnchorOnlyAffectsSubsequentFrames) {
+    VirtualMocapNodeHarness harness;
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+
+    ASSERT_TRUE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 1u);
+    EXPECT_EQ(harness.captureTransport().frames.back().timestampUs, 0u);
+    EXPECT_EQ(harness.syncFilter().observeCount, 0u);
+
+    harness.advanceTimeUs(20000);
+    ASSERT_TRUE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 2u);
+    EXPECT_EQ(harness.captureTransport().frames.back().timestampUs, 20000u);
+    EXPECT_EQ(harness.syncFilter().observeCount, 0u);
+
+    harness.pushAnchor(40000, 90000);
+    harness.advanceTimeUs(20000);
+    ASSERT_TRUE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 3u);
+    EXPECT_EQ(harness.syncFilter().observeCount, 1u);
+    EXPECT_EQ(harness.captureTransport().frames.back().timestampUs, 90000u);
+
+    harness.advanceTimeUs(20000);
+    ASSERT_TRUE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 4u);
+    EXPECT_EQ(harness.captureTransport().frames.back().timestampUs, 110000u);
+    EXPECT_EQ(harness.captureTransport().frames.front().timestampUs, 0u);
+    EXPECT_EQ(harness.captureTransport().frames[1].timestampUs, 20000u);
+}
+
+TEST(VirtualMocapNodeHarnessTest, ProfileSwitchingRebasesCadenceMidRun) {
+    VirtualMocapNodeHarness harness(5, 20000);
+    ASSERT_TRUE(harness.initAll());
+    harness.resetAndSync();
+
+    ASSERT_TRUE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 1u);
+    EXPECT_EQ(harness.captureTransport().frames.back().timestampUs, 0u);
+
+    harness.advanceTimeUs(20000);
+    ASSERT_TRUE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 2u);
+    EXPECT_EQ(harness.captureTransport().frames.back().timestampUs, 20000u);
+
+    harness.setOutputPeriodUs(25000);
+    EXPECT_EQ(harness.config().outputPeriodUs, 25000u);
+
+    harness.advanceTimeUs(24999);
+    EXPECT_FALSE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 2u);
+
+    harness.advanceTimeUs(1);
+    EXPECT_TRUE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 3u);
+    EXPECT_EQ(harness.captureTransport().frames.back().timestampUs, 45000u);
+
+    harness.advanceTimeUs(24999);
+    EXPECT_FALSE(harness.tick());
+    harness.advanceTimeUs(1);
+    EXPECT_TRUE(harness.tick());
+    ASSERT_EQ(harness.captureTransport().frames.size(), 4u);
+    EXPECT_EQ(harness.captureTransport().frames.back().timestampUs, 70000u);
+}
+
 TEST(VirtualMocapNodeHarnessTest, LastFrameDiesWhenNoFramesHaveBeenCaptured) {
     VirtualMocapNodeHarness harness;
 

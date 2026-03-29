@@ -56,6 +56,14 @@ public:
         return imu_.init() && mag_.init() && baro_.init();
     }
 
+    void disconnectImu() {
+        imuBus_->unregisterDevice(sf::LSM6DSOConfig{}.address);
+    }
+
+    void reconnectImu() {
+        imuBus_->registerDevice(sf::LSM6DSOConfig{}.address, *imuSim_);
+    }
+
     void setSeed(uint32_t seed) {
         imuSim_->setSeed(seed);
         magSim_->setSeed(seed + 1u);

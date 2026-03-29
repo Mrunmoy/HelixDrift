@@ -1783,3 +1783,41 @@ side can summarize and plot the same exported run without custom reshaping.
 - `HELIX_TEST_EXPORT=1 ctest --test-dir build/host -R PoseOrientationAccuracyTest.DynamicYawTrackingWithinLooseBound`
 - `python3 -m tools.analysis.run_single_analysis build/host/experiments/runs/...`
 - `python3 -m tools.analysis.plot_single_run build/host/experiments/runs/...`
+
+### Feature: M3 Runtime Harness Closure
+
+**Intent:**  
+Close the remaining bounded M3 runtime tasks without expanding scope beyond the
+Claude Sprint 8 redirect.
+
+**Changes made:**
+
+1. Extended `MocapNodeLoopT` with `updateCadence(...)` and
+   `outputPeriodUs()` so a running loop can rebase its next deadline when the
+   mocap profile changes.
+2. Added virtual-assembly helpers to disconnect and reconnect the IMU from the
+   simulated I2C bus without mutating the driver stack.
+3. Extended `VirtualMocapNodeHarness` with `setOutputPeriodUs(...)` so runtime
+   cadence changes can be tested through the real loop rather than through test
+   doubles.
+4. Added `MocapNodeLoopTest.UpdateCadenceRebasesNextTickFromNow` to prove the
+   core loop uses the new period from the switch point instead of from the
+   previous schedule.
+5. Added `VirtualMocapNodeHarnessTest.PipelineFailureAndRecoveryPreserveLoopProgress`
+   to prove a missing IMU device causes one failed tick and that frame emission
+   resumes after reconnect.
+6. Added `VirtualMocapNodeHarnessTest.LateAnchorOnlyAffectsSubsequentFrames`
+   to prove frames continue emitting before sync and that only frames after a
+   late anchor are remapped into remote time.
+7. Added `VirtualMocapNodeHarnessTest.ProfileSwitchingRebasesCadenceMidRun`
+   to prove a live `50 Hz -> 40 Hz` cadence change rebases scheduling instead
+   of keeping the old cadence.
+
+**Result:**  
+The M3 node-runtime closure lane is effectively complete from the Codex side.
+The harness now proves health capture, sensor-failure recovery, delayed-anchor
+behavior, and profile switching without opening broader RF/sync or platform
+work.
+
+**Verification:**  
+`./build.py --host-only -t`

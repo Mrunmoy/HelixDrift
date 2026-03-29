@@ -58,6 +58,13 @@
   - Wave B `B3` hard-iron calibration effectiveness proof using the existing
     SensorFusion fitter and a test-local calibrated magnetometer wrapper
   - Wave B `B4` closure with no remaining standalone matrix gaps
+  - M3 health-frame capture through the virtual node harness using the real
+    FrameCodec path
+  - M3 pipeline failure/recovery proof by disconnecting and reconnecting the
+    IMU device mid-run
+  - M3 delayed-anchor proof showing local timestamps before sync and remapped
+    timestamps after a late anchor arrives
+  - M3 cadence-switch proof covering a mid-run change from 50 Hz to 40 Hz
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -118,6 +125,9 @@
 - Task: Carry the SensorFusion AHRS convention fix through the submodule and
   rebaseline Helix characterization tests against the fixed behavior instead of
   preserving tests for already-fixed failure modes
+- Task: Close M3 with the four bounded runtime-harness slices from Claude
+  Sprint 8: health capture, failure/recovery, late anchors, and cadence
+  switching
 - Task: Start Wave B with the C++ half of `B1`: deterministic CSV export from
   `NodeRunResult`, with Python analysis left to the sidecar lane
 - Task: Close `B2` with a checked-in motion-profile catalog and a host test
