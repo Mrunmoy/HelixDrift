@@ -1693,3 +1693,54 @@ named profiles instead of copying JSON into ad hoc test fixtures.
 
 **Verification:**  
 `./build.py --host-only -t`
+
+### Feature: Hard-Iron Calibration Effectiveness Test
+
+**Intent:**  
+Close `B3` without widening the production pipeline: prove that the existing
+SensorFusion hard-/soft-iron fitter can materially improve a realistic static
+heading case using the current simulator stack.
+
+**Changes made:**
+
+1. Added `simulators/tests/test_pose_calibration_effectiveness.cpp`.
+2. Linked `CalibrationStore.cpp` into the host SensorFusion test library so
+   calibration application is available in Helix host tests.
+3. Collected six real driver-facing magnetometer samples from the virtual
+   assembly under a known hard-iron offset `{15, -10, 5}` uT.
+4. Fit calibration with `CalibrationFitter::fitMagHardSoftIron(...)`.
+5. Applied the fitted calibration through a test-local `IMagSensor` wrapper
+   instead of changing the production pipeline just to make one validation test
+   possible.
+6. Compared uncalibrated vs calibrated static `90 deg` yaw RMS error over a
+   `100`-tick warmup and `200`-tick measurement window.
+
+**Result:**  
+`B3` is now closed with a deterministic host test that proves the existing
+calibration machinery improves pose accuracy by more than `2x` under the
+injected hard-iron case.
+
+**Verification:**  
+`./build.py --host-only -t`
+
+### Feature: Sensor Validation Matrix Closure
+
+**Intent:**  
+Turn `B4` from “remaining gaps” into a finished standalone proof lane.
+
+**Changes made:**
+
+1. Rechecked the matrix against the landed LSM6DSO, BMM350, and LPS22DF test
+   inventory.
+2. Updated `docs/PER_SENSOR_VALIDATION_MATRIX.md` to reflect that the current
+   standalone criteria are covered rather than still open.
+3. Updated `TASKS.md` and Codex org status so Wave B reflects the real branch
+   state instead of the earlier Sprint 5 assumptions.
+
+**Result:**  
+The standalone sensor-proof lane is effectively closed. New sensor work should
+now be treated as regression-proofing or future-fidelity expansion, not as
+unfinished baseline validation.
+
+**Verification:**  
+`./build.py --host-only -t`

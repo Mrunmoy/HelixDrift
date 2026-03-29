@@ -3,16 +3,16 @@
 ## Org Lead
 
 - Lead session: Codex main session
-- Lead worktree: `.worktrees/codex-active`
-- Integration worktree: `.worktrees/codex-active`
+- Lead worktree: repo root on `nrf-xiao-nrf52840`
+- Integration worktree: repo root on `nrf-xiao-nrf52840`
 
 ## Active Teams
 
 | Team | Worktree | Mission | Write Scope | Status |
 |---|---|---|---|---|
-| Sensors | `.worktrees/codex-active` | Prove each sensor independently and improve simulator fidelity | `simulators/i2c/`, `simulators/sensors/`, `simulators/tests/` | active |
-| Fusion | `.worktrees/codex-active` | Build host-side virtual sensor and node harnesses on top of the proven simulator stack | `simulators/fixtures/`, `simulators/tests/`, `tests/` | active |
-| Host Tools |  | Defer until sensor validation needs evidence tooling changes | review-only for now | idle |
+| Sensors | repo root on `nrf-xiao-nrf52840` | Prove each sensor independently and improve simulator fidelity | `simulators/i2c/`, `simulators/sensors/`, `simulators/tests/` | active |
+| Fusion | repo root on `nrf-xiao-nrf52840` | Build host-side virtual sensor and node harnesses on top of the proven simulator stack | `simulators/fixtures/`, `simulators/tests/`, `tests/` | active |
+| Host Tools | repo root on `nrf-xiao-nrf52840` | Extend deterministic evidence capture around the proven simulator stack | `simulators/fixtures/`, `simulators/tests/`, `docs/` | active |
 | nRF52 |  | Defer until simulation proof work advances | `examples/nrf52-mocap-node/`, `tools/nrf/` | idle |
 
 ## Planning Gate
@@ -51,6 +51,9 @@
     baseline physical/noise checks
   - Wave B `B4` BMM orientation/error batch for pitch projection, hard-iron
     constancy, and noise statistics
+  - Wave B `B3` hard-iron calibration effectiveness proof using the existing
+    SensorFusion fitter and a test-local calibrated magnetometer wrapper
+  - Wave B `B4` closure with no remaining standalone matrix gaps
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -117,6 +120,8 @@
   that loads every profile via `VirtualGimbal`
 - Task: Continue `B4` by closing standalone sensor-matrix gaps in small
   batches, starting with tests that require no new simulator features
+- Task: Keep `B1` moving until the C++ export lane is ready for clean handoff
+  into the Python sidecar
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)
@@ -131,5 +136,4 @@
 
 - Ready to merge into codex integration: yes
 - Waiting on fixes: no
-- Ready for top-level integration: yes, once the shared tree is clean enough to
-  merge `codex/active`
+- Ready for top-level integration: yes

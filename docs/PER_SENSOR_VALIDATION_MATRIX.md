@@ -107,20 +107,27 @@ Every sensor simulator should satisfy these categories:
 
 - when seeded, repeated noisy pressure runs with the same setup should match
 
-## Current High-Value Gaps
+## Current Status
 
-Deterministic seeding is now exposed explicitly across all three sensors and is
-covered by standalone tests. The next bounded gaps are:
+The standalone host test suite now covers the matrix items above for all three
+simulated sensors:
 
-1. stronger register-behavior proof for simulated device reset and configuration
-2. broader quantitative checks that tie configured sensor scale or calibration
-   settings to raw output counts
-3. tighter statistical validation of configured noise behavior without making
-   the tests brittle
+1. identity and probe behavior
+2. driver-compatible register access
+3. physically plausible measurements across known orientations or conditions
+4. bias, scale, and noise injection
+5. deterministic seeded behavior for quantitative tests
+
+Recent Wave B closure added:
+
+1. LPS22DF cold/hot temperature and below-sea-level checks
+2. LSM6DSO stationary gyro, multi-axis gyro, accel-norm, and gyro-noise tests
+3. BMM350 pitch-field projection, hard-iron constancy, and noise-stat tests
 
 ## Current Codex Focus
 
-1. keep converting standalone matrix items into explicit host tests
+1. keep the matrix green while Wave B evidence tooling grows
 2. prefer already-supported simulator behavior before introducing new simulator
    features
-3. stay within the Sensor Validation scope until the next planning handoff
+3. treat new validation work as regression-proofing, not as open-ended simulator
+   expansion

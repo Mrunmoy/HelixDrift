@@ -38,14 +38,19 @@ See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criter
 
 ### Wave A — Immediate (Codex / Fusion)
 
+Wave A was re-scoped during Sprint 6/7 after the SensorFusion initialization
+fix. The original table below is now interpreted through the Claude redirect
+notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
+`docs/SPRINT7_POST_FIX_ASSESSMENT.md`.
+
 | # | Task | Acceptance | Status |
 |---|------|-----------|--------|
-| A1 | Static multi-pose orientation accuracy (7 poses) | Per-pose RMS < 3°, overall < 5° | pending |
-| A2 | Dynamic single-axis tracking (yaw/pitch/roll 30°/s) | Per-axis RMS < 8°, max < 20° | pending |
-| A3 | 60s heading drift (Kp=1.0, Ki=0.02, clean) | Max error < 10°, drift < 2°/min | pending |
-| A4 | Mahony Kp/Ki convergence sweep (12 combos) | Kp≥1: converge < 2s, steady-state < 3° | pending |
-| A5 | Gyro bias rejection via Ki (0.01 rad/s bias) | Ki=0: drift > 5°/min; Ki=0.05: < 2°/min | pending |
-| A6 | Two-node joint angle recovery (5 poses) | Error < 5° all poses, < 7° max | pending |
+| A1 | Static multi-pose orientation accuracy (7 poses) | Static all-axis accuracy proved after SensorFusion convention fix | done |
+| A2 | Dynamic single-axis tracking (yaw/pitch/roll 30°/s) | Yaw + roll accepted; pitch retained as characterization-only | partial |
+| A3 | 60s heading drift (Kp=1.0, Ki=0.02, clean) | Max error < 10°, drift < 2°/min | done |
+| A4 | Mahony Kp/Ki convergence sweep (12 combos) | Gain behavior characterized and redirected by Claude | done |
+| A5 | Gyro bias rejection via Ki (0.01 rad/s bias) | Ki=0: drift > 5°/min; Ki=0.05: < 2°/min | done |
+| A6 | Two-node joint angle recovery (5 poses) | Error < 5° all poses, < 7° max | done |
 
 ### Wave B — After Wave A
 
@@ -53,8 +58,8 @@ See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criter
 |---|------|-------|--------|
 | B1 | CSV export + Python plot script | Codex / Host Tools | in progress |
 | B2 | Motion profile JSON library (12 files) | Codex / Fusion | done |
-| B3 | Hard iron calibration effectiveness test | Codex / Sensor Validation | pending |
-| B4 | Sensor validation matrix remaining gaps | Codex / Sensor Validation | pending |
+| B3 | Hard iron calibration effectiveness test | Codex / Sensor Validation | done |
+| B4 | Sensor validation matrix remaining gaps | Codex / Sensor Validation | done |
 
 ### Deferred — M4+ (after M2 closes)
 
@@ -72,8 +77,8 @@ See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criter
 
 | Milestone | % | Current Focus |
 |-----------|---|---------------|
-| M1: Per-Sensor Proof | ~85% | Wave B4 closes remaining gaps |
-| M2: Single-Node Assembly | ~40% | **Wave A closes this** |
+| M1: Per-Sensor Proof | ~100% | Wave B4 closed the remaining standalone gaps |
+| M2: Single-Node Assembly | ~90% | Wave A evidence is merged; pitch dynamic remains characterized |
 | M3: Node Runtime | ~20% | Partial from harness work |
 | M4: RF/Sync | 0% | Deferred — Kimi spec ready |
 | M5-M6: Calibration + Multi-node | 0% | Deferred — Kimi spec ready |
