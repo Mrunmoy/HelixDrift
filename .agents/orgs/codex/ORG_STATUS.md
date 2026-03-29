@@ -102,8 +102,9 @@
 - Task: Treat A1a and A2 as axis-split characterization problems until Claude
   explicitly decides whether yaw-only acceptance is a legitimate intermediate
   milestone
-- Task: Keep pitch/roll static and dynamic cases blocked on the SensorFusion
-  init convention mismatch instead of inventing looser thresholds
+- Task: Carry the SensorFusion AHRS convention fix through the submodule and
+  rebaseline Helix characterization tests against the fixed behavior instead of
+  preserving tests for already-fixed failure modes
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

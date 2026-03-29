@@ -1434,3 +1434,43 @@ evidence points to a SensorFusion initialization convention mismatch.
 
 **Verification:**  
 `./build.py --host-only && ./build/host/helix_integration_tests --gtest_filter='PoseOrientationAccuracyTest.*'`
+
+### Feature: SensorFusion AHRS Convention Fix And Helix Rebaseline
+
+**Intent:**  
+Close the blocked pitch/roll path by fixing the underlying SensorFusion AHRS
+convention mismatch instead of continuing to route around it in Helix.
+
+**Changes made:**
+
+1. Added direct SensorFusion repro coverage:
+   - `MahonyAHRSTest.InitFromSensorsSeedsSmallPitchOffsetCloseToTruth`
+   - `MahonyAHRSTest.InitFromSensorsSeedsSmallRollOffsetCloseToTruth`
+   - `MahonyAHRSTest.InitFromSensorsMaintainsSmallPitchPoseUnderStationaryUpdates`
+   - `MahonyAHRSTest.InitFromSensorsMaintainsSmallRollPoseUnderStationaryUpdates`
+2. Replaced the Euler-based `MahonyAHRS::initFromSensors()` path with
+   basis-aligned quaternion construction from accel + mag.
+3. Reworked `MahonyAHRS::update()` and `update6DOF()` to predict gravity and
+   magnetic references through `Quaternion::rotateVector()`.
+4. Corrected the 9DOF magnetic cross-product direction so yaw correction
+   opposes yaw error instead of reinforcing it.
+5. Rebased Helix characterization tests to reflect the post-fix behavior
+   rather than the old broken behavior.
+
+**What changed in Helix behavior:**
+
+- small static offsets now seed accurately across yaw, pitch, and roll
+- yaw-only acceptance remains green
+- long-duration drift and joint-angle recovery remain green
+- very high yaw gains still destabilize tracking, but moderate gains no longer
+  match the old failure pattern
+- the bias-rejection slice is now a narrower, evidence-backed tuning claim
+  instead of the previous monotonic-`Ki` assumption
+
+**Result:**  
+The original `initFromSensors()` bug note is now resolved. The remaining work is
+normal tuning and milestone progression, not a hidden frame-convention blocker.
+
+**Verification:**  
+`./build/test/driver_tests`  
+`ctest --test-dir build/host --output-on-failure`
