@@ -1,6 +1,6 @@
 # Kimi Org Status
 
-**Mode:** Experiment-Analysis Sidecar (Sprint 6)  
+**Mode:** Experiment-Analysis Sidecar (Sprint 7 - Final Handoff Complete)  
 **Last Updated:** 2026-03-29  
 **Worktree:** `.agents/orgs/kimi/`
 
@@ -23,25 +23,27 @@
 | Hardware Futures | `.agents/orgs/kimi/` | Complete | `docs/hardware-futures.md` | Complete |
 | Adversarial Review | `.agents/orgs/kimi/` | Complete | `docs/adversarial-review-*.md` | Complete |
 | Implementation Support | `.agents/orgs/kimi/` | Complete | `*-SLICES.md, *-STARTER_PACK.md` | Complete |
-| **Experiment Analysis** | `.agents/orgs/kimi/` | **Phase 1 Handoff** | `PHASE1_IMPLEMENTATION_PACK.md` | Ready |
+| **Experiment Analysis** | `.agents/orgs/kimi/` | **Phase 1 Handoff Complete** | `FINAL_PHASE1_HANDOFF.md` | Ready for Execution |
 
 ---
 
-## Planning Gate (Sprint 6)
+## Planning Gate (Sprint 7 - Complete)
 
 ### Problems Currently Owned
-1. **Experiment Result Schema:** Design complete
-2. **Batch Pipeline Architecture:** Design complete  
-3. **LLM Summarization Workflow:** Design complete
-4. **Batch Priorities:** P0/P1/P2 defined
-5. **Phase 1 Implementation Pack:** Ready for handoff
+1. **Experiment Result Schema:** ✅ Design complete
+2. **Batch Pipeline Architecture:** ✅ Design complete  
+3. **LLM Summarization Workflow:** ✅ Design complete
+4. **Batch Priorities:** ✅ P0/P1/P2 defined
+5. **Phase 1 Implementation Pack:** ✅ Ready for handoff
+6. **Final Handoff Packet:** ✅ Complete with corrected workflow
 
 ### Writable Scopes Currently Claimed
 - `.agents/orgs/kimi/EXPERIMENT_RESULT_SCHEMA.md`
 - `.agents/orgs/kimi/BATCH_PIPELINE_ARCHITECTURE.md`
 - `.agents/orgs/kimi/LLM_SUMMARIZATION_WORKFLOW.md`
 - `.agents/orgs/kimi/EXPERIMENT_BATCH_PRIORITIES.md`
-- `.agents/orgs/kimi/PHASE1_IMPLEMENTATION_PACK.md` (NEW)
+- `.agents/orgs/kimi/PHASE1_IMPLEMENTATION_PACK.md`
+- `.agents/orgs/kimi/FINAL_PHASE1_HANDOFF.md` (NEW - FINAL)
 - `.agents/orgs/kimi/ORG_STATUS.md` (this file)
 
 ### Review-Only Scopes
@@ -64,42 +66,50 @@
 - No file conflicts: all sidecar work is additive
 
 ### Approved to Execute
-- YES (Phase 1 pack ready for implementation agent)
+- ✅ YES (Final handoff complete, ready for implementation agent)
 
 ---
 
-## Sprint 6 Deliverables
+## Sprint 7 Deliverables
 
-### Phase 1 Implementation Pack
-**Document:** `PHASE1_IMPLEMENTATION_PACK.md`
+### Final Phase 1 Implementation Handoff
+**Document:** `FINAL_PHASE1_HANDOFF.md`
 
-| Component | Status | Specified In Pack |
-|-----------|--------|-------------------|
-| `schema.py` | Specified | Exact Pydantic models |
-| `metrics.py` | Specified | Exact functions with docstrings |
-| `run_single_analysis.py` | Specified | CLI with argparse |
-| Example artifacts | Provided | manifest.json, samples.csv, summary.json |
-| First tests | Specified | test_schema.py, test_metrics.py |
-| Boundaries | Clear | No C++ changes, additive only |
-| Ollama guidance | Provided | llama3.2:3b recommended |
+| Component | Status | Location |
+|-----------|--------|----------|
+| Executable checklist | ✅ Complete | Section 1 |
+| File-by-file specs | ✅ Complete | Section 2 |
+| Test file specs | ✅ Complete | Section 3 |
+| Corrected workflow (chicken-and-egg fixed) | ✅ Complete | Section 4 |
+| Priority change assessment | ✅ Complete | Section 5 |
+| One-page agent note | ✅ Complete | Section 6 |
 
-### Pack Contents Summary
-```
-PHASE1_IMPLEMENTATION_PACK.md
-├── File 1: tools/analysis/schema.py (exact spec)
-├── File 2: tools/analysis/metrics.py (exact spec)
-├── File 3: tools/analysis/run_single_analysis.py (exact spec)
-├── Example Artifacts
-│   ├── manifest.json (full example)
-│   ├── samples.csv (header + schema)
-│   └── summary.json (full example)
-├── First Tests
-│   ├── test_schema.py (exact test cases)
-│   └── test_metrics.py (exact test cases)
-├── Boundaries (what NOT to touch)
-├── Ollama Model Recommendation
-└── Implementation Order + Success Criteria
-```
+### Key Fix from Original Pack
+
+**Problem:** Original `RunResult.from_directory()` tried to load `summary.json` which doesn't exist during analysis (it's the OUTPUT of analysis).
+
+**Solution:** Split into:
+- `RunResult.from_raw_directory()` — loads manifest + samples only
+- Summary is computed by Python, then optionally written to disk
+
+**Impact:** Workflow is now internally consistent and executable.
+
+---
+
+## Priority Changes After SensorFusion Fix
+
+### SensorFusion AHRS Convention Fix (Merged)
+
+**Status:** Codex completed and merged the convention fix. Mainline host validation green.
+
+**Impact on Priorities:**
+
+| Batch | Change | Reason |
+|-------|--------|--------|
+| Wave A Baseline | ⚠️ A1 may be unblocked | ±90° yaw was ~118° RMS (catastrophic), now needs re-evaluation |
+| All other batches | No change | Fix was specific to AHRS init/update convention |
+
+**Recommendation:** Re-probe A1 staged entry path (identity, +90° yaw, -90° yaw) to verify if now within intermediate threshold.
 
 ---
 
@@ -128,20 +138,20 @@ PHASE1_IMPLEMENTATION_PACK.md
 
 ## Batch Priority Summary
 
-| Priority | Batch | Runs | Effort | Value | Blocked By |
-|----------|-------|------|--------|-------|------------|
-| P0 | Wave A Baseline | 45 | 1h | Foundation | A1-A6 tests |
-| P0 | Mahony Sweep | 36 | 2h | Tuning data | A4 test |
-| P1 | Bias Sensitivity | 60 | 3h | Validates A5 | A5 test |
-| P1 | Seed Sensitivity | 20 | 4h | Determinism check | None |
-| P2 | Noise Sensitivity | TBD | 4h | Wave B | B4 gaps |
-| P2 | Long Duration | TBD | 8h | Post-M2 | A3 test |
+| Priority | Batch | Runs | Effort | Blocked By | Notes |
+|----------|-------|------|--------|------------|-------|
+| P0 | Wave A Baseline | 45 | 1h | A1-A6 tests | A1 may be unblocked post-fix |
+| P0 | Mahony Sweep | 36 | 2h | A4 test | Unchanged |
+| P1 | Bias Sensitivity | 60 | 3h | A5 test | Unchanged |
+| P1 | Seed Sensitivity | 20 | 4h | None | Unchanged |
+| P2 | Noise Sensitivity | TBD | 4h | B4 gaps | Unchanged |
+| P2 | Long Duration | TBD | 8h | A3 test | Unchanged |
 
 **Total P0/P1:** 161 runs, ~10h compute, ~750 MB data
 
 ---
 
-## LLM Integration
+## LLM Integration (Phase 3)
 
 ### Model Recommendations
 | Model | Size | RAM | Use Case | When |
@@ -167,20 +177,21 @@ PHASE1_IMPLEMENTATION_PACK.md
 
 | Criterion | Status |
 |-----------|--------|
-| Exact file specs | schema.py, metrics.py, run_single_analysis.py |
-| Dependencies listed | pydantic, numpy, argparse |
-| Example artifacts | manifest.json, samples.csv, summary.json |
-| Tests defined | test_schema.py, test_metrics.py |
-| Boundaries clear | No C++ changes, new directory only |
-| Ollama guidance | llama3.2:3b recommended for Phase 3 |
+| Exact file specs | ✅ schema.py, metrics.py, run_single_analysis.py |
+| Dependencies listed | ✅ pydantic, numpy, argparse, pytest |
+| Example artifacts | ✅ manifest.json, samples.csv, summary.json |
+| Tests defined | ✅ test_schema.py, test_metrics.py |
+| Boundaries clear | ✅ No C++ changes, new directory only |
+| Workflow corrected | ✅ from_raw_directory() loads only manifest+samples |
+| Chicken-and-egg fixed | ✅ Summary is output, not input |
 
-**Verdict:** Implementation pack is ready. Can hand off to implementation agent immediately.
+**Verdict:** ✅ Final handoff complete. Implementation agent can start immediately.
 
 ### Success Criteria for Phase 1
 - `python -m tools.analysis.run_single_analysis --help` works
-- Can load example manifest/samples/summary without errors
+- Can load example manifest/samples without errors
 - Can compute metrics and print summary
-- All unit tests pass
+- All unit tests pass (`pytest tools/analysis/tests/`)
 - No C++ code modified
 - No existing tests broken
 
@@ -225,23 +236,26 @@ PHASE1_IMPLEMENTATION_PACK.md
 
 | Metric | Value |
 |--------|-------|
-| Total documents created | 20 |
+| Total documents created | 21 |
 | Implementation slices defined | 11 (RF + Magnetic) |
 | Starter packs prepared | 2 (deferred) |
 | Experiment batches defined | 6 (P0/P1/P2) |
 | Schema definitions | 3 (manifest, samples, summary) |
 | LLM prompt templates | 3 (summary, compare, triage) |
 | Phase 1 files specified | 3 (schema, metrics, run_single) |
+| Final handoff packets | 1 |
 
 ---
 
 ## Next Steps
 
 1. **Phase 1 Implementation:** Hand off to implementation agent
-   - Implement `tools/analysis/schema.py`
+   - Read `FINAL_PHASE1_HANDOFF.md`
+   - Implement `tools/analysis/schema.py` (with corrected from_raw_directory)
    - Implement `tools/analysis/metrics.py`
    - Implement `tools/analysis/run_single_analysis.py`
    - Write tests for schema and metrics
+   - Verify no C++ files modified
 
 2. **Phase 2 Planning:** After A1-A6 tests pass
    - Implement `tools/analysis/batch_runner.py`
@@ -257,4 +271,4 @@ PHASE1_IMPLEMENTATION_PACK.md
 
 ---
 
-**Status:** Sprint 6 complete — Phase 1 implementation pack ready for handoff
+**Status:** ✅ Sprint 7 complete — Final Phase 1 handoff ready for execution
