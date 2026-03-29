@@ -40,6 +40,8 @@
     submodule to replace identity-only startup
   - A4 yaw-gain characterization showing that higher `MahonyKp` currently
     worsens both small static yaw offsets and 30 deg/s dynamic yaw tracking
+  - Axis-split characterization showing that yaw remains materially better than
+    pitch/roll for both small static offsets and 30 deg/s dynamic tracking
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -94,6 +96,9 @@
   while leaving pitch/roll and dynamic-tracking limits still open
 - Task: Use the new yaw-gain characterization as the current A4 result instead
   of assuming higher `Kp` will rescue A1a/A2 yaw behavior
+- Task: Treat A1a and A2 as axis-split characterization problems until Claude
+  explicitly decides whether yaw-only acceptance is a legitimate intermediate
+  milestone
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

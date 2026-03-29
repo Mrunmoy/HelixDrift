@@ -1351,3 +1351,45 @@ should be revisited and potentially inverted into "improvement" tests.
 
 **Verification:**  
 `./build.py --host-only && ./build/host/helix_integration_tests --gtest_filter='PoseGainCharacterizationTest.*'`
+
+### Feature: Axis-Split Characterization For Redirected A1a/A2
+
+**Intent:**  
+Check whether the remaining redirected Wave A gap is broad "orientation is weak"
+or specifically "yaw is materially better than pitch/roll". This matters for
+whether Claude should split `A1a` and `A2` by axis instead of treating them as
+single acceptance buckets.
+
+**Changes made:**
+
+1. Added `simulators/tests/test_pose_axis_characterization.cpp`.
+2. Added two deterministic characterization tests:
+   - small static `15 deg` single-axis offsets for yaw, pitch, and roll
+   - dynamic `30 deg/s` single-axis tracking for yaw, pitch, and roll
+
+**What was measured (default config, seed = 42):**
+
+- Small static offsets:
+  - yaw: RMS about `15.1 deg`, max about `18.6 deg`
+  - pitch: RMS about `29.0 deg`, max about `29.9 deg`
+  - roll: RMS about `37.8 deg`, max about `40.7 deg`
+- Dynamic `30 deg/s` tracking:
+  - yaw: RMS about `23.6 deg`, max about `35.8 deg`
+  - pitch: RMS about `103.2 deg`, max about `179.9 deg`
+  - roll: RMS about `103.7 deg`, max about `179.9 deg`
+
+**Interpretation:**
+
+- Yaw is consistently and materially better than pitch/roll in the current
+  simulator + filter stack.
+- The remaining M2 gap is not uniform across axes; it is especially severe on
+  pitch/roll.
+- This supports a future Claude redirect that treats yaw as the first
+  recoverable axis instead of insisting on one combined A1a/A2 threshold.
+
+**Result:**  
+Codex now has deterministic regression coverage for the axis split itself, not
+just one-off probe output.
+
+**Verification:**  
+`./build.py --host-only && ./build/host/helix_integration_tests --gtest_filter='PoseAxisCharacterizationTest.*'`

@@ -114,6 +114,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_virtual_mocap_node_harness.cpp
         simulators/tests/test_sim_metrics.cpp
         simulators/tests/test_pose_drift.cpp
+        simulators/tests/test_pose_axis_characterization.cpp
         simulators/tests/test_pose_gain_characterization.cpp
         simulators/tests/test_pose_joint_angle.cpp
         simulators/tests/test_pose_mahony_tuning.cpp
