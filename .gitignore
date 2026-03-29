@@ -1,5 +1,9 @@
 build/
 build-arm/
+__pycache__/
+*.pyc
+experiments/runs/
+experiments/analysis/
 
 # Production signing keys — never commit production private keys.
 # The committed keys/dev_signing_key.pem is a CI-only development key.

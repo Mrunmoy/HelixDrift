@@ -122,3 +122,61 @@ TEST(CsvExportTest, DefaultCsvPathUsesTestOutputDirectoryAndSanitizedStem) {
     EXPECT_NE(path.find("CsvExportTest_Path_Uses_Spaces_Slashes.csv"), std::string::npos);
     EXPECT_TRUE(std::filesystem::exists("test_output"));
 }
+
+TEST(CsvExportTest, DefaultAnalysisRunDirUsesExperimentsRunsDirectory) {
+    const std::string path = defaultAnalysisRunDir("CsvExportTest.Analysis Run");
+
+    EXPECT_NE(path.find("experiments/runs/"), std::string::npos);
+    EXPECT_NE(path.find("CsvExportTest_Analysis_Run"), std::string::npos);
+    EXPECT_TRUE(std::filesystem::exists(std::filesystem::path(path).parent_path()));
+}
+
+TEST(CsvExportTest, ExportAnalysisRunWritesManifestAndSchemaCompatibleSamples) {
+    NodeRunResult result{};
+    CapturedNodeSample sample{};
+    sample.timestampUs = 20000;
+    sample.truthOrientation = sf::Quaternion::fromAxisAngle(0.0f, 0.0f, 1.0f, 15.0f);
+    sample.fusedOrientation = sample.truthOrientation;
+    sample.angularErrorDeg = 0.25f;
+    result.samples.push_back(sample);
+
+    AnalysisRunManifest manifest{};
+    manifest.experimentId = "csv_export_analysis";
+    manifest.description = "contract test";
+    manifest.initialOrientation = sample.truthOrientation;
+    manifest.measuredSamples = 1;
+    manifest.totalTicks = 1;
+    manifest.durationSeconds = 0.02f;
+
+    const std::filesystem::path runDir("analysis_export_test_output");
+    std::filesystem::remove_all(runDir);
+
+    ASSERT_TRUE(exportAnalysisRun(result, manifest, runDir.string()));
+
+    const std::string manifestJson = readFile((runDir / "manifest.json").string());
+    const std::string samplesCsv = readFile((runDir / "samples.csv").string());
+
+    EXPECT_NE(manifestJson.find("\"experiment_id\": \"csv_export_analysis\""), std::string::npos);
+    EXPECT_NE(samplesCsv.find("sample_idx,timestamp_us,truth_w"), std::string::npos);
+    EXPECT_NE(samplesCsv.find("angular_error_deg"), std::string::npos);
+    EXPECT_NE(samplesCsv.find("0,20000,"), std::string::npos);
+
+    std::filesystem::remove_all(runDir);
+}
+
+TEST(CsvExportTest, ExportAnalysisRunIfEnabledSkipsWriteWhenEnvVarUnset) {
+    ScopedExportEnv env(nullptr);
+
+    NodeRunResult result{};
+    result.samples.push_back(CapturedNodeSample{});
+
+    AnalysisRunManifest manifest{};
+    manifest.experimentId = "disabled_analysis";
+    manifest.initialOrientation = sf::Quaternion{};
+
+    const std::filesystem::path runDir("analysis_export_disabled");
+    std::filesystem::remove_all(runDir);
+
+    EXPECT_FALSE(exportAnalysisRunIfEnabled(result, manifest, runDir.string()));
+    EXPECT_FALSE(std::filesystem::exists(runDir));
+}

@@ -72,4 +72,23 @@ TEST(PoseOrientationAccuracyTest, DynamicYawTrackingWithinLooseBound) {
     const std::string exportPath =
         defaultCsvPath("PoseOrientationAccuracyTest.DynamicYawTrackingWithinLooseBound");
     EXPECT_EQ(exportCsvIfEnabled(yaw, exportPath), shouldExport());
+
+    AnalysisRunManifest analysisManifest{};
+    analysisManifest.experimentId = "pose_dynamic_yaw_tracking";
+    analysisManifest.experimentFamily = "Wave_B";
+    analysisManifest.description = "Dynamic yaw tracking exported for Python sidecar analysis";
+    analysisManifest.rotationRateDps = {0.0f, 0.0f, 30.0f};
+    analysisManifest.warmupSamples = 50;
+    analysisManifest.measuredSamples = 500;
+    analysisManifest.totalTicks = 550;
+    analysisManifest.durationSeconds = 10.0f;
+    analysisManifest.seed = 42;
+    analysisManifest.outputPeriodUs = 20000;
+    analysisManifest.initialOrientation = sf::Quaternion{};
+    EXPECT_EQ(
+        exportAnalysisRunIfEnabled(
+            yaw,
+            analysisManifest,
+            defaultAnalysisRunDir("PoseOrientationAccuracyTest.DynamicYawTrackingWithinLooseBound")),
+        shouldExport());
 }
