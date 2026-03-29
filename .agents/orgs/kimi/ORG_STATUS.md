@@ -1,15 +1,16 @@
 # Kimi Org Status
 
-**Mode:** Experiment-Analysis Sidecar (Sprint 7 - Final Handoff Complete)  
+**Mode:** Experiment-Analysis Sidecar (Phase 1 Implementation Complete)  
 **Last Updated:** 2026-03-29  
-**Worktree:** `.agents/orgs/kimi/`
+**Worktree:** `.worktrees/kimi-analysis-sidecar`
+**Branch:** `kimi/analysis-sidecar`
 
 ---
 
 ## Org Lead
 
 - Lead session: Kimi experiment-analysis sidecar
-- Lead worktree: `.agents/orgs/kimi/`
+- Lead worktree: `.worktrees/kimi-analysis-sidecar`
 - Integration worktree: repo root (merge via PR)
 
 ---
@@ -23,93 +24,99 @@
 | Hardware Futures | `.agents/orgs/kimi/` | Complete | `docs/hardware-futures.md` | Complete |
 | Adversarial Review | `.agents/orgs/kimi/` | Complete | `docs/adversarial-review-*.md` | Complete |
 | Implementation Support | `.agents/orgs/kimi/` | Complete | `*-SLICES.md, *-STARTER_PACK.md` | Complete |
-| **Experiment Analysis** | `.agents/orgs/kimi/` | **Phase 1 Handoff Complete** | `FINAL_PHASE1_HANDOFF.md` | Ready for Execution |
+| **Experiment Analysis** | `.worktrees/kimi-analysis-sidecar` | **Phase 1 Complete** | `tools/analysis/` | ✅ Complete |
 
 ---
 
-## Planning Gate (Sprint 7 - Complete)
+## Phase 1 Implementation Status
+
+### Files Implemented
+
+| File | Status | Tests |
+|------|--------|-------|
+| `tools/analysis/__init__.py` | ✅ Complete | N/A |
+| `tools/analysis/schema.py` | ✅ Complete | 4 tests passing |
+| `tools/analysis/metrics.py` | ✅ Complete | 8 tests passing |
+| `tools/analysis/run_single_analysis.py` | ✅ Complete | CLI verified |
+| `tools/analysis/tests/__init__.py` | ✅ Complete | N/A |
+| `tools/analysis/tests/test_schema.py` | ✅ Complete | 4 tests passing |
+| `tools/analysis/tests/test_metrics.py` | ✅ Complete | 8 tests passing |
+
+### Test Results
+
+```bash
+$ python3 -m pytest tools/analysis/tests/ -v
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-7.4.0, pluggy-1.6.0
+collected 12 items
+
+tools/analysis/tests/test_schema.py::TestManifest::test_minimal_manifest PASSED
+tools/analysis/tests/test_schema.py::TestManifest::test_full_manifest PASSED
+tools/analysis/tests/test_schema.py::TestSample::test_sample_creation PASSED
+tools/analysis/tests/test_schema.py::TestRunResult::test_load_from_raw_directory PASSED
+tools/analysis/tests/test_metrics.py::TestAngularErrorMetrics::test_empty_samples PASSED
+tools/analysis/tests/test_metrics.py::TestAngularErrorMetrics::test_constant_error PASSED
+tools/analysis/tests/test_metrics.py::TestAngularErrorMetrics::test_varying_error PASSED
+tools/analysis/tests/test_metrics.py::TestDriftRate::test_no_drift PASSED
+tools/analysis/tests/test_metrics.py::TestDriftRate::test_linear_drift PASSED
+tools/analysis/tests/test_metrics.py::TestConvergence::test_converged PASSED
+tools/analysis/tests/test_metrics.py::TestConvergence::test_not_converged PASSED
+tools/analysis/tests/test_metrics.py::TestComputeAllMetrics::test_compute_all_metrics PASSED
+
+============================== 12 passed in 0.19s ===============================
+```
+
+### CLI Verification
+
+```bash
+$ python3 -m tools.analysis.run_single_analysis --help
+usage: run_single_analysis.py [-h] [--output-summary OUTPUT_SUMMARY]
+                              [--criteria CRITERIA] [--quiet]
+                              run_dir
+
+Analyze a single HelixDrift experiment run
+```
+
+### End-to-End Test
+
+✅ Successfully analyzed `experiments/runs/20260329/test_run/`:
+- Loaded manifest.json + samples.csv
+- Computed RMS, max, mean, std, p95, p99
+- Computed drift rate and convergence time
+- Evaluated acceptance criteria
+- Printed human-readable summary
+- Wrote summary.json output
+
+---
+
+## Planning Gate
 
 ### Problems Currently Owned
 1. **Experiment Result Schema:** ✅ Design complete
 2. **Batch Pipeline Architecture:** ✅ Design complete  
 3. **LLM Summarization Workflow:** ✅ Design complete
 4. **Batch Priorities:** ✅ P0/P1/P2 defined
-5. **Phase 1 Implementation Pack:** ✅ Ready for handoff
-6. **Final Handoff Packet:** ✅ Complete with corrected workflow
+5. **Phase 1 Implementation:** ✅ Complete
 
 ### Writable Scopes Currently Claimed
-- `.agents/orgs/kimi/EXPERIMENT_RESULT_SCHEMA.md`
-- `.agents/orgs/kimi/BATCH_PIPELINE_ARCHITECTURE.md`
-- `.agents/orgs/kimi/LLM_SUMMARIZATION_WORKFLOW.md`
-- `.agents/orgs/kimi/EXPERIMENT_BATCH_PRIORITIES.md`
-- `.agents/orgs/kimi/PHASE1_IMPLEMENTATION_PACK.md`
-- `.agents/orgs/kimi/FINAL_PHASE1_HANDOFF.md` (NEW - FINAL)
-- `.agents/orgs/kimi/ORG_STATUS.md` (this file)
+- `tools/analysis/` — **IMPLEMENTED**
+- `.agents/orgs/kimi/` — documentation
 
 ### Review-Only Scopes
-- `simulators/` (Codex owned - Wave A/B implementation)
-- `tests/` (Codex owned - Wave A/B implementation)
-- `tools/` (shared - Codex owns core tools, Kimi owns analysis/)
-- `docs/` (Claude owned - architecture sequencing)
-- `.agents/` (Claude owned - org management)
-
-### Blocked or Contested Scopes
-- `tools/analysis/` — **CLAIMED by Kimi for implementation**
-- No conflicts with Codex (new directory)
-- No conflicts with Claude (analysis sidecar)
+- `simulators/` (Codex owned)
+- `tests/` (Codex owned)
+- `firmware/` (Claude/Codex own)
+- Existing `tools/` (Codex owns)
 
 ### No-Duplication Check Completed
-- Kimi owns experiment-analysis sidecar
+- Kimi owns experiment-analysis sidecar (Phase 1 complete)
 - Codex owns Wave A/B test implementation (M2 focus)
 - Claude owns architecture sequencing and acceptance guidance
-- Kimi claims `tools/analysis/` — new directory, zero overlap
 - No file conflicts: all sidecar work is additive
 
 ### Approved to Execute
-- ✅ YES (Final handoff complete, ready for implementation agent)
-
----
-
-## Sprint 7 Deliverables
-
-### Final Phase 1 Implementation Handoff
-**Document:** `FINAL_PHASE1_HANDOFF.md`
-
-| Component | Status | Location |
-|-----------|--------|----------|
-| Executable checklist | ✅ Complete | Section 1 |
-| File-by-file specs | ✅ Complete | Section 2 |
-| Test file specs | ✅ Complete | Section 3 |
-| Corrected workflow (chicken-and-egg fixed) | ✅ Complete | Section 4 |
-| Priority change assessment | ✅ Complete | Section 5 |
-| One-page agent note | ✅ Complete | Section 6 |
-
-### Key Fix from Original Pack
-
-**Problem:** Original `RunResult.from_directory()` tried to load `summary.json` which doesn't exist during analysis (it's the OUTPUT of analysis).
-
-**Solution:** Split into:
-- `RunResult.from_raw_directory()` — loads manifest + samples only
-- Summary is computed by Python, then optionally written to disk
-
-**Impact:** Workflow is now internally consistent and executable.
-
----
-
-## Priority Changes After SensorFusion Fix
-
-### SensorFusion AHRS Convention Fix (Merged)
-
-**Status:** Codex completed and merged the convention fix. Mainline host validation green.
-
-**Impact on Priorities:**
-
-| Batch | Change | Reason |
-|-------|--------|--------|
-| Wave A Baseline | ⚠️ A1 may be unblocked | ±90° yaw was ~118° RMS (catastrophic), now needs re-evaluation |
-| All other batches | No change | Fix was specific to AHRS init/update convention |
-
-**Recommendation:** Re-probe A1 staged entry path (identity, +90° yaw, -90° yaw) to verify if now within intermediate threshold.
+- ✅ Phase 1 complete
+- Phase 2 (batch runner) deferred until after M2
 
 ---
 
@@ -124,10 +131,9 @@
 - Any existing test files
 
 ### This Sidecar Creates:
-- `tools/analysis/` (NEW — Kimi owns)
-- `tools/analysis/tests/` (NEW — test suite)
-- `experiments/` (NEW — output directory, gitignored)
-- Python analysis scripts (additive only)
+- ✅ `tools/analysis/` — Phase 1 complete
+- `tools/analysis/tests/` — 12 tests passing
+- `experiments/` — example fixtures created
 
 ### Integration Point:
 - Sidecar **consumes** C++ test output via CSV export
@@ -136,64 +142,26 @@
 
 ---
 
-## Batch Priority Summary
+## Commits Made
 
-| Priority | Batch | Runs | Effort | Blocked By | Notes |
-|----------|-------|------|--------|------------|-------|
-| P0 | Wave A Baseline | 45 | 1h | A1-A6 tests | A1 may be unblocked post-fix |
-| P0 | Mahony Sweep | 36 | 2h | A4 test | Unchanged |
-| P1 | Bias Sensitivity | 60 | 3h | A5 test | Unchanged |
-| P1 | Seed Sensitivity | 20 | 4h | None | Unchanged |
-| P2 | Noise Sensitivity | TBD | 4h | B4 gaps | Unchanged |
-| P2 | Long Duration | TBD | 8h | A3 test | Unchanged |
-
-**Total P0/P1:** 161 runs, ~10h compute, ~750 MB data
+| Commit | Description |
+|--------|-------------|
+| `84e9317` | Add test files for schema and metrics (TDD first) |
+| `1b1446f` | Implement schema.py and metrics.py with all tests passing |
+| `6db52cd` | Implement run_single_analysis.py CLI tool with end-to-end test fixture |
 
 ---
 
-## LLM Integration (Phase 3)
-
-### Model Recommendations
-| Model | Size | RAM | Use Case | When |
-|-------|------|-----|----------|------|
-| `llama3.2:3b` | 3B | 4GB | Development, quick summaries | Phase 3 |
-| `qwen2.5:7b` | 7B | 8GB | Production reports | Phase 3 |
-| `deepseek-r1:7b` | 7B | 8GB | Anomaly analysis | Phase 3 |
-
-**Phase 1:** No LLM required — pure Python computation
-
-### Trust Boundaries
-- LLM summarizes pre-computed metrics
-- LLM compares runs qualitatively
-- LLM does not compute statistics
-- LLM does not generate code fixes
-- LLM suggestions require human validation
-
----
-
-## Readiness Assessment
-
-### Can an Implementation Agent Start Phase 1?
+## Success Criteria Verification
 
 | Criterion | Status |
 |-----------|--------|
-| Exact file specs | ✅ schema.py, metrics.py, run_single_analysis.py |
-| Dependencies listed | ✅ pydantic, numpy, argparse, pytest |
-| Example artifacts | ✅ manifest.json, samples.csv, summary.json |
-| Tests defined | ✅ test_schema.py, test_metrics.py |
-| Boundaries clear | ✅ No C++ changes, new directory only |
-| Workflow corrected | ✅ from_raw_directory() loads only manifest+samples |
-| Chicken-and-egg fixed | ✅ Summary is output, not input |
-
-**Verdict:** ✅ Final handoff complete. Implementation agent can start immediately.
-
-### Success Criteria for Phase 1
-- `python -m tools.analysis.run_single_analysis --help` works
-- Can load example manifest/samples without errors
-- Can compute metrics and print summary
-- All unit tests pass (`pytest tools/analysis/tests/`)
-- No C++ code modified
-- No existing tests broken
+| `python -m tools.analysis.run_single_analysis --help` works | ✅ Verified |
+| Can load example manifest/samples without errors | ✅ Verified |
+| Can compute metrics and print summary | ✅ Verified |
+| All unit tests pass | ✅ 12/12 passing |
+| No C++ code modified | ✅ Verified (git diff shows only Python files) |
+| No existing tests broken | ✅ Verified |
 
 ---
 
@@ -208,67 +176,25 @@
 - Generate LLM summaries in Phase 1 (Phase 3 only)
 
 ### Sidecar DOES:
-- Parse existing test outputs
-- Generate plots and reports
-- Use local Ollama (optional)
-- Enable parameter sweeps
-- Feed findings to future sprints
-
----
-
-## Integration with Future Sprints
-
-### Output Feeds Into:
-- **M2 Close:** Wave A baseline validates acceptance criteria
-- **M3 Planning:** Mahony sweep informs tuning decisions
-- **M5 Planning:** Bias sensitivity validates calibration needs
-- **Hardware Bring-up:** Seed sensitivity proves determinism
-
-### Handoff to Codex/Claude:
-- LLM summaries provide human-readable evidence
-- Plots provide visual validation
-- Statistical reports provide hard numbers
-- Recommendations suggest (not mandate) next steps
-
----
-
-## Summary Statistics
-
-| Metric | Value |
-|--------|-------|
-| Total documents created | 21 |
-| Implementation slices defined | 11 (RF + Magnetic) |
-| Starter packs prepared | 2 (deferred) |
-| Experiment batches defined | 6 (P0/P1/P2) |
-| Schema definitions | 3 (manifest, samples, summary) |
-| LLM prompt templates | 3 (summary, compare, triage) |
-| Phase 1 files specified | 3 (schema, metrics, run_single) |
-| Final handoff packets | 1 |
+- ✅ Parse existing test outputs
+- ✅ Generate summary metrics
+- ✅ Provide CLI for analysis
+- ✅ Enable parameter sweeps (Phase 2)
 
 ---
 
 ## Next Steps
 
-1. **Phase 1 Implementation:** Hand off to implementation agent
-   - Read `FINAL_PHASE1_HANDOFF.md`
-   - Implement `tools/analysis/schema.py` (with corrected from_raw_directory)
-   - Implement `tools/analysis/metrics.py`
-   - Implement `tools/analysis/run_single_analysis.py`
-   - Write tests for schema and metrics
-   - Verify no C++ files modified
-
+1. **Phase 1 Complete** — Ready for review
 2. **Phase 2 Planning:** After A1-A6 tests pass
    - Implement `tools/analysis/batch_runner.py`
    - Run Batch 1 (Wave A Baseline)
    - Run Batch 2 (Mahony Sweep)
-
 3. **Phase 3 Planning:** LLM integration
    - Implement `tools/analysis/llm_summarizer.py`
    - Add Ollama client
    - Generate narrative summaries
 
-4. **Future:** Regression detection, automated anomaly detection
-
 ---
 
-**Status:** ✅ Sprint 7 complete — Final Phase 1 handoff ready for execution
+**Status:** ✅ Phase 1 implementation complete — 12 tests passing, CLI functional, ready for merge
