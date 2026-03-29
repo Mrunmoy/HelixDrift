@@ -30,6 +30,10 @@ struct CapturedNodeSample {
     uint64_t timestampUs = 0;
     sf::Quaternion truthOrientation{};
     sf::Quaternion fusedOrientation{};
+    sf::AccelData rawAccel{};
+    sf::GyroData rawGyro{};
+    sf::MagData rawMag{};
+    float pressureHPa = 0.0f;
     float angularErrorDeg = 0.0f;
 };
 
@@ -166,10 +170,22 @@ public:
             const auto& frame = captureTransport_.frames.back();
             const sf::Quaternion truth = assembly_.gimbal().getOrientation();
             const float errorDeg = angularErrorDeg(truth, frame.orientation);
+            sf::AccelData accel{};
+            sf::GyroData gyro{};
+            sf::MagData mag{};
+            float pressureHPa = 0.0f;
+            const bool haveAccel = assembly_.imuDriver().readAccel(accel);
+            const bool haveGyro = assembly_.imuDriver().readGyro(gyro);
+            const bool haveMag = assembly_.magDriver().readMag(mag);
+            const bool havePressure = assembly_.baroDriver().readPressureHPa(pressureHPa);
             result.samples.push_back(CapturedNodeSample{
                 frame.timestampUs,
                 truth,
                 frame.orientation,
+                haveAccel ? accel : sf::AccelData{},
+                haveGyro ? gyro : sf::GyroData{},
+                haveMag ? mag : sf::MagData{},
+                havePressure ? pressureHPa : 0.0f,
                 errorDeg,
             });
         }
@@ -198,10 +214,22 @@ public:
             const auto& frame = captureTransport_.frames.back();
             const sf::Quaternion truth = assembly_.gimbal().getOrientation();
             const float errorDeg = angularErrorDeg(truth, frame.orientation);
+            sf::AccelData accel{};
+            sf::GyroData gyro{};
+            sf::MagData mag{};
+            float pressureHPa = 0.0f;
+            const bool haveAccel = assembly_.imuDriver().readAccel(accel);
+            const bool haveGyro = assembly_.imuDriver().readGyro(gyro);
+            const bool haveMag = assembly_.magDriver().readMag(mag);
+            const bool havePressure = assembly_.baroDriver().readPressureHPa(pressureHPa);
             result.samples.push_back(CapturedNodeSample{
                 frame.timestampUs,
                 truth,
                 frame.orientation,
+                haveAccel ? accel : sf::AccelData{},
+                haveGyro ? gyro : sf::GyroData{},
+                haveMag ? mag : sf::MagData{},
+                havePressure ? pressureHPa : 0.0f,
                 errorDeg,
             });
         }

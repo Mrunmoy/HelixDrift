@@ -45,6 +45,7 @@
   - Yaw-only `A1a` and yaw-only `A2` acceptance slices committed after Claude's
     Sprint 6 rescope
   - SensorFusion init convention bug documented for pitch/roll startup
+  - Wave B `B1` CSV export foundation for deterministic host evidence capture
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -105,6 +106,8 @@
 - Task: Carry the SensorFusion AHRS convention fix through the submodule and
   rebaseline Helix characterization tests against the fixed behavior instead of
   preserving tests for already-fixed failure modes
+- Task: Start Wave B with the C++ half of `B1`: deterministic CSV export from
+  `NodeRunResult`, with Python analysis left to the sidecar lane
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

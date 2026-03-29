@@ -1572,3 +1572,38 @@ normal tuning and milestone progression, not a hidden frame-convention blocker.
 **Verification:**  
 `./build/test/driver_tests`  
 `ctest --test-dir build/host --output-on-failure`
+
+### Feature: Wave B CSV Export Foundation
+
+**Intent:**  
+Start `B1` with the smallest useful C++ evidence slice: capture raw sensor
+fields in `NodeRunResult`, export deterministic CSV traces from host runs, and
+gate that export behind `HELIX_TEST_EXPORT=1`.
+
+**Changes made:**
+
+1. Extended `CapturedNodeSample` in
+   `simulators/fixtures/VirtualMocapNodeHarness.hpp` with:
+   - raw accel
+   - raw gyro
+   - raw mag
+   - pressure
+2. Updated `runForDuration()` and `runWithWarmup()` to read those values from
+   the real virtual drivers after each successful pipeline tick.
+3. Added `simulators/fixtures/CsvExport.hpp` with:
+   - `shouldExport()`
+   - `exportCsv()`
+   - `exportCsvIfEnabled()`
+4. Added `simulators/tests/test_csv_export.cpp` covering:
+   - header + row emission
+   - env-gated no-op when export is disabled
+   - env-gated write when export is enabled
+5. Wired the new test into `helix_integration_tests`.
+
+**Scope note:**  
+This is the C++ half of `B1`, not the whole task. Python analysis and plotting
+remain separate work. The export schema now exists so the Python sidecar can
+consume stable traces later.
+
+**Verification:**  
+`./build.py --host-only -t`
