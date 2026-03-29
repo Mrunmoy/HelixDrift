@@ -1474,3 +1474,35 @@ normal tuning and milestone progression, not a hidden frame-convention blocker.
 **Verification:**  
 `./build/test/driver_tests`  
 `ctest --test-dir build/host --output-on-failure`
+
+### Feature: Final Wave A Dynamic-Axis Closeout Check
+
+**Intent:**  
+Execute Claude's last Wave A check after the convention fix: probe all-axis
+dynamic tracking at `30 deg/s` with `Kp=0.5`, close what is actually green,
+and record the remaining weak axis honestly.
+
+**What was measured (seed = 42, 500 samples, 20 ms dt):**
+
+- yaw: RMS about `0.24 deg`, max about `0.49 deg`
+- pitch: RMS about `22.7 deg`, max about `50.6 deg`
+- roll: RMS about `1.52 deg`, max about `2.31 deg`
+
+**Interpretation:**
+
+- yaw and roll both satisfy Claude's redirected intermediate bound
+  (`RMS < 15 deg`, `max < 30 deg`)
+- pitch does not
+- M2 can now be treated as effectively closed from the Codex side, with pitch
+  dynamic tracking left as a characterization gap rather than a blocking bug
+
+**Changes made:**
+
+1. Tightened the dynamic yaw acceptance slice to the redirected post-fix bound
+   at `Kp=0.5`.
+2. Added dynamic roll acceptance at the same bound.
+3. Added dynamic pitch as explicit characterization-only coverage rather than
+   fake acceptance.
+
+**Verification:**  
+`ctest --test-dir build/host --output-on-failure -R 'PoseOrientationAccuracyTest.*'`

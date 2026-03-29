@@ -105,6 +105,8 @@
 - Task: Carry the SensorFusion AHRS convention fix through the submodule and
   rebaseline Helix characterization tests against the fixed behavior instead of
   preserving tests for already-fixed failure modes
+- Task: Close the final Wave A dynamic-axis check honestly: accept yaw and roll
+  at `Kp=0.5`, keep pitch as characterization-only, and stop further M2 tuning
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)
