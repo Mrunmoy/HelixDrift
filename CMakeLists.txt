@@ -129,6 +129,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/storage
         simulators/gimbal
         external/SensorFusion/drivers/hal
+        external/SensorFusion/middleware/codec
         external/SensorFusion/middleware/common
     )
 
@@ -137,6 +138,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         external/SensorFusion/drivers/lsm6dso/LSM6DSO.cpp
         external/SensorFusion/drivers/bmm350/BMM350.cpp
         external/SensorFusion/drivers/lps22df/LPS22DF.cpp
+        external/SensorFusion/middleware/codec/FrameCodec.cpp
         external/SensorFusion/middleware/motion/MocapNodePipeline.cpp
         external/SensorFusion/middleware/ahrs/MahonyAHRS.cpp
     )
@@ -145,6 +147,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         external/SensorFusion/drivers/lsm6dso
         external/SensorFusion/drivers/bmm350
         external/SensorFusion/drivers/lps22df
+        external/SensorFusion/middleware/codec
         external/SensorFusion/middleware/motion
         external/SensorFusion/middleware/ahrs
         external/SensorFusion/drivers/hal

@@ -193,6 +193,33 @@ TEST(VirtualMocapNodeHarnessTest, EmptyHarnessHasNoFrames) {
     VirtualMocapNodeHarness harness;
 
     EXPECT_FALSE(harness.hasFrames());
+    EXPECT_TRUE(harness.captureTransport().healthFrames.empty());
+}
+
+TEST(VirtualMocapNodeHarnessTest, CapturesHealthFramesViaEmitter) {
+    VirtualMocapNodeHarness harness(11, 20000);
+    ASSERT_TRUE(harness.initAll());
+
+    helix::NodeHealthTelemetry telemetry{};
+    telemetry.batteryMv = 3890;
+    telemetry.batteryPercent = 77;
+    telemetry.linkQuality = 91;
+    telemetry.droppedFrames = 3;
+    telemetry.calibrationState = 2;
+    telemetry.flags = 0xA5;
+
+    ASSERT_TRUE(harness.sendHealth(telemetry));
+    ASSERT_EQ(harness.captureTransport().healthFrames.size(), 1u);
+
+    const auto& frame = harness.captureTransport().healthFrames.back();
+    EXPECT_EQ(frame.nodeId, 11u);
+    EXPECT_EQ(frame.timestampUs, 0u);
+    EXPECT_EQ(frame.telemetry.batteryMv, 3890u);
+    EXPECT_EQ(frame.telemetry.batteryPercent, 77u);
+    EXPECT_EQ(frame.telemetry.linkQuality, 91u);
+    EXPECT_EQ(frame.telemetry.droppedFrames, 3u);
+    EXPECT_EQ(frame.telemetry.calibrationState, 2u);
+    EXPECT_EQ(frame.telemetry.flags, 0xA5u);
 }
 
 TEST(VirtualMocapNodeHarnessTest, LastFrameDiesWhenNoFramesHaveBeenCaptured) {

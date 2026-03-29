@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VirtualSensorAssembly.hpp"
+#include "MocapHealthTelemetry.hpp"
 #include "MocapNodeLoop.hpp"
 #include "TimestampSynchronizedTransport.hpp"
 #include "MocapNodePipeline.hpp"
@@ -26,6 +27,12 @@ struct CapturedQuaternionFrame {
     sf::Quaternion orientation{};
 };
 
+struct CapturedHealthFrame {
+    uint8_t nodeId = 0;
+    uint64_t timestampUs = 0;
+    helix::NodeHealthTelemetry telemetry{};
+};
+
 struct CapturedNodeSample {
     uint64_t timestampUs = 0;
     sf::Quaternion truthOrientation{};
@@ -49,10 +56,42 @@ struct NodeRunResult {
 struct CaptureTransport {
     bool sendResult = true;
     std::vector<CapturedQuaternionFrame> frames;
+    std::vector<CapturedHealthFrame> healthFrames;
 
     bool sendQuaternion(uint8_t nodeId, uint64_t timestampUs, const sf::Quaternion& q) {
         frames.push_back(CapturedQuaternionFrame{nodeId, timestampUs, q});
         return sendResult;
+    }
+};
+
+struct HealthCaptureNotifier {
+    CaptureTransport& transport;
+
+    bool operator()(const uint8_t* data, size_t len) const {
+        sf::FrameCodec::FrameHeader header{};
+        uint8_t payload[sf::FrameCodec::MAX_FRAME_SIZE]{};
+        size_t payloadLen = 0;
+        if (!sf::FrameCodec::decode(data, len, header, payload, payloadLen)) {
+            return false;
+        }
+        if (header.type != sf::SensorType::NODE_HEALTH || payloadLen != 8u) {
+            return false;
+        }
+
+        auto readU16LE = [](const uint8_t* bytes) -> uint16_t {
+            return static_cast<uint16_t>(bytes[0]) |
+                   (static_cast<uint16_t>(bytes[1]) << 8);
+        };
+
+        helix::NodeHealthTelemetry telemetry{};
+        telemetry.batteryMv = readU16LE(&payload[0]);
+        telemetry.batteryPercent = payload[2];
+        telemetry.linkQuality = payload[3];
+        telemetry.droppedFrames = readU16LE(&payload[4]);
+        telemetry.calibrationState = payload[6];
+        telemetry.flags = payload[7];
+        transport.healthFrames.push_back(CapturedHealthFrame{header.nodeId, header.timestampUs, telemetry});
+        return true;
     }
 };
 
@@ -104,6 +143,7 @@ public:
         helix::TimestampSynchronizedTransportT<CaptureTransport, OffsetSyncFilter, AnchorQueue>;
     using Loop =
         helix::MocapNodeLoopT<VirtualClock, sf::MocapNodePipeline, WrappedTransport, sf::MocapNodeSample>;
+    using HealthEmitter = helix::NodeHealthTelemetryEmitterT<HealthCaptureNotifier>;
 
     VirtualMocapNodeHarness()
         : VirtualMocapNodeHarness(Config{})
@@ -113,6 +153,7 @@ public:
         : config_(config)
         , pipeline_(assembly_.imuDriver(), &assembly_.magDriver(), &assembly_.baroDriver(), config_.pipeline)
         , wrappedTransport_(captureTransport_, syncFilter_, anchorQueue_)
+        , healthEmitter_(HealthCaptureNotifier{captureTransport_})
         , loop_(clock_, pipeline_, wrappedTransport_,
                 helix::MocapNodeLoopConfig{config_.nodeId, config_.outputPeriodUs})
     {}
@@ -124,6 +165,9 @@ public:
     bool initAll() { return assembly_.initAll(); }
 
     bool tick() { return loop_.tick(); }
+    bool sendHealth(const helix::NodeHealthTelemetry& telemetry) {
+        return healthEmitter_.send(config_.nodeId, clock_.nowUs(), telemetry);
+    }
 
     void setSeed(uint32_t seed) { assembly_.setSeed(seed); }
     void resetAndSync() { assembly_.resetAndSync(); }
@@ -280,6 +324,7 @@ private:
     AnchorQueue anchorQueue_{};
     sf::MocapNodePipeline pipeline_;
     WrappedTransport wrappedTransport_;
+    HealthEmitter healthEmitter_;
     Loop loop_;
 };
 
