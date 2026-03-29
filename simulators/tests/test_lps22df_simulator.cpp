@@ -6,6 +6,29 @@
 using sim::Lps22dfSimulator;
 using sim::VirtualI2CBus;
 
+namespace {
+
+float readPressureHpa(VirtualI2CBus& bus, uint8_t addr) {
+    uint8_t buf[3];
+    EXPECT_TRUE(bus.readRegister(addr, 0x28, buf, 3));
+    int32_t raw = static_cast<int32_t>(buf[0]) |
+                  (static_cast<int32_t>(buf[1]) << 8) |
+                  (static_cast<int32_t>(buf[2]) << 16);
+    if (raw & 0x800000) {
+        raw |= 0xFF000000;
+    }
+    return static_cast<float>(raw) / 4096.0f;
+}
+
+float readTemperatureC(VirtualI2CBus& bus, uint8_t addr) {
+    uint8_t buf[2];
+    EXPECT_TRUE(bus.readRegister(addr, 0x2B, buf, 2));
+    const int16_t raw = static_cast<int16_t>(buf[0] | (buf[1] << 8));
+    return static_cast<float>(raw) / 100.0f;
+}
+
+} // namespace
+
 class Lps22dfSimulatorTest : public ::testing::Test {
 protected:
     VirtualI2CBus bus;
@@ -109,24 +132,11 @@ TEST_F(Lps22dfSimulatorTest, PressureAtSeaLevel) {
 // Test pressure decreases with altitude
 TEST_F(Lps22dfSimulatorTest, PressureDecreasesWithAltitude) {
     sensor.setAltitude(0.0f);
-    
-    uint8_t buf[3];
-    bus.readRegister(LPS22DF_ADDR, 0x28, buf, 3);
-    int32_t raw0 = static_cast<int32_t>(buf[0]) |
-                   (static_cast<int32_t>(buf[1]) << 8) |
-                   (static_cast<int32_t>(buf[2]) << 16);
-    if (raw0 & 0x800000) raw0 |= 0xFF000000;
-    float hPa0 = static_cast<float>(raw0) / 4096.0f;
+    float hPa0 = readPressureHpa(bus, LPS22DF_ADDR);
     
     // Now set altitude to 1000m
     sensor.setAltitude(1000.0f);
-    
-    bus.readRegister(LPS22DF_ADDR, 0x28, buf, 3);
-    int32_t raw1000 = static_cast<int32_t>(buf[0]) |
-                      (static_cast<int32_t>(buf[1]) << 8) |
-                      (static_cast<int32_t>(buf[2]) << 16);
-    if (raw1000 & 0x800000) raw1000 |= 0xFF000000;
-    float hPa1000 = static_cast<float>(raw1000) / 4096.0f;
+    float hPa1000 = readPressureHpa(bus, LPS22DF_ADDR);
     
     // Pressure should be lower at higher altitude
     EXPECT_LT(hPa1000, hPa0);
@@ -137,12 +147,7 @@ TEST_F(Lps22dfSimulatorTest, PressureDecreasesWithAltitude) {
 
 // Test temperature reads realistic value
 TEST_F(Lps22dfSimulatorTest, TemperatureIsRealistic) {
-    uint8_t buf[2];
-    EXPECT_TRUE(bus.readRegister(LPS22DF_ADDR, 0x2B, buf, 2));
-    
-    // Convert from little-endian 16-bit
-    int16_t raw = static_cast<int16_t>(buf[0] | (buf[1] << 8));
-    float tempC = static_cast<float>(raw) / 100.0f;
+    float tempC = readTemperatureC(bus, LPS22DF_ADDR);
     
     // Should be a realistic temperature (-40 to +85 is sensor range)
     EXPECT_GT(tempC, -40.0f);
@@ -156,16 +161,7 @@ TEST_F(Lps22dfSimulatorTest, TemperatureIsRealistic) {
 TEST_F(Lps22dfSimulatorTest, SetPressureOverridesAltitude) {
     sensor.setAltitude(0.0f);
     sensor.setPressure(950.0f);  // Force specific pressure
-    
-    uint8_t buf[3];
-    EXPECT_TRUE(bus.readRegister(LPS22DF_ADDR, 0x28, buf, 3));
-    
-    int32_t raw = static_cast<int32_t>(buf[0]) |
-                  (static_cast<int32_t>(buf[1]) << 8) |
-                  (static_cast<int32_t>(buf[2]) << 16);
-    if (raw & 0x800000) raw |= 0xFF000000;
-    
-    float hPa = static_cast<float>(raw) / 4096.0f;
+    float hPa = readPressureHpa(bus, LPS22DF_ADDR);
     EXPECT_NEAR(hPa, 950.0f, 0.1f);
 }
 
@@ -173,28 +169,14 @@ TEST_F(Lps22dfSimulatorTest, SetPressureOverridesAltitude) {
 TEST_F(Lps22dfSimulatorTest, PressureBias) {
     sensor.setAltitude(0.0f);
     sensor.setPressureBias(10.0f);  // Add 10 hPa bias
-    
-    uint8_t buf[3];
-    bus.readRegister(LPS22DF_ADDR, 0x28, buf, 3);
-    
-    int32_t raw = static_cast<int32_t>(buf[0]) |
-                  (static_cast<int32_t>(buf[1]) << 8) |
-                  (static_cast<int32_t>(buf[2]) << 16);
-    if (raw & 0x800000) raw |= 0xFF000000;
-    
-    float hPa = static_cast<float>(raw) / 4096.0f;
+    float hPa = readPressureHpa(bus, LPS22DF_ADDR);
     EXPECT_NEAR(hPa, 1013.25f + 10.0f, 0.5f);
 }
 
 // Test temperature bias injection
 TEST_F(Lps22dfSimulatorTest, TemperatureBias) {
     sensor.setTemperatureBias(5.0f);  // Add 5°C bias
-    
-    uint8_t buf[2];
-    bus.readRegister(LPS22DF_ADDR, 0x2B, buf, 2);
-    
-    int16_t raw = static_cast<int16_t>(buf[0] | (buf[1] << 8));
-    float tempC = static_cast<float>(raw) / 100.0f;
+    float tempC = readTemperatureC(bus, LPS22DF_ADDR);
     
     // Should be around 22 + 5 = 27°C
     EXPECT_NEAR(tempC, 27.0f, 10.0f);  // Allow some default variation
@@ -261,30 +243,36 @@ TEST_F(Lps22dfSimulatorTest, MultiRegisterRead) {
 TEST_F(Lps22dfSimulatorTest, SetBasePressure) {
     sensor.setBasePressure(1000.0f);  // Set base to 1000 hPa
     sensor.setAltitude(0.0f);
-    
-    uint8_t buf[3];
-    bus.readRegister(LPS22DF_ADDR, 0x28, buf, 3);
-    
-    int32_t raw = static_cast<int32_t>(buf[0]) |
-                  (static_cast<int32_t>(buf[1]) << 8) |
-                  (static_cast<int32_t>(buf[2]) << 16);
-    if (raw & 0x800000) raw |= 0xFF000000;
-    
-    float hPa = static_cast<float>(raw) / 4096.0f;
+    float hPa = readPressureHpa(bus, LPS22DF_ADDR);
     EXPECT_NEAR(hPa, 1000.0f, 0.5f);
 }
 
 // Test temperature can be set directly
 TEST_F(Lps22dfSimulatorTest, SetTemperature) {
     sensor.setTemperature(30.0f);  // Set to 30°C
-    
-    uint8_t buf[2];
-    bus.readRegister(LPS22DF_ADDR, 0x2B, buf, 2);
-    
-    int16_t raw = static_cast<int16_t>(buf[0] | (buf[1] << 8));
-    float tempC = static_cast<float>(raw) / 100.0f;
-    
+    float tempC = readTemperatureC(bus, LPS22DF_ADDR);
     EXPECT_NEAR(tempC, 30.0f, 0.1f);
+}
+
+TEST_F(Lps22dfSimulatorTest, PressureAtBelowSeaLevelMatchesBarometricExpectation) {
+    sensor.setAltitude(-100.0f);
+
+    const float hPa = readPressureHpa(bus, LPS22DF_ADDR);
+    EXPECT_NEAR(hPa, 1025.4f, 1.0f);
+}
+
+TEST_F(Lps22dfSimulatorTest, ColdTemperatureReadbackMatchesConfiguredValue) {
+    sensor.setTemperature(-10.0f);
+
+    const float tempC = readTemperatureC(bus, LPS22DF_ADDR);
+    EXPECT_NEAR(tempC, -10.0f, 0.5f);
+}
+
+TEST_F(Lps22dfSimulatorTest, HotTemperatureReadbackMatchesConfiguredValue) {
+    sensor.setTemperature(60.0f);
+
+    const float tempC = readTemperatureC(bus, LPS22DF_ADDR);
+    EXPECT_NEAR(tempC, 60.0f, 0.5f);
 }
 
 TEST(Lps22dfSimulatorDeterminismTest, SameSeedProducesIdenticalNoisyPressureSamples) {

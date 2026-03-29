@@ -1613,6 +1613,36 @@ consume stable traces later.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: Sensor Validation Gap Closure — LPS Extremes And LSM Baselines
+
+**Intent:**  
+Make measurable progress on `B4` by closing the highest-value standalone
+sensor checks that required no new simulator features:
+LPS22DF environmental extremes and missing LSM6DSO baseline physical/noise
+coverage.
+
+**Changes made:**
+
+1. Added LPS22DF coverage for:
+   - below-sea-level pressure at `-100 m`
+   - explicit cold temperature readback at `-10 C`
+   - explicit hot temperature readback at `60 C`
+2. Added LSM6DSO coverage for:
+   - stationary gyro reads near zero on all axes
+   - multi-axis gyro rotation response `[1.0, 0.5, -0.3] rad/s`
+   - accel norm staying near `1 g` across multiple known poses
+   - gyro noise standard deviation matching configured value
+3. Refactored some raw decode paths in the LPS and LSM tests into local helper
+   functions so new matrix items can be added without copy-paste parsing code.
+
+**Result:**  
+The matrix is still not fully closed, but the remaining work is now narrower:
+more detailed magnetometer orientation/error checks and the more calibration-
+oriented or recovery-oriented sensor cases.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: Motion Profile JSON Library
 
 **Intent:**  

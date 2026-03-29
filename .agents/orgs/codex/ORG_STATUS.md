@@ -47,6 +47,8 @@
   - SensorFusion init convention bug documented for pitch/roll startup
   - Wave B `B1` CSV export foundation for deterministic host evidence capture
   - Wave B `B2` motion-profile JSON catalog with loader coverage
+  - Wave B `B4` first validation-gap closure batch for LPS extremes and LSM
+    baseline physical/noise checks
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -111,6 +113,8 @@
   `NodeRunResult`, with Python analysis left to the sidecar lane
 - Task: Close `B2` with a checked-in motion-profile catalog and a host test
   that loads every profile via `VirtualGimbal`
+- Task: Continue `B4` by closing standalone sensor-matrix gaps in small
+  batches, starting with tests that require no new simulator features
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

@@ -9,6 +9,42 @@ using sim::VirtualI2CBus;
 using sf::Quaternion;
 using sf::Vec3;
 
+namespace {
+
+Vec3 readAccelG(VirtualI2CBus& bus, uint8_t addr) {
+    uint8_t buf[6];
+    EXPECT_TRUE(bus.readRegister(addr, Lsm6dsoSimulator::REG_OUTX_L_A, buf, sizeof(buf)));
+    const int16_t rawX = static_cast<int16_t>(buf[0] | (buf[1] << 8));
+    const int16_t rawY = static_cast<int16_t>(buf[2] | (buf[3] << 8));
+    const int16_t rawZ = static_cast<int16_t>(buf[4] | (buf[5] << 8));
+    constexpr float kAccelSens = 0.061f;
+    return Vec3{
+        rawX * kAccelSens * 0.001f,
+        rawY * kAccelSens * 0.001f,
+        rawZ * kAccelSens * 0.001f,
+    };
+}
+
+Vec3 readGyroDps(VirtualI2CBus& bus, uint8_t addr) {
+    uint8_t buf[6];
+    EXPECT_TRUE(bus.readRegister(addr, Lsm6dsoSimulator::REG_OUTX_L_G, buf, sizeof(buf)));
+    const int16_t rawX = static_cast<int16_t>(buf[0] | (buf[1] << 8));
+    const int16_t rawY = static_cast<int16_t>(buf[2] | (buf[3] << 8));
+    const int16_t rawZ = static_cast<int16_t>(buf[4] | (buf[5] << 8));
+    constexpr float kGyroSens = 8.75f;
+    return Vec3{
+        rawX * kGyroSens * 0.001f,
+        rawY * kGyroSens * 0.001f,
+        rawZ * kGyroSens * 0.001f,
+    };
+}
+
+float accelNorm(const Vec3& accel) {
+    return std::sqrt(accel.x * accel.x + accel.y * accel.y + accel.z * accel.z);
+}
+
+} // namespace
+
 class Lsm6dsoSimulatorTest : public ::testing::Test {
 protected:
     VirtualI2CBus bus;
@@ -202,6 +238,40 @@ TEST_F(Lsm6dsoSimulatorTest, Temperature_ReturnsReasonableValue) {
     EXPECT_LT(tempC, 40.0f);
 }
 
+TEST_F(Lsm6dsoSimulatorTest, Gyro_StationaryReadsZeroOnAllAxes) {
+    imu.setRotationRate(0.0f, 0.0f, 0.0f);
+
+    const Vec3 gyro = readGyroDps(bus, IMU_ADDR);
+    EXPECT_NEAR(gyro.x, 0.0f, 0.5f);
+    EXPECT_NEAR(gyro.y, 0.0f, 0.5f);
+    EXPECT_NEAR(gyro.z, 0.0f, 0.5f);
+}
+
+TEST_F(Lsm6dsoSimulatorTest, Gyro_MultiAxisRotationReadsExpectedValues) {
+    imu.setRotationRate(1.0f, 0.5f, -0.3f);
+
+    const Vec3 gyro = readGyroDps(bus, IMU_ADDR);
+    EXPECT_NEAR(gyro.x, 57.2958f, 0.5f);
+    EXPECT_NEAR(gyro.y, 28.6479f, 0.5f);
+    EXPECT_NEAR(gyro.z, -17.1887f, 0.5f);
+}
+
+TEST_F(Lsm6dsoSimulatorTest, AccelMagnitudeStaysNearOneGAcrossKnownOrientations) {
+    const Quaternion poses[] = {
+        Quaternion{1.0f, 0.0f, 0.0f, 0.0f},
+        Quaternion::fromAxisAngle(1.0f, 0.0f, 0.0f, 180.0f),
+        Quaternion::fromAxisAngle(1.0f, 0.0f, 0.0f, 90.0f),
+        Quaternion::fromAxisAngle(0.0f, 1.0f, 0.0f, 90.0f),
+        Quaternion::fromAxisAngle(0.0f, 1.0f, 0.0f, -90.0f),
+    };
+
+    for (const auto& pose : poses) {
+        imu.setOrientation(pose);
+        const Vec3 accel = readAccelG(bus, IMU_ADDR);
+        EXPECT_NEAR(accelNorm(accel), 1.0f, 0.02f);
+    }
+}
+
 // Test 12: Bias injection works for accelerometer
 TEST_F(Lsm6dsoSimulatorTest, AccelBias_InjectedCorrectly) {
     // Set bias of 0.1g in X direction
@@ -351,6 +421,28 @@ TEST_F(Lsm6dsoSimulatorTest, Noise_AddsVariation) {
     // For 0.01g noise, we expect std dev around 0.01g
     EXPECT_GT(stdDevZ, 0.005f); // Should have some variation
     EXPECT_LT(stdDevZ, 0.02f);  // But not too much
+}
+
+TEST_F(Lsm6dsoSimulatorTest, GyroNoiseStdDevMatchesConfiguredValue) {
+    imu.setGyroNoiseStdDev(0.001f);
+    imu.setRotationRate(0.0f, 0.0f, 0.0f);
+
+    float sumZ = 0.0f;
+    float sumZSq = 0.0f;
+    constexpr int kSamples = 500;
+    for (int i = 0; i < kSamples; ++i) {
+        const Vec3 gyro = readGyroDps(bus, IMU_ADDR);
+        const float zRadPerSec = gyro.z * (3.14159265358979323846f / 180.0f);
+        sumZ += zRadPerSec;
+        sumZSq += zRadPerSec * zRadPerSec;
+    }
+
+    const float meanZ = sumZ / static_cast<float>(kSamples);
+    const float varianceZ = (sumZSq / static_cast<float>(kSamples)) - (meanZ * meanZ);
+    const float stdDevZ = std::sqrt(std::max(varianceZ, 0.0f));
+
+    EXPECT_NEAR(meanZ, 0.0f, 0.0003f);
+    EXPECT_NEAR(stdDevZ, 0.001f, 0.0003f);
 }
 
 TEST(Lsm6dsoSimulatorDeterminismTest, SameSeedProducesIdenticalNoisyAccelSamples) {
