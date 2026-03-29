@@ -32,7 +32,7 @@ IMU + magnetometer + barometer can:
 MCU targets are implementation platforms, not the core product goal. The
 current intended primary target is nRF52.
 
-## Active Focus: Wave B Evidence And Validation Follow-Through
+## Active Focus: Wave B Evidence And Validation Closedown
 
 See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criteria.
 
@@ -56,7 +56,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 
 | # | Task | Owner | Status |
 |---|------|-------|--------|
-| B1 | CSV export + Python plot script | Codex / Host Tools | in progress |
+| B1 | CSV export + Python plot script | Codex / Host Tools | done |
 | B2 | Motion profile JSON library (12 files) | Codex / Fusion | done |
 | B3 | Hard iron calibration effectiveness test | Codex / Sensor Validation | done |
 | B4 | Sensor validation matrix remaining gaps | Codex / Sensor Validation | done |

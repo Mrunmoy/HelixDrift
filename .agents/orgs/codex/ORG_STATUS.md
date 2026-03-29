@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | Sensors | repo root on `nrf-xiao-nrf52840` | Prove each sensor independently and improve simulator fidelity | `simulators/i2c/`, `simulators/sensors/`, `simulators/tests/` | active |
 | Fusion | repo root on `nrf-xiao-nrf52840` | Build host-side virtual sensor and node harnesses on top of the proven simulator stack | `simulators/fixtures/`, `simulators/tests/`, `tests/` | active |
-| Host Tools | repo root on `nrf-xiao-nrf52840` | Extend deterministic evidence capture around the proven simulator stack | `simulators/fixtures/`, `simulators/tests/`, `docs/` | active |
+| Host Tools | repo root on `nrf-xiao-nrf52840` | Extend deterministic evidence capture around the proven simulator stack | `simulators/fixtures/`, `simulators/tests/`, `docs/`, `tools/analysis/` | active |
 | nRF52 |  | Defer until simulation proof work advances | `examples/nrf52-mocap-node/`, `tools/nrf/` | idle |
 
 ## Planning Gate
@@ -48,6 +48,8 @@
   - Wave B `B1` CSV export foundation for deterministic host evidence capture
   - Wave B `B1` sidecar-compatible manifest plus samples export for Python
     analysis handoff
+  - Wave B `B1` Python analysis and plotting CLIs validated against exported
+    host-test artifacts
   - Wave B `B2` motion-profile JSON catalog with loader coverage
   - Wave B `B4` first validation-gap closure batch for LPS extremes and LSM
     baseline physical/noise checks
@@ -124,8 +126,8 @@
   batches, starting with tests that require no new simulator features
 - Task: Keep `B1` moving until the C++ export lane is ready for clean handoff
   into the Python sidecar
-- Task: Keep `B1` marked in progress until plotting or richer evidence outputs
-  land; the raw export/analysis contract is now in place
+- Task: Treat Wave B evidence capture as closed for now; the next mainline move
+  should come from a fresh milestone redirect rather than more evidence churn
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

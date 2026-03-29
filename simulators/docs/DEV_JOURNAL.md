@@ -1773,12 +1773,13 @@ artifact shape that the Python sidecar can actually consume.
    the emitted run directory into `python3 -m tools.analysis.run_single_analysis`.
 
 **Result:**  
-`B1` is still in progress, but the main contract gap is closed: the C++ test
-lane can now produce artifacts that the Python sidecar can analyze without
-custom per-run reshaping.
+`B1` is now effectively closed. The C++ test lane can emit both a legacy
+plotting CSV and a Python-sidecar-compatible run directory, while the Python
+side can summarize and plot the same exported run without custom reshaping.
 
 **Verification:**  
 - `python3 -m pytest tools/analysis/tests/ -v -p no:randomly`
 - `./build.py --host-only -t`
 - `HELIX_TEST_EXPORT=1 ctest --test-dir build/host -R PoseOrientationAccuracyTest.DynamicYawTrackingWithinLooseBound`
 - `python3 -m tools.analysis.run_single_analysis build/host/experiments/runs/...`
+- `python3 -m tools.analysis.plot_single_run build/host/experiments/runs/...`
