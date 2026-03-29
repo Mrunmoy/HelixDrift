@@ -38,6 +38,8 @@
     are still too aggressive for the present SensorFusion behavior
   - SensorFusion first-sample Mahony seeding fix committed locally in the
     submodule to replace identity-only startup
+  - A4 yaw-gain characterization showing that higher `MahonyKp` currently
+    worsens both small static yaw offsets and 30 deg/s dynamic yaw tracking
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -90,6 +92,8 @@
 - Task: Carry the local SensorFusion seeding commit through Helix as a
   submodule-pointer update because it meaningfully improves static yaw startup
   while leaving pitch/roll and dynamic-tracking limits still open
+- Task: Use the new yaw-gain characterization as the current A4 result instead
+  of assuming higher `Kp` will rescue A1a/A2 yaw behavior
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

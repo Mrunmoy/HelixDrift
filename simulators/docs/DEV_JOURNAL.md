@@ -1305,3 +1305,49 @@ What is now solid:
 - `A5` Ki bias rejection
 - `A6` two-node joint-angle recovery
 - improved first-sample static yaw startup via the submodule fix
+
+### Feature: A4 Yaw Gain Characterization After Startup Seeding Fix
+
+**Intent:**  
+Use the current harness to check whether the next plausible Wave A tuning slice
+(`A4`) is actually moving in the expected direction after the SensorFusion
+first-sample initialization fix. The specific question was whether raising
+`MahonyKp` helps or hurts yaw behavior in the present simulator + filter stack.
+
+**Changes made:**
+
+1. Added `simulators/tests/test_pose_gain_characterization.cpp`.
+2. Added two characterization tests:
+   - small static `+15 deg` yaw offset after startup
+   - dynamic yaw tracking at `30 deg/s`
+3. Registered the new file in the integration-test target.
+
+**What was measured (seed = 42, clean sensors):**
+
+- Small static `+15 deg` yaw offset:
+  - `Kp=0.5`: RMS about `10.7 deg`, final about `12.9 deg`
+  - `Kp=1.0`: RMS about `15.1 deg`, final about `18.6 deg`
+  - `Kp=2.0`: RMS about `21.3 deg`, final about `25.3 deg`
+  - `Kp=5.0`: RMS about `28.1 deg`, final about `29.7 deg`
+- Dynamic yaw tracking at `30 deg/s`:
+  - `Kp=0.5`: RMS about `17.8 deg`, max about `25.4 deg`
+  - `Kp=1.0`: RMS about `23.3 deg`, max about `35.5 deg`
+  - `Kp=2.0`: RMS about `33.7 deg`, max about `54.3 deg`
+  - `Kp=5.0`: RMS about `80.0 deg`, max about `136.8 deg`
+
+**Interpretation:**
+
+- In the current yaw path, larger `Kp` is not helping convergence or tracking.
+  It is making both static-yaw hold and dynamic-yaw tracking worse.
+- This means the old "raise `Kp` if yaw is weak" assumption is false for the
+  present stack.
+- `A4` should currently be treated as a characterization/tuning slice, not an
+  acceptance-closing slice.
+
+**Result:**  
+Codex now has a committed, deterministic regression that protects this finding.
+If a later SensorFusion or simulator change improves yaw behavior, these tests
+should be revisited and potentially inverted into "improvement" tests.
+
+**Verification:**  
+`./build.py --host-only && ./build/host/helix_integration_tests --gtest_filter='PoseGainCharacterizationTest.*'`
