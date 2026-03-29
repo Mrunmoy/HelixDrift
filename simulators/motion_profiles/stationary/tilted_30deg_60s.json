@@ -1,0 +1,6 @@
+{
+  "steps": [
+    {"time": 0.0, "action": "setOrientation", "params": {"axis": [0, 1, 0], "angle": 30.0}},
+    {"time": 0.0, "action": "wait", "params": {"duration": 60.0}}
+  ]
+}

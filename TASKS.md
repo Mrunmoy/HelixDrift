@@ -52,7 +52,7 @@ See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criter
 | # | Task | Owner | Status |
 |---|------|-------|--------|
 | B1 | CSV export + Python plot script | Codex / Host Tools | in progress |
-| B2 | Motion profile JSON library (12 files) | Codex / Fusion | pending |
+| B2 | Motion profile JSON library (12 files) | Codex / Fusion | done |
 | B3 | Hard iron calibration effectiveness test | Codex / Sensor Validation | pending |
 | B4 | Sensor validation matrix remaining gaps | Codex / Sensor Validation | pending |
 

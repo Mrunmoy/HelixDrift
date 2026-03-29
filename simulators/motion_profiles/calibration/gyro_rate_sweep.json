@@ -1,0 +1,17 @@
+{
+  "steps": [
+    {"time": 0.0, "action": "reset", "params": {}},
+    {"time": 0.0, "action": "setRotationRate", "params": {"wx": 0.5, "wy": 0.0, "wz": 0.0}},
+    {"time": 0.0, "action": "wait", "params": {"duration": 2.0}},
+    {"time": 2.0, "action": "setRotationRate", "params": {"wx": -0.5, "wy": 0.0, "wz": 0.0}},
+    {"time": 2.0, "action": "wait", "params": {"duration": 2.0}},
+    {"time": 4.0, "action": "setRotationRate", "params": {"wx": 0.0, "wy": 0.5, "wz": 0.0}},
+    {"time": 4.0, "action": "wait", "params": {"duration": 2.0}},
+    {"time": 6.0, "action": "setRotationRate", "params": {"wx": 0.0, "wy": -0.5, "wz": 0.0}},
+    {"time": 6.0, "action": "wait", "params": {"duration": 2.0}},
+    {"time": 8.0, "action": "setRotationRate", "params": {"wx": 0.0, "wy": 0.0, "wz": 0.5}},
+    {"time": 8.0, "action": "wait", "params": {"duration": 2.0}},
+    {"time": 10.0, "action": "setRotationRate", "params": {"wx": 0.0, "wy": 0.0, "wz": -0.5}},
+    {"time": 10.0, "action": "wait", "params": {"duration": 2.0}}
+  ]
+}

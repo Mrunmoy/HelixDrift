@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {"time": 0.0, "action": "reset", "params": {}},
+    {"time": 0.0, "action": "wait", "params": {"duration": 4.0}},
+    {"time": 4.0, "action": "setOrientation", "params": {"axis": [1, 0, 0], "angle": 90.0}},
+    {"time": 4.0, "action": "wait", "params": {"duration": 4.0}},
+    {"time": 8.0, "action": "setOrientation", "params": {"axis": [1, 0, 0], "angle": -90.0}},
+    {"time": 8.0, "action": "wait", "params": {"duration": 4.0}},
+    {"time": 12.0, "action": "setOrientation", "params": {"axis": [0, 1, 0], "angle": 90.0}},
+    {"time": 12.0, "action": "wait", "params": {"duration": 4.0}},
+    {"time": 16.0, "action": "setOrientation", "params": {"axis": [0, 1, 0], "angle": -90.0}},
+    {"time": 16.0, "action": "wait", "params": {"duration": 4.0}},
+    {"time": 20.0, "action": "setOrientation", "params": {"axis": [0, 0, 1], "angle": 180.0}},
+    {"time": 20.0, "action": "wait", "params": {"duration": 4.0}}
+  ]
+}

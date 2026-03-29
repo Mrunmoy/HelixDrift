@@ -1612,3 +1612,30 @@ consume stable traces later.
 
 **Verification:**  
 `./build.py --host-only -t`
+
+### Feature: Motion Profile JSON Library
+
+**Intent:**  
+Close `B2` by turning the planned motion-profile catalog into checked-in test
+infrastructure instead of keeping motion scripts embedded only in unit tests.
+
+**Changes made:**
+
+1. Added 12 canonical profiles under `simulators/motion_profiles/`:
+   - stationary
+   - single-axis
+   - calibration
+   - multi-axis
+2. Added `simulators/tests/test_motion_profiles.cpp` that loads every catalog
+   entry through `VirtualGimbal::loadMotionScript()`.
+3. Wired the catalog test into `helix_integration_tests`.
+4. Added `HELIXDRIFT_SOURCE_DIR` to the integration-test compile definitions
+   so source-tree assets can be referenced without fragile relative paths.
+
+**Result:**  
+The motion-profile library now exists as versioned repo data and is protected
+by a host test. Future Wave B and sidecar analysis work can reference stable
+named profiles instead of copying JSON into ad hoc test fixtures.
+
+**Verification:**  
+`./build.py --host-only -t`

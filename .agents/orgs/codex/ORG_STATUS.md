@@ -46,6 +46,7 @@
     Sprint 6 rescope
   - SensorFusion init convention bug documented for pitch/roll startup
   - Wave B `B1` CSV export foundation for deterministic host evidence capture
+  - Wave B `B2` motion-profile JSON catalog with loader coverage
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -108,6 +109,8 @@
   preserving tests for already-fixed failure modes
 - Task: Start Wave B with the C++ half of `B1`: deterministic CSV export from
   `NodeRunResult`, with Python analysis left to the sidecar lane
+- Task: Close `B2` with a checked-in motion-profile catalog and a host test
+  that loads every profile via `VirtualGimbal`
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

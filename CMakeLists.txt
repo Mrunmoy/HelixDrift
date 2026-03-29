@@ -152,6 +152,7 @@ if(HELIXDRIFT_BUILD_TESTS)
     add_executable(helix_integration_tests
         simulators/tests/test_csv_export.cpp
         simulators/tests/test_virtual_i2c_bus.cpp
+        simulators/tests/test_motion_profiles.cpp
         simulators/tests/test_virtual_sensor_assembly.cpp
         simulators/tests/test_virtual_mocap_node_harness.cpp
         simulators/tests/test_sim_metrics.cpp
@@ -183,6 +184,9 @@ if(HELIXDRIFT_BUILD_TESTS)
         helix_sensorfusion
         GTest::gtest_main
         GTest::gmock
+    )
+    target_compile_definitions(helix_integration_tests PRIVATE
+        HELIXDRIFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
     )
     include(GoogleTest)
     gtest_discover_tests(helix_integration_tests)

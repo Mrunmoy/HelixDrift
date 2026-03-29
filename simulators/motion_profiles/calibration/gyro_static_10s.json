@@ -1,0 +1,6 @@
+{
+  "steps": [
+    {"time": 0.0, "action": "reset", "params": {}},
+    {"time": 0.0, "action": "wait", "params": {"duration": 10.0}}
+  ]
+}

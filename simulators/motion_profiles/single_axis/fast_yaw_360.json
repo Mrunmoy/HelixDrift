@@ -1,0 +1,8 @@
+{
+  "steps": [
+    {"time": 0.0, "action": "reset", "params": {}},
+    {"time": 0.0, "action": "setRotationRate", "params": {"wx": 0.0, "wy": 0.0, "wz": 3.141593}},
+    {"time": 0.0, "action": "wait", "params": {"duration": 2.0}},
+    {"time": 2.0, "action": "setRotationRate", "params": {"wx": 0.0, "wy": 0.0, "wz": 0.0}}
+  ]
+}
