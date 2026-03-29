@@ -65,6 +65,8 @@
   - M3 delayed-anchor proof showing local timestamps before sync and remapped
     timestamps after a late anchor arrives
   - M3 cadence-switch proof covering a mid-run change from 50 Hz to 40 Hz
+  - M4 `VirtualRFMedium` core with deterministic latency, broadcast, and loss
+    coverage
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -138,6 +140,8 @@
   into the Python sidecar
 - Task: Treat Wave B evidence capture as closed for now; the next mainline move
   should come from a fresh milestone redirect rather than more evidence churn
+- Task: Start M4 with the additive RF slice only: `VirtualRFMedium` core and
+  its basic latency, broadcast, and loss proofs
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

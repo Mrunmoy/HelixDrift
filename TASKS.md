@@ -32,7 +32,7 @@ IMU + magnetometer + barometer can:
 MCU targets are implementation platforms, not the core product goal. The
 current intended primary target is nRF52.
 
-## Active Focus: M3 Node Runtime Closeout
+## Active Focus: M4 RF/Sync Foundation
 
 See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criteria.
 
@@ -80,7 +80,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M1: Per-Sensor Proof | ~100% | Wave B4 closed the remaining standalone gaps |
 | M2: Single-Node Assembly | ~90% | Wave A evidence is merged; pitch dynamic remains characterized |
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
-| M4: RF/Sync | 0% | Deferred — Kimi spec ready |
+| M4: RF/Sync | ~10% | `VirtualRFMedium` core landed; sync-node layer still open |
 | M5-M6: Calibration + Multi-node | 0% | Deferred — Kimi spec ready |
 | M7: Platform Port (nRF52) | 0% | Deferred |
 

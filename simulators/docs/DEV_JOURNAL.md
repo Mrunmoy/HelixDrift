@@ -1821,3 +1821,31 @@ work.
 
 **Verification:**  
 `./build.py --host-only -t`
+
+### Feature: M4 VirtualRFMedium Core
+
+**Intent:**  
+Start Milestone 4 with the smallest additive RF/sync slice from Kimi's spec:
+shared packet delivery with deterministic latency, broadcast, and packet loss.
+
+**Changes made:**
+
+1. Added `simulators/rf/VirtualRFMedium.hpp` with a small packet model,
+   configurable latency/jitter/loss, node registration, and transport stats.
+2. Added `simulators/rf/VirtualRFMedium.cpp` with deterministic scheduling and
+   a fixed RNG seed so loss behavior remains reproducible in host tests.
+3. Added `simulators/tests/test_rf_medium_basic.cpp` covering:
+   - single-packet latency delivery
+   - broadcast delivery to all registered nodes
+   - deterministic full-loss behavior
+4. Wired the RF source and test file into the host CMake targets without
+   touching the existing node-harness or SensorFusion code.
+
+**Result:**  
+Milestone 4 is now open with a concrete transport foundation. The next RF work
+can build `VirtualSyncNode` and `VirtualSyncMaster` on top of a proven
+deterministic medium instead of inventing sync logic and transport behavior at
+the same time.
+
+**Verification:**  
+`./build.py --host-only -t`

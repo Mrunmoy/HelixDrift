@@ -122,12 +122,14 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/sensors/Bmm350Simulator.cpp
         simulators/storage/At24CxxSimulator.cpp
         simulators/gimbal/VirtualGimbal.cpp
+        simulators/rf/VirtualRFMedium.cpp
     )
     target_include_directories(helix_simulators PUBLIC
         simulators/i2c
         simulators/sensors
         simulators/storage
         simulators/gimbal
+        simulators/rf
         external/SensorFusion/drivers/hal
         external/SensorFusion/middleware/codec
         external/SensorFusion/middleware/common
@@ -173,6 +175,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_lsm6dso_simulator.cpp
         simulators/tests/test_at24cxx_simulator.cpp
         simulators/tests/test_virtual_gimbal.cpp
+        simulators/tests/test_rf_medium_basic.cpp
         simulators/tests/test_sensor_fusion_integration.cpp
     )
     target_include_directories(helix_integration_tests PRIVATE
