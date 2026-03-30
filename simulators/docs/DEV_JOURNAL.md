@@ -1643,6 +1643,36 @@ recreating calibration plumbing.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M5 Magnetic Disturbance Recovery
+
+**Intent:**  
+Move M5 beyond static calibration plumbing by proving the first end-to-end
+magnetic disturbance path through the real magnetometer simulator, calibrated
+sensor wrapper, and AHRS pipeline.
+
+**Changes made:**
+
+1. Extended `simulators/magnetic/CalibratedMagSensor.*` with an optional
+   `MagneticEnvironment` attachment and a disturbance-indicator query sourced
+   from field-quality ratios at the attached sensor position.
+2. Added `CalibratedMagSensorTest.DisturbanceIndicatorReflectsAttachedEnvironment`
+   to prove a clean environment reports near-zero disturbance and that a nearby
+   dipole raises the indicator substantially.
+3. Added `simulators/tests/test_ahrs_mag_robustness.cpp` covering:
+   - stable clean-field heading hold at a fixed yaw offset
+   - increased orientation error during a temporary magnetic disturbance
+   - bounded recovery after the disturbance is removed
+4. Wired the new AHRS robustness test into the host integration target without
+   touching the firmware-side pipeline code.
+
+**Result:**  
+M5 now has its first full disturbance-and-recovery proof. The project can
+exercise the actual BMM350 simulator and AHRS path under temporary magnetic
+interference before opening broader M6 multi-node/body-chain scenarios.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: M5 Standalone Hard-Iron Calibration
 
 **Intent:**  

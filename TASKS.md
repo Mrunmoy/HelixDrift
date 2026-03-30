@@ -32,7 +32,7 @@ IMU + magnetometer + barometer can:
 MCU targets are implementation platforms, not the core product goal. The
 current intended primary target is nRF52.
 
-## Active Focus: M4 RF/Sync And M5 Magnetic Foundation
+## Active Focus: M5 Magnetic Robustness And M6 Multi-Node Realism
 
 See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criteria.
 
@@ -69,7 +69,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | Network impairment tests | M4 | VirtualRFMedium |
 | Multi-node sync convergence | M4 | VirtualSyncNode |
 | MagneticEnvironment class | M5-M6 | in progress |
-| CalibratedMagSensor + disturbance scenarios | M5-M6 | MagneticEnvironment |
+| CalibratedMagSensor + disturbance scenarios | M5-M6 | in progress |
 | Three-node body-chain scenarios | M6 | M4 + M5 |
 | Wire validated runtime into nRF52 | M7 | M1-M3 complete |
 
@@ -80,8 +80,8 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M1: Per-Sensor Proof | ~100% | Wave B4 closed the remaining standalone gaps |
 | M2: Single-Node Assembly | ~90% | Wave A evidence is merged; pitch dynamic remains characterized |
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
-| M4: RF/Sync | ~65% | Basic sync, multi-node convergence, and blackout recovery are landed |
-| M5-M6: Calibration + Multi-node | ~40% | MagneticEnvironment, additive BMM350 integration, standalone hard-iron calibration, and reusable calibrated-mag path are landed |
+| M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
+| M5-M6: Calibration + Multi-node | ~50% | MagneticEnvironment, BMM350 environment hookup, hard-iron calibration, reusable calibrated-mag path, and first AHRS disturbance-recovery proof are landed |
 | M7: Platform Port (nRF52) | 0% | Deferred |
 
 ## Reference Documents

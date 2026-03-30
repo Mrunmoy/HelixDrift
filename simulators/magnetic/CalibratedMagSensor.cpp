@@ -1,4 +1,5 @@
 #include "CalibratedMagSensor.hpp"
+#include "MagneticEnvironment.hpp"
 
 namespace sim {
 
@@ -33,6 +34,18 @@ void CalibratedMagSensor::applyHardIronEstimate(const HardIronCalibrator& calibr
     calibration_.scaleX = 1.0f;
     calibration_.scaleY = 1.0f;
     calibration_.scaleZ = 1.0f;
+}
+
+void CalibratedMagSensor::attachEnvironment(const MagneticEnvironment* environment, const sf::Vec3& position) {
+    environment_ = environment;
+    position_ = position;
+}
+
+float CalibratedMagSensor::getDisturbanceIndicator() const {
+    if (environment_ == nullptr) {
+        return 0.0f;
+    }
+    return environment_->getQualityAt(position_).disturbanceRatio;
 }
 
 } // namespace sim

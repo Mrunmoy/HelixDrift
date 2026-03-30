@@ -79,6 +79,10 @@
     confidence gating, and reset behavior coverage
   - M5 reusable `CalibratedMagSensor` wrapper proven in both unit tests and
     the pose-calibration effectiveness integration test
+  - M5 disturbance-aware `CalibratedMagSensor` hook with environment-derived
+    disturbance indicator coverage
+  - M5 AHRS robustness proof covering heading degradation during a temporary
+    magnetic disturbance and bounded recovery after the disturbance is removed
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -167,6 +171,11 @@
   calibrated-sensor wrapper or body-chain scenarios
 - Task: Replace test-local magnetic calibration plumbing with reusable
   simulator code before expanding into richer disturbance and multi-node cases
+- Task: Prove the first end-to-end magnetic disturbance and recovery path
+  through the real `Bmm350Simulator` and `MocapNodePipeline` before opening M6
+  body-chain work
+- Task: Start M6 with bounded three-node/body-chain scenarios only after the
+  disturbance path is host-verified
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

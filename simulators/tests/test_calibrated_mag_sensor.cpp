@@ -2,6 +2,7 @@
 
 #include "CalibrationStore.hpp"
 #include "INvStore.hpp"
+#include "MagneticEnvironment.hpp"
 
 #include <gtest/gtest.h>
 
@@ -94,6 +95,20 @@ TEST(CalibratedMagSensorTest, AppliesHardIronEstimateFromCalibrator) {
     EXPECT_NEAR(out.x, 47.0f, 1.0f);
     EXPECT_NEAR(out.y, 0.0f, 1.0f);
     EXPECT_NEAR(out.z, 12.0f, 1.0f);
+}
+
+TEST(CalibratedMagSensorTest, DisturbanceIndicatorReflectsAttachedEnvironment) {
+    DummyNvStore nv;
+    sf::CalibrationStore store(nv);
+    FakeMagSensor inner;
+    MagneticEnvironment env = MagneticEnvironment::cleanLab();
+
+    CalibratedMagSensor sensor(inner, store);
+    sensor.attachEnvironment(&env, {0.0f, 0.0f, 0.0f});
+    EXPECT_LT(sensor.getDisturbanceIndicator(), 0.01f);
+
+    env.addDipole({{0.1f, 0.0f, 0.0f}, {0.0f, 0.0f, 120.0f}, 1.0f});
+    EXPECT_GT(sensor.getDisturbanceIndicator(), 0.2f);
 }
 
 } // namespace sim

@@ -192,6 +192,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_magnetic_environment.cpp
         simulators/tests/test_hard_iron_calibrator.cpp
         simulators/tests/test_calibrated_mag_sensor.cpp
+        simulators/tests/test_ahrs_mag_robustness.cpp
         simulators/tests/test_rf_medium_basic.cpp
         simulators/tests/test_sync_node_basic.cpp
         simulators/tests/test_rf_sync_basic.cpp
