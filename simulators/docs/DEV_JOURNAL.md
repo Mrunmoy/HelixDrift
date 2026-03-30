@@ -1884,3 +1884,28 @@ before any real radios are in play.
 
 **Verification:**  
 `./build.py --host-only -t`
+
+### Feature: M4 RF Robustness And Recovery
+
+**Intent:**  
+Prove that the new RF sync layer behaves sanely under impaired transport, not
+just under clean anchor delivery.
+
+**Changes made:**
+
+1. Extended `VirtualRFMedium` with:
+   - runtime packet-loss-rate updates
+   - a deterministic burst-loss trigger for blackout simulation
+2. Added `simulators/tests/test_rf_sync_robustness.cpp` covering:
+   - sustained 50% packet loss with continued frame transmission
+   - recovery after a 2-second total anchor blackout
+3. Verified that sync error remains bounded during degraded conditions and
+   returns below the tighter bound after anchors resume.
+
+**Result:**  
+M4 now has both a basic sync loop and a first robustness layer. The sync stack
+can be loss-tested without needing to invent the M5 magnetic environment or any
+real radio hardware first.
+
+**Verification:**  
+`./build.py --host-only -t`

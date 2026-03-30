@@ -43,6 +43,8 @@ public:
 
     void advanceTimeUs(uint64_t deltaUs);
     uint64_t nowUs() const { return currentTimeUs_; }
+    void triggerBurstLoss(uint64_t durationUs);
+    void setPacketLossRate(float rate) { config_.packetLossRate = rate; }
 
     Stats getStats() const { return stats_; }
     void resetStats() { stats_ = Stats{}; }
@@ -60,6 +62,7 @@ private:
     std::vector<PendingDelivery> inFlight_;
     std::mt19937 rng_;
     Stats stats_{};
+    uint64_t burstLossUntilUs_ = 0;
 
     void processDeliveries();
     bool shouldDropPacket();

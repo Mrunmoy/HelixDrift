@@ -69,6 +69,8 @@
     coverage
   - M4 `ClockModel`, `VirtualSyncNode`, and `VirtualSyncMaster` basic sync
     loop with drift, anchor reception, and six-node convergence coverage
+  - M4 RF robustness coverage for 50% Bernoulli loss, continued frame
+    transmission during degraded sync, and recovery after a 2-second blackout
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -147,6 +149,8 @@
 - Task: Extend M4 from RF transport into the first sync loop: drifted
   `VirtualSyncNode`, anchor-broadcast `VirtualSyncMaster`, and basic
   single-node / loss / multi-node convergence tests
+- Task: Harden M4 with transport-blackout recovery and sustained degraded-sync
+  behavior before moving to magnetic disturbance work
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

@@ -187,6 +187,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_rf_medium_basic.cpp
         simulators/tests/test_sync_node_basic.cpp
         simulators/tests/test_rf_sync_basic.cpp
+        simulators/tests/test_rf_sync_robustness.cpp
         simulators/tests/test_sensor_fusion_integration.cpp
     )
     target_include_directories(helix_integration_tests PRIVATE

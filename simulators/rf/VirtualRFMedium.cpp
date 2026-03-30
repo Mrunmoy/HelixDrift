@@ -38,6 +38,10 @@ void VirtualRFMedium::advanceTimeUs(uint64_t deltaUs) {
     processDeliveries();
 }
 
+void VirtualRFMedium::triggerBurstLoss(uint64_t durationUs) {
+    burstLossUntilUs_ = currentTimeUs_ + durationUs;
+}
+
 void VirtualRFMedium::processDeliveries() {
     auto keepBegin = std::remove_if(
         inFlight_.begin(), inFlight_.end(),
@@ -69,6 +73,9 @@ void VirtualRFMedium::processDeliveries() {
 }
 
 bool VirtualRFMedium::shouldDropPacket() {
+    if (currentTimeUs_ < burstLossUntilUs_) {
+        return true;
+    }
     if (config_.packetLossRate <= 0.0f) {
         return false;
     }
