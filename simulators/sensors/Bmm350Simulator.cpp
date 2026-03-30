@@ -1,4 +1,5 @@
 #include "Bmm350Simulator.hpp"
+#include "MagneticEnvironment.hpp"
 #include <cstring>
 #include <cmath>
 
@@ -121,6 +122,15 @@ void Bmm350Simulator::setSeed(uint32_t seed) {
     rng_.seed(seed);
 }
 
+void Bmm350Simulator::attachEnvironment(MagneticEnvironment* env, const sf::Vec3& position) {
+    environment_ = env;
+    sensorPosition_ = position;
+}
+
+void Bmm350Simulator::detachEnvironment() {
+    environment_ = nullptr;
+}
+
 void Bmm350Simulator::setErrors(const ErrorConfig& errors) {
     errors_ = errors;
     if (errors.noiseStdDev > 0) {
@@ -142,6 +152,9 @@ uint16_t Bmm350Simulator::getOtpData(uint8_t wordAddr) const {
 }
 
 sf::Vec3 Bmm350Simulator::getRawMagData() const {
+    if (environment_ != nullptr) {
+        return orientation_.rotateVector(environment_->getFieldAt(sensorPosition_));
+    }
     // Rotate earth field into sensor frame
     return orientation_.rotateVector(earthField_);
 }

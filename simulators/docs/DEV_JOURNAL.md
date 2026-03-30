@@ -1613,6 +1613,35 @@ consume stable traces later.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M5 BMM350 Environment Integration
+
+**Intent:**  
+Attach the new magnetic environment to the magnetometer simulator without
+changing any existing default behavior, so later calibration and disturbance
+tests can build on the real sensor path.
+
+**Changes made:**
+
+1. Extended `Bmm350Simulator` with opt-in environment attachment:
+   - `attachEnvironment(...)`
+   - `detachEnvironment()`
+   - `hasEnvironment()`
+2. Updated raw field generation so an attached `MagneticEnvironment` overrides
+   the standalone Earth-field vector while preserving the existing path when no
+   environment is attached.
+3. Added `Bmm350Simulator` tests covering:
+   - environment-driven field override
+   - stronger dipole influence at a nearer sensor position
+
+**Result:**  
+The magnetic environment is now connected to the actual magnetometer
+simulator path, but only additively. Existing sensor and fusion tests keep
+their previous behavior, while M5 can start modeling disturbance through the
+real BMM350 interface.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: M5 Magnetic Environment Core
 
 **Intent:**  

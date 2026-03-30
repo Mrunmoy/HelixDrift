@@ -73,6 +73,8 @@
     transmission during degraded sync, and recovery after a 2-second blackout
   - M5 `MagneticEnvironment` core with Earth-field modeling, dipole-source
     superposition, preset disturbance environments, and standalone host tests
+  - M5 additive `Bmm350Simulator` environment hook with coverage for
+    environment-driven field override and position-sensitive dipole influence
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -155,6 +157,8 @@
   behavior before moving to magnetic disturbance work
 - Task: Start M5 with an additive `MagneticEnvironment` core before touching
   BMM350 integration or calibration-state logic
+- Task: Keep M5 additive while wiring `MagneticEnvironment` into the existing
+  BMM350 simulator before introducing calibration state or AHRS robustness work
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

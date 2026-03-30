@@ -8,6 +8,8 @@
 
 namespace sim {
 
+class MagneticEnvironment;
+
 /**
  * @brief BMM350 Magnetometer Simulator
  * 
@@ -68,6 +70,9 @@ public:
     void setEarthField(const sf::Vec3& field);
     void setTemperature(float tempC);
     void setSeed(uint32_t seed);
+    void attachEnvironment(MagneticEnvironment* env, const sf::Vec3& position);
+    void detachEnvironment();
+    bool hasEnvironment() const { return environment_ != nullptr; }
 
     // Error injection
     void setErrors(const ErrorConfig& errors);
@@ -96,6 +101,8 @@ private:
     sf::Quaternion orientation_{1.0f, 0.0f, 0.0f, 0.0f};
     sf::Vec3 earthField_{DEFAULT_EARTH_FIELD_HORIZONTAL, 0.0f, DEFAULT_EARTH_FIELD_VERTICAL};
     float temperature_ = 25.0f;
+    MagneticEnvironment* environment_ = nullptr;
+    sf::Vec3 sensorPosition_{0.0f, 0.0f, 0.0f};
 
     // Error injection
     ErrorConfig errors_;

@@ -1,4 +1,5 @@
 #include "Bmm350Simulator.hpp"
+#include "MagneticEnvironment.hpp"
 #include "VirtualI2CBus.hpp"
 #include <gtest/gtest.h>
 
@@ -457,6 +458,35 @@ TEST(Bmm350SimulatorTest, CombinedHardAndSoftIronErrors) {
     // Expected: (earth * scale) + hardIron = (10 * 1.5) + 2 = 17
     Vec3 result = sim.getMagData();
     EXPECT_NEAR(result.x, 17.0f, 0.5f);
+}
+
+TEST(Bmm350SimulatorTest, AttachedMagneticEnvironmentOverridesStandaloneEarthField) {
+    Bmm350Simulator sim;
+    sim::MagneticEnvironment env;
+    env.setEarthField({55.0f, 0.0f, 90.0f});
+
+    sim.setEarthField(Vec3{25.0f, 0.0f, 40.0f});
+    sim.attachEnvironment(&env, {0.0f, 0.0f, 0.0f});
+
+    const Vec3 mag = readMagUt(sim);
+    EXPECT_NEAR(mag.x, 0.0f, 0.5f);
+    EXPECT_NEAR(mag.y, 55.0f, 0.5f);
+    EXPECT_NEAR(mag.z, 0.0f, 0.5f);
+}
+
+TEST(Bmm350SimulatorTest, MagneticEnvironmentDipoleChangesReadingByPosition) {
+    Bmm350Simulator sim;
+    sim::MagneticEnvironment env;
+    env.setEarthField({25.0f, 0.0f, 40.0f});
+    env.addDipole({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 60.0f}, 2.0f});
+
+    sim.attachEnvironment(&env, {0.2f, 0.0f, 0.0f});
+    const Vec3 nearField = readMagUt(sim);
+
+    sim.attachEnvironment(&env, {0.8f, 0.0f, 0.0f});
+    const Vec3 farField = readMagUt(sim);
+
+    EXPECT_GT(std::fabs(nearField.z - 40.0f), std::fabs(farField.z - 40.0f));
 }
 
 // ============================================================================
