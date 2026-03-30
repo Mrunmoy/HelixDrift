@@ -86,6 +86,8 @@
     is removed
   - M6 three-node static body-chain proof with recovered 45°/45° joint angles
     and bounded inter-node sync skew at the RF master
+  - M6 three-node dynamic hinge proof with post-warmup bounded mean joint-angle
+    error and bounded inter-node skew across a moving elbow/wrist chain
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -181,6 +183,8 @@
   disturbance path is host-verified
 - Task: Expand M6 from the first static three-node chain proof into dynamic
   multi-node/body-chain scenarios without reopening RF or SensorFusion work
+- Task: Push M6 from bounded three-node proofs toward longer-running or higher-
+  node chain scenarios on top of the current RF + magnetic stack
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

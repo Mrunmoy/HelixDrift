@@ -81,7 +81,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M2: Single-Node Assembly | ~90% | Wave A evidence is merged; pitch dynamic remains characterized |
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
-| M5-M6: Calibration + Multi-node | ~60% | MagneticEnvironment, BMM350 environment hookup, hard-iron calibration, reusable calibrated-mag path, magnetic-disturbance characterization, and the first three-node body-chain sync proof are landed |
+| M5-M6: Calibration + Multi-node | ~70% | MagneticEnvironment, BMM350 environment hookup, hard-iron calibration, reusable calibrated-mag path, magnetic-disturbance characterization, and static + dynamic three-node body-chain proofs are landed |
 | M7: Platform Port (nRF52) | 0% | Deferred |
 
 ## Reference Documents

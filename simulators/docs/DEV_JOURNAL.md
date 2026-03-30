@@ -1709,6 +1709,36 @@ body-chain proof built on the actual RF sync path and recovered orientations.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M6 Dynamic Three-Node Body-Chain Tracking
+
+**Intent:**  
+Move M6 beyond a static pose snapshot by proving that a simple three-node chain
+can hold bounded relative-angle error and bounded inter-node skew during a
+moving hinge sequence.
+
+**Changes made:**
+
+1. Added `BodyChainSyncTest.ThreeNodeDynamicHingeTracksRelativeAnglesOverTime`
+   to `simulators/tests/test_body_chain_sync.cpp`.
+2. Drove three RF-synced nodes through a deterministic elbow-style sequence:
+   - shoulder fixed at identity
+   - elbow ramps from 0° to 90°
+   - wrist tracks the elbow with a constant 30° lead
+3. Collected RF-master frames by sequence number and evaluated:
+   - mean shoulder-elbow relative-angle error after sync warmup
+   - mean elbow-wrist relative-angle error after sync warmup
+   - worst inter-node skew using estimated remote timestamps after sync warmup
+4. Kept the test additive by reusing the existing `VirtualSyncNode`,
+   `VirtualSyncMaster`, and quaternion-only frame path.
+
+**Result:**  
+M6 now has both a static and a dynamic three-node chain proof. The project can
+show bounded post-warmup body-chain tracking over the actual RF sync path
+without needing a new skeleton solver or platform-specific code.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: M5 Standalone Hard-Iron Calibration
 
 **Intent:**  
