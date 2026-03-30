@@ -1613,6 +1613,37 @@ consume stable traces later.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M5 Magnetic Environment Core
+
+**Intent:**  
+Start Milestone 5 with the smallest additive magnetic-disturbance slice:
+spatial Earth-field plus dipole-source modeling without touching the existing
+sensor simulators yet.
+
+**Changes made:**
+
+1. Added `simulators/magnetic/MagneticEnvironment.*` with:
+   - configurable Earth field and declination-aware vector conversion
+   - additive dipole sources with inverse-cube decay
+   - field-quality summaries for disturbance magnitude and ratio
+   - preset environments for clean-lab, office-desk, wearable-motion, and
+     worst-case disturbance scenarios
+2. Added `simulators/tests/test_magnetic_environment.cpp` covering:
+   - uniform Earth field everywhere
+   - dipole decay with distance
+   - linear superposition of multiple sources
+   - finite output and increasing disturbance ratios across presets
+3. Wired the new magnetic source and test suite into the host build without
+   modifying the existing BMM350 simulator or fusion path.
+
+**Result:**  
+M5 is now open with a pure field-model foundation. The next magnetic work can
+attach this environment to the magnetometer simulator and calibration logic
+without mixing the basic physics model with integration concerns.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: Sensor Validation Gap Closure — BMM Orientation And Error Checks
 
 **Intent:**  

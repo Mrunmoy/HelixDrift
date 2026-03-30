@@ -32,7 +32,7 @@ IMU + magnetometer + barometer can:
 MCU targets are implementation platforms, not the core product goal. The
 current intended primary target is nRF52.
 
-## Active Focus: M4 RF/Sync Foundation
+## Active Focus: M4 RF/Sync And M5 Magnetic Foundation
 
 See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criteria.
 
@@ -68,7 +68,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | VirtualRFMedium + VirtualSyncNode/Master | M4 | RF/sync spec review |
 | Network impairment tests | M4 | VirtualRFMedium |
 | Multi-node sync convergence | M4 | VirtualSyncNode |
-| MagneticEnvironment class | M5-M6 | Mag risk spec review |
+| MagneticEnvironment class | M5-M6 | in progress |
 | CalibratedMagSensor + disturbance scenarios | M5-M6 | MagneticEnvironment |
 | Three-node body-chain scenarios | M6 | M4 + M5 |
 | Wire validated runtime into nRF52 | M7 | M1-M3 complete |
@@ -80,8 +80,8 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M1: Per-Sensor Proof | ~100% | Wave B4 closed the remaining standalone gaps |
 | M2: Single-Node Assembly | ~90% | Wave A evidence is merged; pitch dynamic remains characterized |
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
-| M4: RF/Sync | ~50% | Basic sync plus loss/recovery robustness are landed |
-| M5-M6: Calibration + Multi-node | 0% | Deferred — Kimi spec ready |
+| M4: RF/Sync | ~65% | Basic sync, multi-node convergence, and blackout recovery are landed |
+| M5-M6: Calibration + Multi-node | ~10% | MagneticEnvironment core is landed; disturbance/calibration integration remains |
 | M7: Platform Port (nRF52) | 0% | Deferred |
 
 ## Reference Documents

@@ -71,6 +71,8 @@
     loop with drift, anchor reception, and six-node convergence coverage
   - M4 RF robustness coverage for 50% Bernoulli loss, continued frame
     transmission during degraded sync, and recovery after a 2-second blackout
+  - M5 `MagneticEnvironment` core with Earth-field modeling, dipole-source
+    superposition, preset disturbance environments, and standalone host tests
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -151,6 +153,8 @@
   single-node / loss / multi-node convergence tests
 - Task: Harden M4 with transport-blackout recovery and sustained degraded-sync
   behavior before moving to magnetic disturbance work
+- Task: Start M5 with an additive `MagneticEnvironment` core before touching
+  BMM350 integration or calibration-state logic
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)
