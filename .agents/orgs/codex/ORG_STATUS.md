@@ -81,8 +81,11 @@
     the pose-calibration effectiveness integration test
   - M5 disturbance-aware `CalibratedMagSensor` hook with environment-derived
     disturbance indicator coverage
-  - M5 AHRS robustness proof covering heading degradation during a temporary
-    magnetic disturbance and bounded recovery after the disturbance is removed
+  - M5 AHRS disturbance characterization proving a temporary horizontal
+    magnetic disturbance can poison heading persistently after the disturbance
+    is removed
+  - M6 three-node static body-chain proof with recovered 45°/45° joint angles
+    and bounded inter-node sync skew at the RF master
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -176,6 +179,8 @@
   body-chain work
 - Task: Start M6 with bounded three-node/body-chain scenarios only after the
   disturbance path is host-verified
+- Task: Expand M6 from the first static three-node chain proof into dynamic
+  multi-node/body-chain scenarios without reopening RF or SensorFusion work
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

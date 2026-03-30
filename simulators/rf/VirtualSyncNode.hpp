@@ -30,6 +30,10 @@ public:
 
     void onPacketReceived(const Packet& packet, uint64_t rxTimestampUs);
     void sendAnchorRequest();
+    void setSeed(uint32_t seed) { harness_.setSeed(seed); }
+    void resetAndSync() { harness_.resetAndSync(); }
+    VirtualMocapNodeHarness& harness() { return harness_; }
+    const VirtualMocapNodeHarness& harness() const { return harness_; }
 
     SyncStats getStats() const;
     uint64_t trueTimeUs() const { return trueTimeUs_; }

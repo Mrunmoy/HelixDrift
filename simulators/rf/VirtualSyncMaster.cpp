@@ -63,6 +63,7 @@ void VirtualSyncMaster::onPacketReceived(const Packet& packet, uint64_t rxTimest
         packet.srcId,
         rxTimestampUs,
         frame.localTimestampUs,
+        frame.estimatedOffsetUs,
         frame.orientation,
         frame.sequence,
     });

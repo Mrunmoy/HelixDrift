@@ -13,8 +13,13 @@ struct ReceivedFrame {
     uint8_t nodeId = 0;
     uint64_t rxTimestampUs = 0;
     uint64_t claimedTxTimeUs = 0;
+    int64_t estimatedOffsetUs = 0;
     sf::Quaternion orientation{};
     uint32_t sequenceNum = 0;
+
+    uint64_t estimatedRemoteTimestampUs() const {
+        return static_cast<uint64_t>(static_cast<int64_t>(claimedTxTimeUs) - estimatedOffsetUs);
+    }
 };
 
 class VirtualSyncMaster {

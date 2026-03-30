@@ -1673,6 +1673,42 @@ interference before opening broader M6 multi-node/body-chain scenarios.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M5 Disturbance Characterization And First M6 Body-Chain Proof
+
+**Intent:**  
+Turn the first magnetic-disturbance slice into an honest characterization test
+and use the existing RF sync path to land the first bounded three-node
+body-chain scenario for M6.
+
+**Changes made:**
+
+1. Extended `simulators/rf/VirtualSyncNode.hpp` with lightweight accessors for
+   seed control, reset, and harness access so higher-level multi-node tests can
+   drive the existing virtual node stack without bypassing it.
+2. Extended `simulators/rf/VirtualSyncMaster.*` to retain each frame's
+   estimated sync offset so tests can compare recovered remote timestamps, not
+   just local transmit stamps.
+3. Reworked `test_ahrs_mag_robustness.cpp` into a truthful disturbance
+   characterization:
+   - clean heading remains bounded
+   - a strong horizontal magnetic disturbance creates large heading error
+   - the error can persist after the disturbance is removed
+4. Added `simulators/tests/test_body_chain_sync.cpp` covering a static
+   three-node chain:
+   - node 1 = shoulder reference
+   - node 2 = elbow segment at 45°
+   - node 3 = wrist segment at 90°
+   - recovered shoulder-elbow and elbow-wrist relative angles stay near 45°
+   - estimated remote timestamps stay within a bounded inter-node skew window
+
+**Result:**  
+M5 now documents a real magnetic weakness instead of pretending the current
+AHRS stack recovers automatically. M6 is open with the first three-node
+body-chain proof built on the actual RF sync path and recovered orientations.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: M5 Standalone Hard-Iron Calibration
 
 **Intent:**  
