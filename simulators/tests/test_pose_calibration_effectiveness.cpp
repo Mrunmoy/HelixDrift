@@ -1,3 +1,4 @@
+#include "CalibratedMagSensor.hpp"
 #include "CalibrationFitter.hpp"
 #include "CalibrationStore.hpp"
 #include "INvStore.hpp"
@@ -19,30 +20,6 @@ public:
     bool read(uint32_t, uint8_t*, size_t) override { return false; }
     bool write(uint32_t, const uint8_t*, size_t) override { return false; }
     size_t capacity() const override { return 0u; }
-};
-
-class CalibratedMagSensor : public sf::IMagSensor {
-public:
-    CalibratedMagSensor(sf::IMagSensor& inner,
-                        const sf::CalibrationData& calibration,
-                        sf::CalibrationStore& store)
-        : inner_(inner)
-        , calibration_(calibration)
-        , store_(store)
-    {}
-
-    bool readMag(sf::MagData& out) override {
-        if (!inner_.readMag(out)) {
-            return false;
-        }
-        store_.apply(calibration_, out);
-        return true;
-    }
-
-private:
-    sf::IMagSensor& inner_;
-    sf::CalibrationData calibration_{};
-    sf::CalibrationStore& store_;
 };
 
 bool stepPipeline(VirtualSensorAssembly& assembly,
@@ -67,7 +44,9 @@ std::vector<float> runStaticPoseErrors(float yawDeg,
 
     DummyNvStore nv;
     sf::CalibrationStore store(nv);
-    CalibratedMagSensor calibratedMag(assembly.magDriver(), calibration ? *calibration : sf::CalibrationData{}, store);
+    sim::CalibratedMagSensor calibratedMag(assembly.magDriver(),
+                                           store,
+                                           calibration ? *calibration : sf::CalibrationData{});
     sf::IMagSensor* magSensor = calibration ? static_cast<sf::IMagSensor*>(&calibratedMag)
                                             : static_cast<sf::IMagSensor*>(&assembly.magDriver());
 

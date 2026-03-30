@@ -77,6 +77,8 @@
     environment-driven field override and position-sensitive dipole influence
   - M5 standalone `HardIronCalibrator` with deterministic offset estimation,
     confidence gating, and reset behavior coverage
+  - M5 reusable `CalibratedMagSensor` wrapper proven in both unit tests and
+    the pose-calibration effectiveness integration test
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -163,6 +165,8 @@
   BMM350 simulator before introducing calibration state or AHRS robustness work
 - Task: Land the first standalone hard-iron calibration primitive before any
   calibrated-sensor wrapper or body-chain scenarios
+- Task: Replace test-local magnetic calibration plumbing with reusable
+  simulator code before expanding into richer disturbance and multi-node cases
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

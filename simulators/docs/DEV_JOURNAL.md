@@ -1613,6 +1613,36 @@ consume stable traces later.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M5 Reusable Calibrated Magnetometer Path
+
+**Intent:**  
+Replace the one-off test-local magnetometer calibration wrapper with reusable
+simulator code so later M5/M6 scenarios can apply calibration through the same
+path everywhere.
+
+**Changes made:**
+
+1. Added `simulators/magnetic/CalibratedMagSensor.*` as a reusable
+   `sf::IMagSensor` wrapper that:
+   - applies `CalibrationData` through the real `CalibrationStore`
+   - can clear/update calibration
+   - can seed its offset from `HardIronCalibrator`
+2. Added `simulators/tests/test_calibrated_mag_sensor.cpp` covering:
+   - normal calibration application
+   - failure passthrough from the wrapped sensor
+   - applying a hard-iron estimate from the new calibrator
+3. Refactored `test_pose_calibration_effectiveness.cpp` to use the reusable
+   wrapper instead of a test-local duplicate implementation.
+
+**Result:**  
+M5 now has a reusable calibrated magnetometer path proven in both unit-level
+wrapper tests and the existing pose-calibration effectiveness integration test.
+The next magnetic work can focus on richer disturbance scenarios instead of
+recreating calibration plumbing.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: M5 Standalone Hard-Iron Calibration
 
 **Intent:**  
