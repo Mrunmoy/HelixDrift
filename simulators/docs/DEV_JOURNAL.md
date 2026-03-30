@@ -1613,6 +1613,35 @@ consume stable traces later.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M5 Standalone Hard-Iron Calibration
+
+**Intent:**  
+Prove the first magnetic calibration concept with a deterministic batch
+algorithm before introducing a calibrated-sensor wrapper or any AHRS-level
+disturbance handling.
+
+**Changes made:**
+
+1. Added `simulators/magnetic/HardIronCalibrator.*` with:
+   - explicit calibration reset/start
+   - batch sample accumulation
+   - bounding-box center offset estimation
+   - average radius estimation
+   - confidence and `hasSolution()` reporting
+2. Added `simulators/tests/test_hard_iron_calibrator.cpp` covering:
+   - offset recovery from fully covered sphere samples
+   - low-confidence behavior for poor sample coverage
+   - reset behavior clearing accumulated state
+
+**Result:**  
+M5 now has a standalone calibration primitive that can estimate hard-iron
+offsets from controlled motion data. The next magnetic work can integrate this
+into a calibrated sensor path instead of treating correction as a test-local
+one-off.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: M5 BMM350 Environment Integration
 
 **Intent:**  

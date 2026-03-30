@@ -123,6 +123,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/storage/At24CxxSimulator.cpp
         simulators/gimbal/VirtualGimbal.cpp
         simulators/magnetic/MagneticEnvironment.cpp
+        simulators/magnetic/HardIronCalibrator.cpp
         simulators/rf/VirtualRFMedium.cpp
         simulators/rf/VirtualSyncNode.cpp
         simulators/rf/VirtualSyncMaster.cpp
@@ -187,6 +188,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         simulators/tests/test_at24cxx_simulator.cpp
         simulators/tests/test_virtual_gimbal.cpp
         simulators/tests/test_magnetic_environment.cpp
+        simulators/tests/test_hard_iron_calibrator.cpp
         simulators/tests/test_rf_medium_basic.cpp
         simulators/tests/test_sync_node_basic.cpp
         simulators/tests/test_rf_sync_basic.cpp

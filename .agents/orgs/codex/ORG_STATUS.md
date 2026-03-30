@@ -75,6 +75,8 @@
     superposition, preset disturbance environments, and standalone host tests
   - M5 additive `Bmm350Simulator` environment hook with coverage for
     environment-driven field override and position-sensitive dipole influence
+  - M5 standalone `HardIronCalibrator` with deterministic offset estimation,
+    confidence gating, and reset behavior coverage
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -159,6 +161,8 @@
   BMM350 integration or calibration-state logic
 - Task: Keep M5 additive while wiring `MagneticEnvironment` into the existing
   BMM350 simulator before introducing calibration state or AHRS robustness work
+- Task: Land the first standalone hard-iron calibration primitive before any
+  calibrated-sensor wrapper or body-chain scenarios
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)
