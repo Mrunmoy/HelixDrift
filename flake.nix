@@ -17,6 +17,14 @@
           ninja
           gcc
           gcc-arm-embedded
+          openocd
+          python3Packages.pyocd
+          python3Packages.west
+          python3Packages.pyusb
+          usbutils
+          dfu-util
+          picocom
+          minicom
         ];
       };
     };
