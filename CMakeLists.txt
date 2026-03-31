@@ -36,6 +36,15 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tools/nrf/stubs/include)
     add_compile_definitions(NRFX_STUB)
 
+    function(helix_add_nrf_artifacts target)
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${target}> $<TARGET_FILE:${target}>.bin
+            COMMAND ${CMAKE_OBJCOPY} -O ihex   $<TARGET_FILE:${target}> $<TARGET_FILE:${target}>.hex
+            COMMENT "Generating ${target} .bin and .hex artifacts"
+            VERBATIM
+        )
+    endfunction()
+
     set(SENSORFUSION_BUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(SENSORFUSION_BUILD_APP OFF CACHE BOOL "" FORCE)
     set(SENSORFUSION_PLATFORM nrf52 CACHE STRING "" FORCE)
@@ -54,6 +63,7 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     target_link_libraries(nrf52_blinky PRIVATE helix_blink)
     target_link_options(nrf52_blinky PRIVATE -T${NRF_APP_LD} -Wl,-Map=nrf52_blinky.map)
     set_target_properties(nrf52_blinky PROPERTIES LINK_DEPENDS "${NRF_APP_LD}")
+    helix_add_nrf_artifacts(nrf52_blinky)
 
     add_executable(nrf52_mocap_node
         ${NRF_STARTUP}
@@ -74,6 +84,7 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     )
     target_link_options(nrf52_mocap_node PRIVATE -T${NRF_APP_LD} -Wl,-Map=nrf52_mocap_node.map)
     set_target_properties(nrf52_mocap_node PROPERTIES LINK_DEPENDS "${NRF_APP_LD}")
+    helix_add_nrf_artifacts(nrf52_mocap_node)
 endif()
 
 if(HELIXDRIFT_BUILD_TESTS)
