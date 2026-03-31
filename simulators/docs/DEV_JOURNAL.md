@@ -1739,6 +1739,35 @@ without needing a new skeleton solver or platform-specific code.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M6 Long-Run Impaired Chain Characterization
+
+**Intent:**  
+Close M6 with one longer-running three-node chain scenario and record the
+current limit honestly instead of assuming the short-run bounded case extends
+indefinitely under impairment.
+
+**Changes made:**
+
+1. Extended `simulators/tests/test_body_chain_sync.cpp` with a 60-second
+   three-node hinge run under mild RF impairment:
+   - 5% packet loss
+   - bounded RF jitter
+   - repeated anchor updates
+2. Measured the same shoulder-elbow and elbow-wrist relative angles after
+   warmup, while continuing to bound inter-node skew at the RF master.
+3. Captured the current limitation directly in the test:
+   - sync skew remains bounded
+   - relative-angle accuracy drifts badly over the long impaired run
+
+**Result:**  
+M6 is now complete on the simulation side. The project has bounded static and
+dynamic three-node proofs plus an honest long-run impairment characterization.
+That is enough to move into M7 hardware bring-up without pretending the current
+multi-node chain is already robust under prolonged impaired conditions.
+
+**Verification:**  
+`./build.py --host-only -t`
+
 ### Feature: M5 Standalone Hard-Iron Calibration
 
 **Intent:**  

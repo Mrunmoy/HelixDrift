@@ -88,6 +88,9 @@
     and bounded inter-node sync skew at the RF master
   - M6 three-node dynamic hinge proof with post-warmup bounded mean joint-angle
     error and bounded inter-node skew across a moving elbow/wrist chain
+  - M6 long-run mild-impairment characterization proving the chain can remain
+    synchronized while relative-angle accuracy drifts badly over sustained
+    jitter/loss
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -185,6 +188,8 @@
   multi-node/body-chain scenarios without reopening RF or SensorFusion work
 - Task: Push M6 from bounded three-node proofs toward longer-running or higher-
   node chain scenarios on top of the current RF + magnetic stack
+- Task: Close M5-M6 on the simulation side with honest documentation of the
+  long-run impaired-chain limitation, then hand off to M7 hardware prep
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

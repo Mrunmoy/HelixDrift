@@ -219,3 +219,107 @@ TEST(BodyChainSyncTest, ThreeNodeDynamicHingeTracksRelativeAnglesOverTime) {
     EXPECT_LT(meanWristErrorDeg, 10.0f);
     EXPECT_LT(worstSkewUs, 3000u);
 }
+
+TEST(BodyChainSyncTest, ThreeNodeChainShowsLongRunErrorUnderMildImpairment) {
+    VirtualRFMedium medium({.baseLatencyUs = 500, .jitterMaxUs = 200, .packetLossRate = 0.05f});
+    VirtualSyncMaster master(medium, 100000);
+    VirtualSyncNode shoulder(1, medium, ClockModel::randomCrystal(20.0f));
+    VirtualSyncNode elbow(2, medium, ClockModel::randomCrystal(20.0f));
+    VirtualSyncNode wrist(3, medium, ClockModel::randomCrystal(20.0f));
+
+    shoulder.setSeed(61);
+    elbow.setSeed(62);
+    wrist.setSeed(63);
+
+    ASSERT_TRUE(shoulder.init());
+    ASSERT_TRUE(elbow.init());
+    ASSERT_TRUE(wrist.init());
+
+    shoulder.resetAndSync();
+    elbow.resetAndSync();
+    wrist.resetAndSync();
+
+    constexpr int kSteps = 3000;       // 60 seconds at 50 Hz
+    constexpr int kWarmupSteps = 250;  // 5 seconds
+    constexpr float kRateDegPerStep = 0.18f;
+    constexpr float kWristLeadDeg = 25.0f;
+
+    std::vector<float> elbowErrorsDeg;
+    std::vector<float> wristErrorsDeg;
+    elbowErrorsDeg.reserve(kSteps - kWarmupSteps);
+    wristErrorsDeg.reserve(kSteps - kWarmupSteps);
+    uint64_t worstSkewUs = 0;
+
+    for (int step = 0; step < kSteps; ++step) {
+        const float phaseDeg = step * kRateDegPerStep;
+        const float elbowTargetDeg = 45.0f + 30.0f * std::sin(phaseDeg * 3.14159265358979323846f / 180.0f);
+        const float wristTargetDeg = elbowTargetDeg + kWristLeadDeg;
+
+        shoulder.harness().assembly().gimbal().setOrientation(sf::Quaternion{});
+        elbow.harness().assembly().gimbal().setOrientation(
+            sf::Quaternion::fromAxisAngle(1.0f, 0.0f, 0.0f, elbowTargetDeg));
+        wrist.harness().assembly().gimbal().setOrientation(
+            sf::Quaternion::fromAxisAngle(1.0f, 0.0f, 0.0f, wristTargetDeg));
+        shoulder.harness().assembly().gimbal().syncToSensors();
+        elbow.harness().assembly().gimbal().syncToSensors();
+        wrist.harness().assembly().gimbal().syncToSensors();
+
+        shoulder.advanceTimeUs(20000);
+        elbow.advanceTimeUs(20000);
+        wrist.advanceTimeUs(20000);
+        master.advanceTimeUs(20000);
+
+        ASSERT_TRUE(shoulder.tick());
+        ASSERT_TRUE(elbow.tick());
+        ASSERT_TRUE(wrist.tick());
+
+        if ((step % 3) == 0) {
+            master.broadcastAnchor();
+        }
+
+        medium.advanceTimeUs(20000);
+
+        const uint32_t sequence = static_cast<uint32_t>(step);
+        const auto& frames = master.getReceivedFrames();
+        const ReceivedFrame* shoulderFrame = frameForNodeSequence(frames, 1, sequence);
+        const ReceivedFrame* elbowFrame = frameForNodeSequence(frames, 2, sequence);
+        const ReceivedFrame* wristFrame = frameForNodeSequence(frames, 3, sequence);
+        if (shoulderFrame == nullptr || elbowFrame == nullptr || wristFrame == nullptr) {
+            continue;
+        }
+
+        const float recoveredElbowDeg = recoverRelativeAngleDeg(
+            shoulderFrame->orientation, elbowFrame->orientation);
+        const float recoveredWristDeg = recoverRelativeAngleDeg(
+            elbowFrame->orientation, wristFrame->orientation);
+
+        if (step >= kWarmupSteps) {
+            elbowErrorsDeg.push_back(std::abs(recoveredElbowDeg - elbowTargetDeg));
+            wristErrorsDeg.push_back(std::abs(recoveredWristDeg - kWristLeadDeg));
+
+            const auto minmaxRemote = std::minmax({
+                shoulderFrame->estimatedRemoteTimestampUs(),
+                elbowFrame->estimatedRemoteTimestampUs(),
+                wristFrame->estimatedRemoteTimestampUs(),
+            });
+            worstSkewUs = std::max(worstSkewUs, minmaxRemote.second - minmaxRemote.first);
+        }
+    }
+
+    ASSERT_GT(elbowErrorsDeg.size(), 2200u);
+    ASSERT_EQ(elbowErrorsDeg.size(), wristErrorsDeg.size());
+
+    const float meanElbowErrorDeg =
+        std::accumulate(elbowErrorsDeg.begin(), elbowErrorsDeg.end(), 0.0f) /
+        static_cast<float>(elbowErrorsDeg.size());
+    const float meanWristErrorDeg =
+        std::accumulate(wristErrorsDeg.begin(), wristErrorsDeg.end(), 0.0f) /
+        static_cast<float>(wristErrorsDeg.size());
+
+    EXPECT_GT(meanElbowErrorDeg, 40.0f);
+    EXPECT_GT(meanWristErrorDeg, 40.0f);
+    EXPECT_LT(worstSkewUs, 4000u);
+    EXPECT_GT(shoulder.getStats().anchorsReceived, 800u);
+    EXPECT_GT(elbow.getStats().anchorsReceived, 800u);
+    EXPECT_GT(wrist.getStats().anchorsReceived, 800u);
+}
