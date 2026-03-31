@@ -50,7 +50,7 @@ HelixDrift/
 │   │       ├── main.cpp         # Main mocap node loop (motion capture app)
 │   │       ├── board_xiao_nrf52840.hpp    # Board interface headers
 │   │       └── board_xiao_nrf52840.cpp    # I2C init + weak symbol implementations
-│   └── esp32s3-mocap-node/      # (different branch)
+│   └── legacy secondary-platform example
 ├── external/
 │   └── SensorFusion/            # Git submodule (v1.1.0)
 │       ├── VERSION              # v1.1.0
@@ -59,7 +59,7 @@ HelixDrift/
 │       ├── middleware/          # Motion capture codec, frames, calibration
 │       ├── platform/
 │       │   ├── nrf52/           # nRF52 platform layer (TWIM, GPIO, Delay, FDS store)
-│       │   ├── esp32/           # ESP32 platform layer
+│       │   ├── secondary MCU platform layer
 │       │   └── stm32/           # STM32 platform layer
 │       └── test/                # Host-side TDD tests
 ├── tests/                       # HelixDrift-level host tests
@@ -84,10 +84,10 @@ HelixDrift/
 │   │   ├── nrf52_mocap_node     # Mocap node ELF (~52 KB)
 │   │   ├── nrf52_mocap_node.hex
 │   │   └── (CMake build files)
-│   └── esp32s3/                 # ESP32 build (unused on nrf branch)
+│   └── legacy secondary-platform build (unused on nrf branch)
 ├── src/                         # Reserved for future app layer
 ├── third_party/
-│   └── esp-idf/                 # Espressif IDF (for ESP32 builds, unused here)
+│   └── archived secondary MCU SDK (unused here)
 └── .gitmodules
 ```
 
@@ -237,7 +237,7 @@ target_link_libraries(sensorfusion_platform_nrf52 PUBLIC
 - No `west.yml` configuration
 - No device tree files (`.dts`, `.dtsi`)
 - No Zephyr overlay files (`.overlay`)
-- No Kconfig files in HelixDrift repo (only in third_party ESP-IDF)
+- No Kconfig files in HelixDrift repo
 
 **Instead**:
 - Uses **bare CMake + arm-none-eabi-gcc** cross-compilation

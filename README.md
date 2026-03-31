@@ -1,9 +1,9 @@
 # HelixDrift
 
-Simulation-first mocap node firmware workspace.
+Simulation-first mocap node firmware workspace for the `nRF52` integration path.
 
-> Intended primary MCU target: nRF52
-> Current automated validation target: host simulation and host tests
+> Intended primary MCU target: nRF52840 / nRF52
+> Current automated validation target: host simulation, host tests, and nRF-oriented firmware builds
 
 ## Quick Start
 
@@ -17,9 +17,9 @@ integration tests.
 ## Build Commands
 
 - `./build.py --host-only -t`: host build and tests only.
-- `./build.py --esp32s3-only`: optional legacy ESP32-S3 build path.
+- `./build.py --nrf-only`: nRF firmware build only.
 - `./build.py --clean`: clean then build.
-- `./magic.sh`: legacy convenience wrapper for host + ESP32-S3 build.
+- `./magic.sh`: convenience wrapper for host tests + nRF build.
 
 `build.py` auto-initializes submodules and calls platform tooling when needed.
 
@@ -35,7 +35,6 @@ GitHub Actions workflow: `.github/workflows/ci.yml`
 
 - `firmware/common/`: shared embedded-safe logic (no heap/no RTTI/no exceptions).
 - `examples/nrf52-mocap-node/`: intended primary platform path for nRF52.
-- `examples/esp32s3-mocap-node/`: secondary or legacy ESP32-S3 platform path.
 - `tests/`: host-side TDD suite.
 - `tools/`: repo-local scripts/toolchain helpers.
 - `datasheets/`: datasheets, reference manuals, and document index.
@@ -54,7 +53,7 @@ The project direction is:
 
 - primary MCU family target: `nRF52`
 - current automated validation target: host simulation and host tests
-- ESP32-S3 path: retained as a secondary or experimental platform path
+- next platform work: nRF52840 bring-up against the already-validated simulation contracts
 
 ## Sensor Assembly
 

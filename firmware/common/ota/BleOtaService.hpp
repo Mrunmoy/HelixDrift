@@ -22,8 +22,7 @@ namespace helix {
  *   OTA_STATUS (read / notify):
  *     [state:1][bytes_received:4 LE][last_status:1]   → 6 bytes total
  *
- * This class has no BLE stack dependency. Platform-specific code
- * (NimBLE attribute callbacks for ESP32, SoftDevice for nRF) calls
+ * This class has no BLE stack dependency. Platform-specific BLE code calls
  * handleControlWrite(), handleDataWrite(), and getStatus().
  */
 class BleOtaService {

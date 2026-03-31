@@ -17,6 +17,7 @@ Rule: if a fix belongs to SensorFusion, fix it in `SensorFusion` first, push it,
 - [x] SimMetrics angular error utility delivered
 - [x] Pose inference v1 requirements defined (orientation-only)
 - [x] Pose inference feasibility analysis complete
+- [x] nRF branch scrubbed of legacy ESP32/ESP-IDF paths and docs
 
 ## Mission Focus
 
@@ -31,6 +32,10 @@ IMU + magnetometer + barometer can:
 
 MCU targets are implementation platforms, not the core product goal. The
 current intended primary target is nRF52.
+
+The `nrf-xiao-nrf52840` branch is now maintained as nRF-only. Legacy ESP32-S3
+example code, host stubs, OTA backend wiring, and ESP-IDF-oriented docs were
+removed so platform-specific work stays isolated to the ESP branch.
 
 ## Active Focus: M7 Hardware Bring-Up Preparation
 

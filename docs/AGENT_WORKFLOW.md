@@ -62,7 +62,7 @@ Typical commands:
 
 ```bash
 ./build.py --clean --host-only -t
-./build.py --esp32s3-only
+./build.py --nrf-only
 ```
 
 If a narrower test command is used during development, run the broader

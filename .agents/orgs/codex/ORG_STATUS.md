@@ -91,6 +91,9 @@
   - M6 long-run mild-impairment characterization proving the chain can remain
     synchronized while relative-angle accuracy drifts badly over sustained
     jitter/loss
+  - nRF-branch cleanup removing legacy ESP32-S3 example, OTA backend, host
+    stubs, and ESP-IDF-oriented build/docs references from
+    `nrf-xiao-nrf52840`
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -190,6 +193,9 @@
   node chain scenarios on top of the current RF + magnetic stack
 - Task: Close M5-M6 on the simulation side with honest documentation of the
   long-run impaired-chain limitation, then hand off to M7 hardware prep
+- Task: Strip legacy ESP32-specific code paths and documentation from the nRF
+  branch before M7 bring-up so nRF platform work starts from a single-target
+  branch
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

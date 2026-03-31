@@ -110,7 +110,7 @@ This is ~24h of Codex work per Kimi's estimate.
 Kimi has already delivered the RF/sync and mag specs. Those are queued. There
 is no new research needed right now. The highest-value Kimi contribution is
 reviewing M3 closure for realism gaps — particularly:
-- Does the harness health frame model match real ESP-IDF/nRF health reporting?
+- Does the harness health frame model match real platform health reporting?
 - Is the pipeline failure model realistic?
 - Are the timestamp sync edge cases sufficient?
 

@@ -77,7 +77,7 @@ This document explores future hardware directions for HelixDrift beyond the curr
 
 **Recommendation**: ❌ **Not for v1** - Only if v1 outgrows nRF52840
 
-### 2.4 Alternative Ecosystem: ESP32-S3
+### 2.4 Alternative Ecosystem: Archived Secondary MCU Path
 
 **Specs**:
 - Dual-core Xtensa LX7 @ 240 MHz
@@ -419,4 +419,3 @@ Optimized (burst mode):
 | Version | Date | Changes |
 |---------|------|---------|
 | 0.1 | 2026-03-29 | Initial hardware futures exploration |
-

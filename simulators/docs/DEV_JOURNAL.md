@@ -1,5 +1,46 @@
 # Simulator Development Journal
 
+## 2026-03-31 - nRF Branch Cleanup
+
+### Feature: Remove Legacy ESP32-S3 Path From `nrf-xiao-nrf52840`
+
+#### Intent
+
+Keep the nRF integration branch platform-pure before M7 bring-up starts.
+Legacy ESP32-S3 example code, ESP-IDF stubs, and ESP-oriented docs belong on
+the ESP branch and were creating confusion about the active target on this
+branch.
+
+#### Implementation Summary
+
+- Removed the `examples/esp32s3-mocap-node/` tree from this branch.
+- Removed the ESP-only OTA backend path and its host test.
+- Removed `tools/esp/` bootstrap and stub headers from this branch.
+- Updated host build wiring to stop compiling ESP-specific files and stub
+  include paths.
+- Rewrote branch-local guidance docs (`AGENTS.md`, `CLAUDE.md`, `README.md`,
+  workflow notes) so this branch is explicitly nRF-focused.
+
+#### Verification
+
+Commands run:
+
+```bash
+./build.py --host-only -t
+./build.py --nrf-only
+```
+
+Result:
+
+- `288/288` host tests passing after removal of the ESP-specific host test
+- nRF-only build passing
+
+#### Outcome
+
+The `nrf-xiao-nrf52840` branch no longer carries Helix-owned ESP32/ESP-IDF
+references. Future platform work on this branch can proceed without dual-target
+ambiguity.
+
 ## 2026-03-29 - Claude Org Sprint 4: Wave A Acceptance Guide
 
 ### Feature: Realistic Threshold Calibration for Wave A
