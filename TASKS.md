@@ -41,6 +41,17 @@ removed so platform-specific work stays isolated to the ESP branch.
 
 See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criteria.
 
+Current M7 bring-up progress:
+- [x] `nix develop` now provides OpenOCD, pyOCD, west, and serial tools
+- [x] nRF builds now emit `.bin` and `.hex` artifacts automatically
+- [x] OpenOCD flashing is proven on a connected Nordic nRF52 DK
+- [x] dedicated `nrf52dk_blinky` and `nrf52dk_bringup` targets exist for the
+      available nRF52832 DK hardware
+- [x] webcam-assisted observation shows a periodic LED transition on the DK
+      consistent with the flashed heartbeat target
+- [ ] serial/VCOM output from the custom DK bring-up app remains to be proven
+- [ ] OTA-path validation on real hardware remains open
+
 ### Wave A — Immediate (Codex / Fusion)
 
 Wave A was re-scoped during Sprint 6/7 after the SensorFusion initialization
@@ -87,7 +98,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
 | M5-M6: Calibration + Multi-node | ~100% | Simulation-side calibration, disturbance characterization, and three-node body-chain proofs are landed; long-run mild-impairment drift is documented as a current limitation |
-| M7: Platform Port (nRF52) | ~5% | Ready to start from the validated simulation/runtime contracts |
+| M7: Platform Port (nRF52) | ~25% | DK flashing is proven and board-specific bring-up targets are running; serial/VCOM and OTA on hardware remain open |
 
 ## Reference Documents
 

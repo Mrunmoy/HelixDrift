@@ -9,6 +9,32 @@ It assumes:
   [`docs/NRF_OTA_MEMORY_PLAN.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF_OTA_MEMORY_PLAN.md)
 - tooling is run through `nix develop`
 
+## Current Bring-Up Reality
+
+As of this branch state:
+
+- a physical Nordic nRF52 DK is available and reachable over its onboard
+  SEGGER J-Link probe
+- OpenOCD can halt and program the attached target successfully
+- the connected board identifies as `nRF52832`, not `nRF52840`
+
+Official nRF52 DK LED and button mapping from the Nordic user guide:
+
+- Button 1: `P0.13`
+- Button 2: `P0.14`
+- Button 3: `P0.15`
+- Button 4: `P0.16`
+- LED 1: `P0.17`
+- LED 2: `P0.18`
+- LED 3: `P0.19`
+- LED 4: `P0.20`
+
+The DK LEDs are active low.
+
+So this board should be treated as:
+- valid for generic nRF bring-up, flashing, runtime, and OTA-path work
+- not a final proof of the 52840-specific flash budget or final hardware layout
+
 ## Goals
 
 1. Prove the nRF application boots on real hardware.
@@ -75,6 +101,11 @@ nix develop --command bash -lc './build.py --nrf-only'
 - expected output artifacts exist
 - app image size remains comfortably below the slot budget
 
+Current useful board-specific artifacts:
+
+- `build/nrf/nrf52dk_blinky.hex`
+- `build/nrf/nrf52dk_bringup.hex`
+
 ## Phase 2: Board Bring-Up
 
 ### Goal
@@ -102,6 +133,11 @@ Prove the real nRF board boots, reaches main, and does not immediately fault.
 - stable boot
 - readable serial output
 - no reset loop
+
+Current note:
+- board-correct flashing is already proven via OpenOCD
+- serial/VCOM output from the custom bring-up app is not yet confirmed and
+  remains an open bring-up item
 
 ## Phase 3: Sensor Bring-Up With Substitute Sensors
 

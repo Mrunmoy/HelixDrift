@@ -54,6 +54,36 @@ The project direction is:
 - primary MCU family target: `nRF52`
 - current automated validation target: host simulation and host tests
 - next platform work: nRF52840 bring-up against the already-validated simulation contracts
+- currently available physical bring-up board: `nRF52 DK (nRF52832)` for generic
+  runtime / flash / OTA-path validation, without changing the intended product
+  target
+
+## Current Hardware Bring-Up Targets
+
+- `nrf52_blinky`: generic nRF blinky using the XIAO-style linker layout
+- `nrf52dk_blinky`: board-correct LED heartbeat for the Nordic nRF52 DK
+- `nrf52dk_bringup`: board-correct UART + LED bring-up image for the Nordic
+  nRF52 DK
+
+Artifacts are emitted automatically under `build/nrf/` as:
+
+- `.bin`
+- `.hex`
+- map files
+
+## Flashing With OpenOCD
+
+Use the repo-local helper from `nix develop`:
+
+```bash
+nix develop --command bash -lc 'tools/nrf/flash_openocd.sh build/nrf/nrf52dk_blinky.hex'
+```
+
+Or flash the DK bring-up target:
+
+```bash
+nix develop --command bash -lc 'tools/nrf/flash_openocd.sh build/nrf/nrf52dk_bringup.hex'
+```
 
 ## Sensor Assembly
 

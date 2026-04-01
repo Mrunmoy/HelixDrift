@@ -1,5 +1,60 @@
 # Simulator Development Journal
 
+## 2026-04-02 - M7 Nordic DK Bring-Up
+
+### Feature: First Real-Board Flash And DK-Specific Bring-Up Targets
+
+#### Intent
+
+Use the available Nordic nRF52 DK as a real hardware stepping stone for M7,
+without pretending it is the final nRF52840 product target.
+
+#### Hardware Reality
+
+- The connected board exposes an onboard SEGGER J-Link probe.
+- OpenOCD can halt, program, verify, and reset the target over SWD.
+- The probed MCU identifies as `nRF52832-QFAA` (`512 KB flash / 64 KB RAM`).
+
+#### Implementation Summary
+
+- Added automatic `.bin` and `.hex` artifact generation for nRF targets.
+- Added a dedicated `nrf52dk_blinky` target and linker script for the available
+  DK board.
+- Added a dedicated `nrf52dk_bringup` target that drives LED1 and emits a
+  simple UART heartbeat intended for the DK's virtual COM path.
+- Added `tools/nrf/flash_openocd.sh` to standardize OpenOCD flashing from
+  `nix develop`.
+- Added/updated bring-up documentation for the DK path and nRF OTA planning.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc './build.py --nrf-only'
+nix develop --command bash -lc 'openocd -c "adapter driver jlink; transport select swd; source [find target/nrf52.cfg]; init; program build/nrf/nrf52dk_blinky.hex verify reset exit"'
+nix develop --command bash -lc 'openocd -c "adapter driver jlink; transport select swd; source [find target/nrf52.cfg]; init; program build/nrf/nrf52dk_bringup.hex verify reset exit"'
+```
+
+Result:
+
+- nRF build succeeded
+- `nrf52dk_blinky` flashed and verified
+- `nrf52dk_bringup` flashed and verified
+
+#### Webcam Observation
+
+A 4-second webcam capture was sampled at 7.5 fps and analyzed for temporal
+brightness variance. One region on the DK showed a repeating bright/dim pattern
+with an approximately 1-second period, consistent with the flashed 500 ms
+toggle heartbeat on LED1 (`P0.17`, active low).
+
+#### Open Items
+
+- The DK virtual COM serial path is still not producing confirmed banner text
+  from the custom bring-up app.
+- Real on-device OTA flow remains unproven.
+
 ## 2026-03-31 - nRF Branch Cleanup
 
 ### Feature: Remove Legacy ESP32-S3 Path From `nrf-xiao-nrf52840`

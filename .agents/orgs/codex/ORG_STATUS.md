@@ -94,6 +94,14 @@
   - nRF-branch cleanup removing legacy ESP32-S3 example, OTA backend, host
     stubs, and ESP-IDF-oriented build/docs references from
     `nrf-xiao-nrf52840`
+  - M7 real-hardware bring-up on an available Nordic nRF52 DK, including
+    proven SWD flashing through the onboard SEGGER J-Link probe
+  - dedicated `nrf52dk_blinky` and `nrf52dk_bringup` targets for the connected
+    nRF52832 DK, separated from the intended nRF52840 product path
+  - OpenOCD-based flashing helper and automatic `.bin` / `.hex` artifact
+    generation for nRF targets
+  - webcam-assisted verification that the flashed DK heartbeat target is
+    producing a periodic LED transition consistent with the programmed cadence
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -196,6 +204,12 @@
 - Task: Strip legacy ESP32-specific code paths and documentation from the nRF
   branch before M7 bring-up so nRF platform work starts from a single-target
   branch
+- Task: Use the available nRF52 DK as a generic hardware bring-up target
+  without conflating it with the final nRF52840 board assumptions
+- Task: Prove serial/VCOM output or otherwise establish a reliable real-board
+  runtime observability path on the DK
+- Task: Push M7 from proven SWD flashing into real OTA-path validation once
+  the DK runtime observability path is credible
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

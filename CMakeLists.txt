@@ -82,6 +82,18 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     set_target_properties(nrf52dk_blinky PROPERTIES LINK_DEPENDS "${NRF52DK_APP_LD}")
     helix_add_nrf_artifacts(nrf52dk_blinky)
 
+    add_executable(nrf52dk_bringup
+        ${NRF_STARTUP}
+        examples/nrf52dk-bringup/src/main.cpp
+    )
+    target_include_directories(nrf52dk_bringup PRIVATE
+        tools/nrf/stubs/include
+    )
+    target_link_libraries(nrf52dk_bringup PRIVATE helix_blink)
+    target_link_options(nrf52dk_bringup PRIVATE -T${NRF52DK_APP_LD} -Wl,-Map=nrf52dk_bringup.map)
+    set_target_properties(nrf52dk_bringup PROPERTIES LINK_DEPENDS "${NRF52DK_APP_LD}")
+    helix_add_nrf_artifacts(nrf52dk_bringup)
+
     add_executable(nrf52_mocap_node
         ${NRF_STARTUP}
         examples/nrf52-mocap-node/src/main.cpp
