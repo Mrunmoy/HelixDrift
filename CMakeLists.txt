@@ -51,6 +51,7 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     add_subdirectory(external/SensorFusion)
 
     set(NRF_APP_LD "${CMAKE_CURRENT_SOURCE_DIR}/tools/linker/xiao_nrf52840_app.ld")
+    set(NRF52DK_APP_LD "${CMAKE_CURRENT_SOURCE_DIR}/tools/linker/nrf52dk_nrf52832_app.ld")
     set(NRF_STARTUP "${CMAKE_CURRENT_SOURCE_DIR}/firmware/platform/startup_nrf52840.S")
 
     add_executable(nrf52_blinky
@@ -64,6 +65,22 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     target_link_options(nrf52_blinky PRIVATE -T${NRF_APP_LD} -Wl,-Map=nrf52_blinky.map)
     set_target_properties(nrf52_blinky PROPERTIES LINK_DEPENDS "${NRF_APP_LD}")
     helix_add_nrf_artifacts(nrf52_blinky)
+
+    add_executable(nrf52dk_blinky
+        ${NRF_STARTUP}
+        examples/nrf52-blinky/src/main.cpp
+    )
+    target_include_directories(nrf52dk_blinky PRIVATE
+        tools/nrf/stubs/include
+    )
+    target_link_libraries(nrf52dk_blinky PRIVATE helix_blink)
+    target_compile_definitions(nrf52dk_blinky PRIVATE
+        HELIX_LED_PIN=17
+        HELIX_LED_ACTIVE_LOW=1
+    )
+    target_link_options(nrf52dk_blinky PRIVATE -T${NRF52DK_APP_LD} -Wl,-Map=nrf52dk_blinky.map)
+    set_target_properties(nrf52dk_blinky PROPERTIES LINK_DEPENDS "${NRF52DK_APP_LD}")
+    helix_add_nrf_artifacts(nrf52dk_blinky)
 
     add_executable(nrf52_mocap_node
         ${NRF_STARTUP}
