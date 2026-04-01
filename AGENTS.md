@@ -54,3 +54,16 @@ Target sensor stack:
 - Run `./build.py --nrf-only` when the nRF path changes.
 - Update `TASKS.md`, `simulators/docs/DEV_JOURNAL.md`, and
   `.agents/orgs/codex/ORG_STATUS.md` when milestone state changes.
+
+## Hardware Debug Note
+
+- For visible board-heartbeat or blink-code checks, prefer the external
+  `hardware-camera-mcp` tool if it is registered in the client.
+- Expected location: `~/sandbox/mcp/hardware-camera-mcp`
+- Useful tools from that MCP:
+  - `capture_frame`
+  - `capture_sequence`
+  - `find_dynamic_region`
+  - `measure_led_blink_rate`
+- Use it when serial logs are absent or when firmware timing needs to be
+  compared against a visible LED heartbeat on real hardware.
