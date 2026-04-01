@@ -157,6 +157,9 @@ Current note:
   - `0x0007F000`
 - serial/VCOM output from the custom bring-up app is still open, but it is no
   longer the only runtime observability path
+- repo-local helpers exist for this path:
+  - `tools/nrf/read_symbol_words.sh`
+  - `tools/nrf/read_nrf52dk_selftest.sh`
 
 ## Phase 3: Sensor Bring-Up With Substitute Sensors
 

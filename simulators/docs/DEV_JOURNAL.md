@@ -213,6 +213,13 @@ The nRF branch now has real-hardware proof for both:
 The remaining M7 gap is now transport/runtime observability and full OTA-flow
 integration, not whether the backend can safely land bytes into flash.
 
+#### Follow-Up Tooling
+
+- Added `tools/nrf/read_symbol_words.sh` fallback logic so it works even when
+  `arm-none-eabi-nm` is only available through `nix develop`.
+- Added `tools/nrf/read_nrf52dk_selftest.sh` to read the DK self-test status
+  block and both flash-signature regions through a single OpenOCD command.
+
 ## 2026-03-31 - nRF Branch Cleanup
 
 ### Feature: Remove Legacy ESP32-S3 Path From `nrf-xiao-nrf52840`

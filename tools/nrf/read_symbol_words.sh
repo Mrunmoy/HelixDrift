@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! command -v arm-none-eabi-nm >/dev/null 2>&1; then
+  exec nix develop --command bash -lc "$(printf '%q ' "$0" "$@")"
+fi
+
 if [[ $# -lt 2 || $# -gt 4 ]]; then
   echo "usage: $0 <elf> <symbol> [words] [target_cfg]" >&2
   exit 2
