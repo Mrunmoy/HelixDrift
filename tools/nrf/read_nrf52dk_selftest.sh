@@ -26,4 +26,4 @@ if [[ -z "${STATUS_ADDR}" ]]; then
 fi
 
 exec openocd \
-  -c "adapter driver jlink; transport select swd; source [find ${TARGET_CFG}]; init; halt; mdw ${STATUS_ADDR} 6; mdw 0x0007e000 4; mdw 0x0007effc 1; mdw 0x0007f000 4; resume; exit"
+  -c "adapter driver jlink; transport select swd; source [find ${TARGET_CFG}]; init; halt; mdw ${STATUS_ADDR} 6; mdw 0x0007d000 4; mdw 0x0007e000 4; mdw 0x0007effc 1; mdw 0x0007f000 4; resume; exit"

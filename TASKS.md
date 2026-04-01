@@ -54,6 +54,8 @@ Current M7 bring-up progress:
 - [ ] serial/VCOM output from the custom DK bring-up app remains to be proven
 - [x] OTA-backend-specific chunk, tail-partial, and bounds behavior is now
       proven on real hardware via the DK self-test
+- [x] OTA manager/service state-machine path is now proven on real hardware via
+      synthetic begin/data/commit self-test traffic on the DK
 
 ### Wave A — Immediate (Codex / Fusion)
 
@@ -101,7 +103,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
 | M5-M6: Calibration + Multi-node | ~100% | Simulation-side calibration, disturbance characterization, and three-node body-chain proofs are landed; long-run mild-impairment drift is documented as a current limitation |
-| M7: Platform Port (nRF52) | ~50% | DK flashing, bare-metal boot, LED drive, raw NVMC, and OTA-backend write behavior are proven; serial/VCOM and full on-device OTA transport remain open |
+| M7: Platform Port (nRF52) | ~60% | DK flashing, bare-metal boot, LED drive, raw NVMC, OTA backend, and OTA manager/service state handling are proven; serial/VCOM and full OTA transport over real BLE remain open |
 
 ## Reference Documents
 

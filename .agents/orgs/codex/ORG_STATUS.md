@@ -108,6 +108,9 @@
   - real-hardware OTA-backend validation on the DK, including configurable
     flash-region targeting, correct partial-word merge behavior, tail-partial
     writes, and bounds rejection proven through `nrf52dk_selftest`
+  - real-hardware OTA manager/service proof on the DK through synthetic
+    begin/data/commit traffic routed via `BleOtaService`, `OtaManager`, and
+    `NrfOtaFlashBackend` into a dedicated test flash slot
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -218,6 +221,8 @@
   authoritative DK observability path while serial/VCOM remains open
 - Task: Use the DK self-test path to close board-local flash/backend questions
   before attempting full OTA transport on hardware
+- Task: Treat OTA state handling as proven on the DK; remaining OTA work is now
+  transport-layer integration and board observability
 - Task: Push M7 from proven SWD flashing into real OTA-path validation once
   the DK runtime observability path is credible
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`

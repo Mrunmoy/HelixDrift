@@ -112,7 +112,7 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
         firmware/common/ota
         examples/nrf52-mocap-node/src
     )
-    target_link_libraries(nrf52dk_selftest PRIVATE helix_blink)
+    target_link_libraries(nrf52dk_selftest PRIVATE helix_blink helix_ota)
     target_link_options(nrf52dk_selftest PRIVATE -T${NRF52DK_BAREMETAL_LD} -Wl,-Map=nrf52dk_selftest.map)
     set_target_properties(nrf52dk_selftest PROPERTIES LINK_DEPENDS "${NRF52DK_BAREMETAL_LD}")
     helix_add_nrf_artifacts(nrf52dk_selftest)

@@ -1,3 +1,5 @@
+#include "BleOtaService.hpp"
+#include "IOtaManager.hpp"
 #include "NrfOtaFlashBackend.hpp"
 #include "nrf_delay.h"
 #include "nrf_gpio.h"
@@ -7,6 +9,7 @@
 namespace {
 constexpr uint32_t kLedPins[4] = {17u, 18u, 19u, 20u}; // LED1-LED4, active low.
 constexpr uint32_t kFlashPageSize = 4096u;
+constexpr uint32_t kOtaServicePageBase = 0x0007D000u;
 constexpr uint32_t kOtaTestPageBase = 0x0007E000u;
 constexpr uint32_t kTestPageBase = 0x0007F000u; // Last page of DK NVS region.
 constexpr uint32_t kStatusMagic = 0x48445837u;   // "HDX7"
@@ -27,8 +30,11 @@ enum class Phase : uint32_t {
     OtaErase = 6,
     OtaWrite = 7,
     OtaVerify = 8,
-    Passed = 9,
-    Failed = 10,
+    OtaServiceBegin = 9,
+    OtaServiceWrite = 10,
+    OtaServiceCommit = 11,
+    Passed = 12,
+    Failed = 13,
 };
 
 struct SelfTestStatus {
@@ -269,6 +275,90 @@ bool runOtaBackendSelfTest() {
     return true;
 }
 
+uint32_t crc32(const uint8_t* data, std::size_t len) {
+    uint32_t crc = 0xFFFFFFFFu;
+    for (std::size_t i = 0; i < len; ++i) {
+        crc ^= data[i];
+        for (int bit = 0; bit < 8; ++bit) {
+            crc = (crc & 1u) ? ((crc >> 1u) ^ 0xEDB88320u) : (crc >> 1u);
+        }
+    }
+    return crc ^ 0xFFFFFFFFu;
+}
+
+bool runOtaServiceSelfTest() {
+    constexpr uint8_t kImage[] = {0x48u, 0x45u, 0x4Cu, 0x49u, 0x58u, 0x44u, 0x4Bu, 0x21u, 0x0Au};
+    helix::NrfOtaFlashBackend backend{kOtaServicePageBase, kFlashPageSize};
+    helix::OtaManager manager{backend};
+    helix::OtaManagerAdapter adapter{manager};
+    helix::BleOtaService service{adapter};
+
+    const uint32_t crc = crc32(kImage, sizeof(kImage));
+    uint8_t beginPacket[9] = {
+        helix::BleOtaService::CMD_BEGIN,
+        static_cast<uint8_t>(sizeof(kImage) & 0xFFu),
+        static_cast<uint8_t>((sizeof(kImage) >> 8u) & 0xFFu),
+        static_cast<uint8_t>((sizeof(kImage) >> 16u) & 0xFFu),
+        static_cast<uint8_t>((sizeof(kImage) >> 24u) & 0xFFu),
+        static_cast<uint8_t>(crc & 0xFFu),
+        static_cast<uint8_t>((crc >> 8u) & 0xFFu),
+        static_cast<uint8_t>((crc >> 16u) & 0xFFu),
+        static_cast<uint8_t>((crc >> 24u) & 0xFFu),
+    };
+
+    setPhase(Phase::OtaServiceBegin);
+    if (service.handleControlWrite(beginPacket, sizeof(beginPacket)) != helix::OtaStatus::OK) {
+        g_selfTestStatus.failureCode = 0xE400u;
+        return false;
+    }
+
+    uint8_t chunk0[7] = {0u, 0u, 0u, 0u, kImage[0], kImage[1], kImage[2]};
+    setPhase(Phase::OtaServiceWrite);
+    if (service.handleDataWrite(chunk0, sizeof(chunk0)) != helix::OtaStatus::OK) {
+        g_selfTestStatus.failureCode = 0xE410u;
+        return false;
+    }
+    beat();
+
+    uint8_t chunk1[10] = {3u, 0u, 0u, 0u, kImage[3], kImage[4], kImage[5], kImage[6], kImage[7], kImage[8]};
+    if (service.handleDataWrite(chunk1, sizeof(chunk1)) != helix::OtaStatus::OK) {
+        g_selfTestStatus.failureCode = 0xE411u;
+        return false;
+    }
+    beat();
+
+    setPhase(Phase::OtaServiceCommit);
+    const uint8_t commitCmd = helix::BleOtaService::CMD_COMMIT;
+    if (service.handleControlWrite(&commitCmd, 1u) != helix::OtaStatus::OK) {
+        g_selfTestStatus.failureCode = 0xE420u;
+        return false;
+    }
+
+    uint8_t status[helix::BleOtaService::kStatusLen] = {};
+    size_t statusLen = 0u;
+    service.getStatus(status, &statusLen);
+    if (statusLen != helix::BleOtaService::kStatusLen) {
+        g_selfTestStatus.failureCode = 0xE430u;
+        return false;
+    }
+    if (status[0] != static_cast<uint8_t>(helix::OtaState::COMMITTED) ||
+        status[1] != sizeof(kImage) ||
+        status[5] != static_cast<uint8_t>(helix::OtaStatus::OK)) {
+        g_selfTestStatus.failureCode = 0xE431u;
+        return false;
+    }
+
+    auto* flash = reinterpret_cast<volatile const uint8_t*>(backend.slotBase());
+    for (std::size_t i = 0; i < sizeof(kImage); ++i) {
+        if (flash[i] != kImage[i]) {
+            g_selfTestStatus.failureCode = 0xE440u + static_cast<uint32_t>(i);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void signalSuccess() {
     setPhase(Phase::Passed);
     allLedsOff();
@@ -298,6 +388,9 @@ int main() {
         signalFailure();
     }
     if (!runOtaBackendSelfTest()) {
+        signalFailure();
+    }
+    if (!runOtaServiceSelfTest()) {
         signalFailure();
     }
     signalSuccess();

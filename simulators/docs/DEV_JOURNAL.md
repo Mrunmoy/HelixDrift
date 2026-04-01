@@ -220,6 +220,77 @@ integration, not whether the backend can safely land bytes into flash.
 - Added `tools/nrf/read_nrf52dk_selftest.sh` to read the DK self-test status
   block and both flash-signature regions through a single OpenOCD command.
 
+## 2026-04-02 - M7 OTA Manager And Service Hardware Proof On DK
+
+### Feature: Synthetic On-Target OTA Session Through BleOtaService
+
+#### Intent
+
+Close as much of the OTA stack as the current hardware can support before a
+real BLE transport exists on the board by driving the command parser, OTA
+manager, and backend together on target flash.
+
+#### Implementation Summary
+
+- Extended `nrf52dk_selftest` with a third flash-backed OTA lane at
+  `0x0007D000`.
+- Added a synthetic image transfer path that runs on target through:
+  - `BleOtaService`
+  - `OtaManager`
+  - `OtaManagerAdapter`
+  - `NrfOtaFlashBackend`
+- The self-test now:
+  - issues a synthetic `BEGIN` control packet with image size + CRC
+  - sends two `DATA` packets with a split-word boundary at offset `3`
+  - issues a synthetic `COMMIT`
+  - checks `BleOtaService::getStatus()`
+  - verifies the committed image bytes in flash
+
+#### Verification
+
+Commands run:
+
+```bash
+./build.py --host-only -t
+./build.py --nrf-only
+nix develop --command bash -lc 'tools/nrf/flash_openocd.sh build/nrf/nrf52dk_selftest.hex'
+printf 'halt\nmdw 0x200001a8 6\nmdw 0x0007d000 4\nmdw 0x0007e000 4\nmdw 0x0007effc 1\nresume\nexit\n' | nc 127.0.0.1 4444
+```
+
+Observed status block at `0x200001A8`:
+
+- magic: `0x48445837`
+- phase: `12` (`Passed`)
+- heartbeat: `0x0000001d`
+- LED sweep count: `3`
+- verified counter: `12`
+- failure code: `0`
+
+Observed OTA-service test region at `0x0007D000`:
+
+- `0x494C4548`
+- `0x214B4458`
+- `0xFFFFFF0A`
+
+This is the expected flash image for the synthetic payload:
+
+- `H E L I`
+- `X D K !`
+- newline byte plus erased tail bytes
+
+#### Outcome
+
+The DK now proves, on target:
+
+- raw flash programming
+- backend chunk packing
+- OTA begin/data/commit state transitions
+- OTA CRC verification
+- committed-state landing into flash
+
+What remains is not OTA state handling itself, but the real transport and board
+observability paths around it.
+
 ## 2026-03-31 - nRF Branch Cleanup
 
 ### Feature: Remove Legacy ESP32-S3 Path From `nrf-xiao-nrf52840`

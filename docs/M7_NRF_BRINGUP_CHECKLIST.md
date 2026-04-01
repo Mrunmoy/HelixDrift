@@ -230,6 +230,10 @@ Current note:
   - sequential chunk writes that cross a word boundary
   - tail-partial writes at the end of the test slot
   - overflow rejection beyond the configured slot size
+- the updated DK self-test also proves the OTA control/state path on hardware:
+  - `BleOtaService` begin/data/commit command parsing
+  - `OtaManager` state transitions and CRC validation
+  - committed-state readback after a synthetic image transfer into target flash
 - the remaining work is to prove the repo's OTA-backend code paths, not whether
   the target flash can be programmed at all
 
