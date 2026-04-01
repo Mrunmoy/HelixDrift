@@ -104,10 +104,13 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     add_executable(nrf52dk_selftest
         ${NRF52DK_STARTUP}
         examples/nrf52dk-selftest/src/main.cpp
+        examples/nrf52-mocap-node/src/NrfOtaFlashBackend.cpp
     )
     target_include_directories(nrf52dk_selftest PRIVATE
         tools/nrf/baremetal/include
         tools/nrf/stubs/include
+        firmware/common/ota
+        examples/nrf52-mocap-node/src
     )
     target_link_libraries(nrf52dk_selftest PRIVATE helix_blink)
     target_link_options(nrf52dk_selftest PRIVATE -T${NRF52DK_BAREMETAL_LD} -Wl,-Map=nrf52dk_selftest.map)
@@ -121,6 +124,7 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
         examples/nrf52-mocap-node/src/NrfOtaFlashBackend.cpp
     )
     target_include_directories(nrf52_mocap_node PRIVATE
+        tools/nrf/baremetal/include
         tools/nrf/stubs/include
         firmware/common
         firmware/common/ota
@@ -148,6 +152,7 @@ if(HELIXDRIFT_BUILD_TESTS)
 
     add_executable(helix_tests
         tests/test_blink_engine.cpp
+        tests/test_flash_word_packer.cpp
         tests/test_mocap_ble_sender.cpp
         tests/test_mocap_health_telemetry.cpp
         tests/test_mocap_node_loop.cpp

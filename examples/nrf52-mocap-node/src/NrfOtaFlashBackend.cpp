@@ -1,28 +1,28 @@
 #include "NrfOtaFlashBackend.hpp"
-#include "nrfx_nvmc.h"
+#include "FlashWordPacker.hpp"
+#include "nrf_nvmc.h"
 #include <cstring>
 
 namespace helix {
 
 uint32_t NrfOtaFlashBackend::slotSize() const {
-    return kSecondarySlotSize;
+    return slotSize_;
 }
 
 bool NrfOtaFlashBackend::eraseSlot() {
-    const uint32_t pages = kSecondarySlotSize / kPageSize;
+    const uint32_t pages = slotSize_ / kPageSize;
     for (uint32_t i = 0; i < pages; ++i) {
-        nrfx_nvmc_page_erase(kSecondarySlotBase + i * kPageSize);
-        // Poll until erase is done (nrfx stubs return true immediately).
-        while (!nrfx_nvmc_write_done_check()) {}
+        nrf_nvmc_page_erase(slotBase_ + i * kPageSize);
+        while (!nrf_nvmc_write_done_check()) {}
     }
     return true;
 }
 
 bool NrfOtaFlashBackend::writeChunk(uint32_t offset, const uint8_t* data, size_t len) {
-    if (offset + len > kSecondarySlotSize) {
+    if (offset + len > slotSize_) {
         return false;
     }
-    return writeAligned(kSecondarySlotBase + offset, data, len);
+    return writeAligned(slotBase_ + offset, data, len);
 }
 
 bool NrfOtaFlashBackend::setPendingUpgrade() {
@@ -41,16 +41,13 @@ bool NrfOtaFlashBackend::writeAligned(uint32_t addr, const uint8_t* data, size_t
     const uint32_t leadBytes = addr & 3u;
     if (leadBytes != 0 && len > 0) {
         const uint32_t wordAddr = addr & ~3u;
-        uint8_t word[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+        uint8_t existing[4];
+        std::memcpy(existing, reinterpret_cast<const void*>(wordAddr), sizeof(existing));
         const size_t toCopy = 4u - leadBytes;
         const size_t n = (toCopy < len) ? toCopy : len;
-        for (size_t i = 0; i < n; ++i) {
-            word[leadBytes + i] = data[i];
-        }
-        uint32_t w;
-        memcpy(&w, word, 4);
-        nrfx_nvmc_word_write(wordAddr, w);
-        while (!nrfx_nvmc_write_done_check()) {}
+        const uint32_t w = packFlashWord(existing, leadBytes, data, n);
+        nrf_nvmc_word_write(wordAddr, w);
+        while (!nrf_nvmc_write_done_check()) {}
         written += n;
     }
 
@@ -58,22 +55,19 @@ bool NrfOtaFlashBackend::writeAligned(uint32_t addr, const uint8_t* data, size_t
     while (written + 4u <= len) {
         uint32_t w;
         memcpy(&w, data + written, 4);
-        nrfx_nvmc_word_write(addr + written, w);
-        while (!nrfx_nvmc_write_done_check()) {}
+        nrf_nvmc_word_write(addr + written, w);
+        while (!nrf_nvmc_write_done_check()) {}
         written += 4u;
     }
 
     // Handle trailing partial word.
     if (written < len) {
-        uint8_t word[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+        uint8_t existing[4];
+        std::memcpy(existing, reinterpret_cast<const void*>(addr + written), sizeof(existing));
         const size_t tail = len - written;
-        for (size_t i = 0; i < tail; ++i) {
-            word[i] = data[written + i];
-        }
-        uint32_t w;
-        memcpy(&w, word, 4);
-        nrfx_nvmc_word_write(addr + written, w);
-        while (!nrfx_nvmc_write_done_check()) {}
+        const uint32_t w = packFlashWord(existing, 0u, data + written, tail);
+        nrf_nvmc_word_write(addr + written, w);
+        while (!nrf_nvmc_write_done_check()) {}
     }
 
     return true;

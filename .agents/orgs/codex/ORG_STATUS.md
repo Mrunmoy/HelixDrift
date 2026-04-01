@@ -105,6 +105,9 @@
   - standalone bare-metal `nrf52dk_selftest` path with direct GPIO/delay
     headers, DK-specific linker/startup path, retained `.noinit` status block,
     and proven internal flash erase/write/verify on the real nRF52832 DK
+  - real-hardware OTA-backend validation on the DK, including configurable
+    flash-region targeting, correct partial-word merge behavior, tail-partial
+    writes, and bounds rejection proven through `nrf52dk_selftest`
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -213,6 +216,8 @@
   runtime observability path on the DK
 - Task: Treat retained-RAM status plus direct flash readback as the current
   authoritative DK observability path while serial/VCOM remains open
+- Task: Use the DK self-test path to close board-local flash/backend questions
+  before attempting full OTA transport on hardware
 - Task: Push M7 from proven SWD flashing into real OTA-path validation once
   the DK runtime observability path is credible
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`

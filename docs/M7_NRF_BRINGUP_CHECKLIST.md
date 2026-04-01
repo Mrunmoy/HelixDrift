@@ -222,6 +222,11 @@ works on real flash rather than only in host tests.
 Current note:
 - the DK self-test has already proven the low-level NVMC erase/write/verify
   path on real hardware
+- the updated DK self-test now also proves the repo's OTA-backend word-packing
+  path on real hardware, including:
+  - sequential chunk writes that cross a word boundary
+  - tail-partial writes at the end of the test slot
+  - overflow rejection beyond the configured slot size
 - the remaining work is to prove the repo's OTA-backend code paths, not whether
   the target flash can be programmed at all
 

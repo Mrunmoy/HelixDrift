@@ -133,6 +133,86 @@ This is the first solid M7 runtime proof on the current target. Remaining
 board-side work can now focus on runtime observability and OTA-backend-specific
 behavior instead of basic "does the board boot?" uncertainty.
 
+## 2026-04-02 - M7 OTA Backend Hardware Proof On DK
+
+### Feature: Real-Flash Validation Of The Repo OTA Backend Path
+
+#### Intent
+
+Move beyond raw NVMC proof and verify that the actual repo OTA flash-backend
+logic behaves correctly on target flash, especially around the failure-prone
+partial-word cases that occur during sequential chunked updates.
+
+#### Problem Found
+
+`NrfOtaFlashBackend::writeAligned()` rebuilt partial words from `0xFF` instead
+of the current flash contents. That is unsafe for sequential chunks that split
+across a 4-byte word boundary, because a later partial write can clobber bytes
+already written by an earlier chunk.
+
+#### Implementation Summary
+
+- Added `firmware/common/ota/FlashWordPacker.hpp` and host tests that prove
+  partial-word packing preserves previously written bytes outside the updated
+  range.
+- Added `tools/nrf/baremetal/include/nrf_nvmc.h` and switched
+  `NrfOtaFlashBackend` from the stubbed `nrfx_nvmc` path to the real bare-metal
+  NVMC helpers.
+- Made `NrfOtaFlashBackend` configurable by slot base and slot size so the
+  available nRF52832 DK can exercise the backend logic against a small safe
+  flash region.
+- Extended `nrf52dk_selftest` to run an OTA-backend self-test after the raw
+  NVMC self-test:
+  - erase a 4 KB test slot at `0x0007E000`
+  - write sequential chunks that cross a word boundary
+  - write a tail-partial chunk at the end of the slot
+  - reject an overflow write past the slot limit
+  - verify the resulting flash contents directly
+
+#### Verification
+
+Commands run:
+
+```bash
+./build.py --host-only -t
+./build.py --nrf-only
+nix develop --command bash -lc 'tools/nrf/flash_openocd.sh build/nrf/nrf52dk_selftest.hex'
+printf 'halt\nmdw 0x200001a8 6\nmdw 0x0007e000 4\nmdw 0x0007effc 1\nresume\nexit\n' | nc 127.0.0.1 4444
+```
+
+Observed status block at `0x200001A8`:
+
+- magic: `0x48445837`
+- phase: `9` (`Passed`)
+- heartbeat: `0x0000002f`
+- LED sweep count: `3`
+- verified bytes/words counter: `12`
+- failure code: `0`
+
+Observed OTA-backend test region:
+
+- `0x0007E000`: `0x44434241`
+- `0x0007E004`: `0x48474645`
+- `0x0007E008`: `0x66778899`
+- `0x0007EFFC`: `0x5A5958FF`
+
+These values prove:
+
+- sequential chunk writes preserved the prior bytes correctly across the first
+  split word
+- the aligned middle word was written correctly
+- the tail-partial write preserved the final erased byte
+
+#### Outcome
+
+The nRF branch now has real-hardware proof for both:
+
+- low-level NVMC flash behavior
+- the repo's OTA flash-backend chunk packing and bounds behavior
+
+The remaining M7 gap is now transport/runtime observability and full OTA-flow
+integration, not whether the backend can safely land bytes into flash.
+
 ## 2026-03-31 - nRF Branch Cleanup
 
 ### Feature: Remove Legacy ESP32-S3 Path From `nrf-xiao-nrf52840`

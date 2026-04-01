@@ -1,3 +1,4 @@
+#include "NrfOtaFlashBackend.hpp"
 #include "nrf_delay.h"
 #include "nrf_gpio.h"
 #include <cstddef>
@@ -6,6 +7,7 @@
 namespace {
 constexpr uint32_t kLedPins[4] = {17u, 18u, 19u, 20u}; // LED1-LED4, active low.
 constexpr uint32_t kFlashPageSize = 4096u;
+constexpr uint32_t kOtaTestPageBase = 0x0007E000u;
 constexpr uint32_t kTestPageBase = 0x0007F000u; // Last page of DK NVS region.
 constexpr uint32_t kStatusMagic = 0x48445837u;   // "HDX7"
 
@@ -22,8 +24,11 @@ enum class Phase : uint32_t {
     FlashWrite = 3,
     FlashVerify = 4,
     FlashRestore = 5,
-    Passed = 6,
-    Failed = 7,
+    OtaErase = 6,
+    OtaWrite = 7,
+    OtaVerify = 8,
+    Passed = 9,
+    Failed = 10,
 };
 
 struct SelfTestStatus {
@@ -193,6 +198,77 @@ bool runFlashSelfTest() {
     return verifyPattern(kTestPageBase, kSuccessPattern, kPatternWordCount);
 }
 
+bool runOtaBackendSelfTest() {
+    constexpr uint8_t kChunk0[] = {0x41u, 0x42u, 0x43u};
+    constexpr uint8_t kChunk1[] = {0x44u, 0x45u, 0x46u, 0x47u, 0x48u};
+    constexpr uint8_t kChunk2[] = {0x99u, 0x88u, 0x77u, 0x66u};
+    constexpr uint8_t kTailChunk[] = {0x58u, 0x59u, 0x5Au};
+    helix::NrfOtaFlashBackend backend{kOtaTestPageBase, kFlashPageSize};
+
+    setPhase(Phase::OtaErase);
+    if (!backend.eraseSlot()) {
+        g_selfTestStatus.failureCode = 0xE300u;
+        return false;
+    }
+
+    auto* flash = reinterpret_cast<volatile const uint8_t*>(backend.slotBase());
+    for (std::size_t i = 0; i < 16u; ++i) {
+        if (flash[i] != 0xFFu) {
+            g_selfTestStatus.failureCode = 0xE310u + static_cast<uint32_t>(i);
+            return false;
+        }
+    }
+
+    setPhase(Phase::OtaWrite);
+    if (!backend.writeChunk(0u, kChunk0, sizeof(kChunk0))) {
+        g_selfTestStatus.failureCode = 0xE320u;
+        return false;
+    }
+    beat();
+    if (!backend.writeChunk(3u, kChunk1, sizeof(kChunk1))) {
+        g_selfTestStatus.failureCode = 0xE321u;
+        return false;
+    }
+    beat();
+    if (!backend.writeChunk(8u, kChunk2, sizeof(kChunk2))) {
+        g_selfTestStatus.failureCode = 0xE322u;
+        return false;
+    }
+    beat();
+    if (!backend.writeChunk(kFlashPageSize - sizeof(kTailChunk), kTailChunk, sizeof(kTailChunk))) {
+        g_selfTestStatus.failureCode = 0xE323u;
+        return false;
+    }
+    beat();
+    if (backend.writeChunk(kFlashPageSize - 1u, kTailChunk, sizeof(kTailChunk))) {
+        g_selfTestStatus.failureCode = 0xE324u;
+        return false;
+    }
+
+    setPhase(Phase::OtaVerify);
+    constexpr uint8_t kExpectedPrefix[] = {
+        0x41u, 0x42u, 0x43u, 0x44u, 0x45u, 0x46u, 0x47u, 0x48u,
+        0x99u, 0x88u, 0x77u, 0x66u,
+    };
+    for (std::size_t i = 0; i < sizeof(kExpectedPrefix); ++i) {
+        if (flash[i] != kExpectedPrefix[i]) {
+            g_selfTestStatus.failureCode = 0xE330u + static_cast<uint32_t>(i);
+            return false;
+        }
+        g_selfTestStatus.flashVerifiedWords = static_cast<uint32_t>(i + 1u);
+    }
+
+    const std::size_t tailBase = kFlashPageSize - sizeof(kTailChunk);
+    for (std::size_t i = 0; i < sizeof(kTailChunk); ++i) {
+        if (flash[tailBase + i] != kTailChunk[i]) {
+            g_selfTestStatus.failureCode = 0xE340u + static_cast<uint32_t>(i);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void signalSuccess() {
     setPhase(Phase::Passed);
     allLedsOff();
@@ -219,6 +295,9 @@ int main() {
     initLeds();
     runLedSweep();
     if (!runFlashSelfTest()) {
+        signalFailure();
+    }
+    if (!runOtaBackendSelfTest()) {
         signalFailure();
     }
     signalSuccess();

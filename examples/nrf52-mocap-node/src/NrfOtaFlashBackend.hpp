@@ -21,17 +21,25 @@ namespace helix {
  */
 class NrfOtaFlashBackend : public OtaFlashBackend {
 public:
+    explicit NrfOtaFlashBackend(uint32_t slotBase = kDefaultSecondarySlotBase,
+                                uint32_t slotSize = kDefaultSecondarySlotSize)
+        : slotBase_(slotBase), slotSize_(slotSize) {}
+
     bool     eraseSlot()                                              override;
     bool     writeChunk(uint32_t offset, const uint8_t* data, size_t len) override;
     bool     setPendingUpgrade()                                      override;
     uint32_t slotSize() const                                         override;
+    uint32_t slotBase() const                                         { return slotBase_; }
 
-    static constexpr uint32_t kSecondarySlotBase = 0x00070000u;
-    static constexpr uint32_t kSecondarySlotSize = 384u * 1024u;
-    static constexpr uint32_t kPageSize          = 4096u;
+    static constexpr uint32_t kDefaultSecondarySlotBase = 0x00070000u;
+    static constexpr uint32_t kDefaultSecondarySlotSize = 384u * 1024u;
+    static constexpr uint32_t kPageSize                 = 4096u;
 
 private:
     static bool writeAligned(uint32_t addr, const uint8_t* data, size_t len);
+
+    uint32_t slotBase_;
+    uint32_t slotSize_;
 };
 
 } // namespace helix
