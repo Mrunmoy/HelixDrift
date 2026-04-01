@@ -49,8 +49,10 @@ Current M7 bring-up progress:
       available nRF52832 DK hardware
 - [x] webcam-assisted observation shows a periodic LED transition on the DK
       consistent with the flashed heartbeat target
+- [x] dedicated `nrf52dk_selftest` proves a real bare-metal boot path on the
+      DK, direct LED drive, and internal flash erase/write/verify on target
 - [ ] serial/VCOM output from the custom DK bring-up app remains to be proven
-- [ ] OTA-path validation on real hardware remains open
+- [ ] OTA-backend-specific write/bounds behavior on real hardware remains open
 
 ### Wave A — Immediate (Codex / Fusion)
 
@@ -98,7 +100,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
 | M5-M6: Calibration + Multi-node | ~100% | Simulation-side calibration, disturbance characterization, and three-node body-chain proofs are landed; long-run mild-impairment drift is documented as a current limitation |
-| M7: Platform Port (nRF52) | ~25% | DK flashing is proven and board-specific bring-up targets are running; serial/VCOM and OTA on hardware remain open |
+| M7: Platform Port (nRF52) | ~40% | DK flashing, bare-metal boot, LED drive, and internal flash self-test are proven; serial/VCOM and OTA-backend behavior on hardware remain open |
 
 ## Reference Documents
 

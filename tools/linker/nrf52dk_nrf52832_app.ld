@@ -63,8 +63,12 @@ SECTIONS {
         _ebss = .;
     } > RAM
 
-    . = ORIGIN(RAM) + LENGTH(RAM) - 0x2000;
-    .stack (NOLOAD) : {
+    .noinit (NOLOAD) : {
+        *(.noinit*)
+        . = ALIGN(4);
+    } > RAM
+
+    .stack ORIGIN(RAM) + LENGTH(RAM) - 0x2000 (NOLOAD) : {
         _stack_bottom = .;
         . += 0x2000;
         _stack_top = .;

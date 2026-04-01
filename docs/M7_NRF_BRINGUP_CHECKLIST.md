@@ -17,6 +17,9 @@ As of this branch state:
   SEGGER J-Link probe
 - OpenOCD can halt and program the attached target successfully
 - the connected board identifies as `nRF52832`, not `nRF52840`
+- a dedicated bare-metal DK self-test image now boots on hardware, updates a
+  retained status block in RAM, drives the board LEDs directly, and proves
+  real internal flash erase/write/verify on the target
 
 Official nRF52 DK LED and button mapping from the Nordic user guide:
 
@@ -83,11 +86,11 @@ behavior.
 
 ### Checklist
 
-- [ ] Build the nRF target in `nix develop`
-- [ ] Inspect the produced ELF, BIN, or HEX artifacts
-- [ ] Confirm the image links against the nRF application linker script
-- [ ] Confirm the image starts at `PRIMARY_SLOT_BASE + 0x200`
-- [ ] Confirm no unexpected section growth has occurred
+- [x] Build the nRF target in `nix develop`
+- [x] Inspect the produced ELF, BIN, or HEX artifacts
+- [x] Confirm the DK self-test target links at `0x00000000` for bare-metal
+      bring-up on the available board
+- [x] Confirm no unexpected section growth has occurred
 
 ### Commands
 
@@ -105,6 +108,7 @@ Current useful board-specific artifacts:
 
 - `build/nrf/nrf52dk_blinky.hex`
 - `build/nrf/nrf52dk_bringup.hex`
+- `build/nrf/nrf52dk_selftest.hex`
 
 ## Phase 2: Board Bring-Up
 
@@ -114,11 +118,11 @@ Prove the real nRF board boots, reaches main, and does not immediately fault.
 
 ### Checklist
 
-- [ ] Flash bootloader and application using the agreed nRF tool
+- [x] Flash a real DK-targeted image using the agreed nRF tool
 - [ ] Open serial log on the board port
-- [ ] Confirm startup reaches application main loop
-- [ ] Confirm no immediate reset loop or hard fault
-- [ ] Confirm watchdog is not tripping immediately
+- [x] Confirm startup reaches application main loop
+- [x] Confirm no immediate reset loop or hard fault
+- [x] Confirm watchdog is not tripping immediately
 
 ### First Signals To Add Or Verify
 
@@ -131,13 +135,28 @@ Prove the real nRF board boots, reaches main, and does not immediately fault.
 ### Pass Condition
 
 - stable boot
-- readable serial output
+- readable serial output, or another explicit runtime observability path
 - no reset loop
 
 Current note:
 - board-correct flashing is already proven via OpenOCD
-- serial/VCOM output from the custom bring-up app is not yet confirmed and
-  remains an open bring-up item
+- runtime observability is now proven through a retained `.noinit` status block
+  read back over SWD:
+  - status base: `0x20000018`
+  - observed pass state:
+    - magic `0x48445837`
+    - phase `6` (`Passed`)
+    - heartbeat `0x0000001d`
+    - LED sweep count `3`
+    - flash verified words `4`
+    - failure code `0`
+- the self-test also leaves a success signature in flash at `0x0007F000`:
+  - `0x48444B31`
+  - `0x4F4B4159`
+  - `0x00000004`
+  - `0x0007F000`
+- serial/VCOM output from the custom bring-up app is still open, but it is no
+  longer the only runtime observability path
 
 ## Phase 3: Sensor Bring-Up With Substitute Sensors
 
@@ -181,11 +200,11 @@ works on real flash rather than only in host tests.
 
 ### Checklist
 
-- [ ] erase secondary slot on hardware
-- [ ] write a known test pattern
-- [ ] read back and compare
-- [ ] repeat with unaligned and tail-partial writes
-- [ ] verify full-slot bounds enforcement
+- [x] prove real erase on target flash
+- [x] write a known test pattern
+- [x] read back and compare
+- [ ] repeat with unaligned and tail-partial writes through the OTA backend
+- [ ] verify full-slot bounds enforcement through the OTA backend
 
 ### Critical Questions
 
@@ -196,9 +215,15 @@ works on real flash rather than only in host tests.
 
 ### Pass Condition
 
-- data written to secondary slot matches what was sent
+- data written to target flash matches what was sent
 - no silent no-op flash writes
-- no corruption on unaligned writes
+- no corruption on unaligned writes once the OTA-backend path is exercised
+
+Current note:
+- the DK self-test has already proven the low-level NVMC erase/write/verify
+  path on real hardware
+- the remaining work is to prove the repo's OTA-backend code paths, not whether
+  the target flash can be programmed at all
 
 ## Phase 5: BLE OTA Service Validation
 

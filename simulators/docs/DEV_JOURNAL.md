@@ -55,6 +55,84 @@ toggle heartbeat on LED1 (`P0.17`, active low).
   from the custom bring-up app.
 - Real on-device OTA flow remains unproven.
 
+## 2026-04-02 - M7 Nordic DK Bare-Metal Self-Test
+
+### Feature: Standalone DK Runtime And Flash Self-Test
+
+#### Intent
+
+Move the DK path from "image flashes" to "image boots and proves real target
+behavior" by using a standalone nRF52832 DK image that does not depend on the
+XIAO/nRF52840 slot layout or the SensorFusion nRF stub headers.
+
+#### Root Cause Fixes
+
+The initial DK bring-up path had three separate problems:
+
+- DK images were linked as slot images instead of bare-metal images starting
+  at `0x00000000`, so they would not boot cleanly on the bare DK.
+- the nRF example targets were still picking up stubbed `nrf_gpio.h` and
+  `nrf_delay.h`, so flashed images were not actually driving GPIO or timing
+  on hardware.
+- the shared startup path was heavier than needed for the standalone DK image,
+  complicating early runtime debugging.
+
+#### Implementation Summary
+
+- Added `tools/nrf/baremetal/include/nrf_gpio.h` with minimal register-level
+  GPIO helpers for port 0.
+- Added `tools/nrf/baremetal/include/nrf_delay.h` with simple busy-loop delay
+  helpers.
+- Added `tools/linker/nrf52dk_nrf52832_baremetal.ld` for DK bring-up images
+  that start at `0x00000000`.
+- Added `firmware/platform/startup_nrf52dk_minimal.S` to initialize `.data`,
+  `.bss`, and the FPU before jumping directly to `main`.
+- Added `examples/nrf52dk-selftest/src/main.cpp`:
+  - drives LEDs 1-4 directly
+  - runs a 3-pass LED sweep
+  - erases, writes, verifies, erases, rewrites, and re-verifies a flash page
+  - records progress in a retained `.noinit` status block
+- Restricted stub include paths back to `sensorfusion_platform_nrf52` instead
+  of exposing them to all nRF example targets.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc './build.py --nrf-only'
+nix develop --command bash -lc 'tools/nrf/flash_openocd.sh build/nrf/nrf52dk_selftest.hex'
+printf 'halt\nmdw 0x20000018 6\nmdw 0x0007f000 4\nresume\nexit\n' | nc 127.0.0.1 4444
+```
+
+Observed retained status block at `0x20000018`:
+
+- magic: `0x48445837`
+- phase: `6` (`Passed`)
+- heartbeat: `0x0000001d`
+- LED sweep count: `3`
+- verified words: `4`
+- failure code: `0`
+
+Observed flash signature at `0x0007F000`:
+
+- `0x48444B31`
+- `0x4F4B4159`
+- `0x00000004`
+- `0x0007F000`
+
+#### Outcome
+
+The available nRF52 DK now has a proven standalone bring-up path:
+
+- real boot on hardware
+- real LED drive on hardware
+- real internal flash erase/write/verify on hardware
+
+This is the first solid M7 runtime proof on the current target. Remaining
+board-side work can now focus on runtime observability and OTA-backend-specific
+behavior instead of basic "does the board boot?" uncertainty.
+
 ## 2026-03-31 - nRF Branch Cleanup
 
 ### Feature: Remove Legacy ESP32-S3 Path From `nrf-xiao-nrf52840`

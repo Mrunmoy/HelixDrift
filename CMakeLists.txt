@@ -33,7 +33,6 @@ target_include_directories(helix_ota PUBLIC
 )
 
 if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tools/nrf/stubs/include)
     add_compile_definitions(NRFX_STUB)
 
     function(helix_add_nrf_artifacts target)
@@ -49,16 +48,22 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     set(SENSORFUSION_BUILD_APP OFF CACHE BOOL "" FORCE)
     set(SENSORFUSION_PLATFORM nrf52 CACHE STRING "" FORCE)
     add_subdirectory(external/SensorFusion)
+    target_include_directories(sensorfusion_platform_nrf52 PUBLIC
+        tools/nrf/stubs/include
+    )
 
     set(NRF_APP_LD "${CMAKE_CURRENT_SOURCE_DIR}/tools/linker/xiao_nrf52840_app.ld")
     set(NRF52DK_APP_LD "${CMAKE_CURRENT_SOURCE_DIR}/tools/linker/nrf52dk_nrf52832_app.ld")
+    set(NRF52DK_BAREMETAL_LD "${CMAKE_CURRENT_SOURCE_DIR}/tools/linker/nrf52dk_nrf52832_baremetal.ld")
     set(NRF_STARTUP "${CMAKE_CURRENT_SOURCE_DIR}/firmware/platform/startup_nrf52840.S")
+    set(NRF52DK_STARTUP "${CMAKE_CURRENT_SOURCE_DIR}/firmware/platform/startup_nrf52dk_minimal.S")
 
     add_executable(nrf52_blinky
         ${NRF_STARTUP}
         examples/nrf52-blinky/src/main.cpp
     )
     target_include_directories(nrf52_blinky PRIVATE
+        tools/nrf/baremetal/include
         tools/nrf/stubs/include
     )
     target_link_libraries(nrf52_blinky PRIVATE helix_blink)
@@ -67,10 +72,11 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     helix_add_nrf_artifacts(nrf52_blinky)
 
     add_executable(nrf52dk_blinky
-        ${NRF_STARTUP}
+        ${NRF52DK_STARTUP}
         examples/nrf52-blinky/src/main.cpp
     )
     target_include_directories(nrf52dk_blinky PRIVATE
+        tools/nrf/baremetal/include
         tools/nrf/stubs/include
     )
     target_link_libraries(nrf52dk_blinky PRIVATE helix_blink)
@@ -78,21 +84,35 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
         HELIX_LED_PIN=17
         HELIX_LED_ACTIVE_LOW=1
     )
-    target_link_options(nrf52dk_blinky PRIVATE -T${NRF52DK_APP_LD} -Wl,-Map=nrf52dk_blinky.map)
-    set_target_properties(nrf52dk_blinky PROPERTIES LINK_DEPENDS "${NRF52DK_APP_LD}")
+    target_link_options(nrf52dk_blinky PRIVATE -T${NRF52DK_BAREMETAL_LD} -Wl,-Map=nrf52dk_blinky.map)
+    set_target_properties(nrf52dk_blinky PROPERTIES LINK_DEPENDS "${NRF52DK_BAREMETAL_LD}")
     helix_add_nrf_artifacts(nrf52dk_blinky)
 
     add_executable(nrf52dk_bringup
-        ${NRF_STARTUP}
+        ${NRF52DK_STARTUP}
         examples/nrf52dk-bringup/src/main.cpp
     )
     target_include_directories(nrf52dk_bringup PRIVATE
+        tools/nrf/baremetal/include
         tools/nrf/stubs/include
     )
     target_link_libraries(nrf52dk_bringup PRIVATE helix_blink)
-    target_link_options(nrf52dk_bringup PRIVATE -T${NRF52DK_APP_LD} -Wl,-Map=nrf52dk_bringup.map)
-    set_target_properties(nrf52dk_bringup PROPERTIES LINK_DEPENDS "${NRF52DK_APP_LD}")
+    target_link_options(nrf52dk_bringup PRIVATE -T${NRF52DK_BAREMETAL_LD} -Wl,-Map=nrf52dk_bringup.map)
+    set_target_properties(nrf52dk_bringup PROPERTIES LINK_DEPENDS "${NRF52DK_BAREMETAL_LD}")
     helix_add_nrf_artifacts(nrf52dk_bringup)
+
+    add_executable(nrf52dk_selftest
+        ${NRF52DK_STARTUP}
+        examples/nrf52dk-selftest/src/main.cpp
+    )
+    target_include_directories(nrf52dk_selftest PRIVATE
+        tools/nrf/baremetal/include
+        tools/nrf/stubs/include
+    )
+    target_link_libraries(nrf52dk_selftest PRIVATE helix_blink)
+    target_link_options(nrf52dk_selftest PRIVATE -T${NRF52DK_BAREMETAL_LD} -Wl,-Map=nrf52dk_selftest.map)
+    set_target_properties(nrf52dk_selftest PROPERTIES LINK_DEPENDS "${NRF52DK_BAREMETAL_LD}")
+    helix_add_nrf_artifacts(nrf52dk_selftest)
 
     add_executable(nrf52_mocap_node
         ${NRF_STARTUP}

@@ -102,6 +102,9 @@
     generation for nRF targets
   - webcam-assisted verification that the flashed DK heartbeat target is
     producing a periodic LED transition consistent with the programmed cadence
+  - standalone bare-metal `nrf52dk_selftest` path with direct GPIO/delay
+    headers, DK-specific linker/startup path, retained `.noinit` status block,
+    and proven internal flash erase/write/verify on the real nRF52832 DK
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -208,6 +211,8 @@
   without conflating it with the final nRF52840 board assumptions
 - Task: Prove serial/VCOM output or otherwise establish a reliable real-board
   runtime observability path on the DK
+- Task: Treat retained-RAM status plus direct flash readback as the current
+  authoritative DK observability path while serial/VCOM remains open
 - Task: Push M7 from proven SWD flashing into real OTA-path validation once
   the DK runtime observability path is credible
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
