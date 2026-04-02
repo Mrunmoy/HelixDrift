@@ -119,8 +119,9 @@
   - measured standalone bootloader size proving the old 64 KB plan was too
     small; branch layout updated to a 96 KB bootloader slot with 352 KB
     primary/secondary slots and a 192 KB NVS region
-  - DK bring-up UART pins corrected to Nordic's `P0.23/P0.22` VCOM routing for
-    the next real serial-output pass
+  - DK virtual COM path now proven on real hardware using Nordic's documented
+    `UART0 TX=P0.06` / `RX=P0.08` routing, with live output confirmed on
+    `/dev/ttyACM0`
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`

@@ -1,5 +1,64 @@
 # Simulator Development Journal
 
+## 2026-04-03 - M7 Nordic DK VCOM Proof
+
+### Feature: Real DK UART/VCOM Bring-Up Confirmed
+
+#### Intent
+
+Close the remaining DK observability gap by proving that the custom bring-up
+image can emit live serial text through the board's USB virtual COM path.
+
+#### Root Cause
+
+The earlier "fix" to `P0.23/P0.22` came from a Nordic sample overlay, but that
+overlay was not the DK's USB bridge routing. The official nRF52 DK user guide
+documents the onboard SEGGER VCOM path on `UART0 TX=P0.06` and `RX=P0.08`.
+
+#### Implementation Summary
+
+- Corrected `nrf52dk_bringup` back to the DK user-guide VCOM pins
+  (`TX=P0.06`, `RX=P0.08`).
+- Added a retained `.noinit` bring-up status block so UART peripheral state can
+  be dumped over SWD when the USB side is silent.
+- Rebuilt and reflashed the DK bring-up image.
+- Opened both ACM ports with DTR asserted and verified that only
+  `/dev/ttyACM0` carries the expected banner and heartbeat text.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'cmake --build build/nrf --target nrf52dk_bringup --parallel'
+nix develop --command bash -lc 'tools/nrf/flash_openocd.sh build/nrf/nrf52dk_bringup.hex'
+python3 - <<'PY'
+import os, termios, fcntl, time
+ports=['/dev/ttyACM0','/dev/ttyACM1']
+TIOCMBIS=0x5416
+TIOCM_DTR=0x002
+for port in ports:
+    fd=os.open(port, os.O_RDWR|os.O_NOCTTY|os.O_NONBLOCK)
+    attrs=termios.tcgetattr(fd)
+    attrs[0]=0; attrs[1]=0; attrs[2]=termios.CS8|termios.CREAD|termios.CLOCAL
+    attrs[3]=0; attrs[4]=termios.B115200; attrs[5]=termios.B115200
+    termios.tcsetattr(fd, termios.TCSANOW, attrs)
+    fcntl.ioctl(fd, TIOCMBIS, int(TIOCM_DTR).to_bytes(4, "little"))
+    time.sleep(0.5)
+    print(port, os.read(fd, 4096).decode("utf-8", "replace"))
+    os.close(fd)
+PY
+```
+
+Result:
+
+- `nrf52dk_bringup` rebuilt and reflashed successfully
+- `/dev/ttyACM0` prints:
+  - `HelixDrift nRF52 DK bring-up app`
+  - `Target: nRF52832 DK / VCOM / LED1 heartbeat`
+  - `tick 0`, `tick 1`, ...
+- `/dev/ttyACM1` remains silent
+
 ## 2026-04-02 - M7 Nordic DK Bring-Up
 
 ### Feature: First Real-Board Flash And DK-Specific Bring-Up Targets
@@ -51,8 +110,6 @@ toggle heartbeat on LED1 (`P0.17`, active low).
 
 #### Open Items
 
-- The DK virtual COM serial path is still not producing confirmed banner text
-  from the custom bring-up app.
 - Real on-device OTA flow remains unproven.
 
 ## 2026-04-02 - M7 Nordic DK Bare-Metal Self-Test
