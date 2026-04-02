@@ -59,6 +59,15 @@ Result:
   - `tick 0`, `tick 1`, ...
 - `/dev/ttyACM1` remains silent
 
+#### Follow-Up Fix
+
+The UART proof exposed a separate LED bug: the repo-local bare-metal
+`nrf_gpio.h` used the wrong nRF52 GPIO register layout, so LED writes landed at
+incorrect offsets even while UART worked. After aligning the helper with
+Nordic's actual `NRF_GPIO_Type` layout (`OUT` at `0x504`, `OUTSET` at `0x508`,
+`OUTCLR` at `0x50C`, `PIN_CNF` at `0x700`), the `P0.17` output bit was
+observed toggling over SWD as expected for the bring-up heartbeat.
+
 ## 2026-04-02 - M7 Nordic DK Bring-Up
 
 ### Feature: First Real-Board Flash And DK-Specific Bring-Up Targets

@@ -52,6 +52,8 @@ Current M7 bring-up progress:
       available nRF52832 DK hardware
 - [x] webcam-assisted observation shows a periodic LED transition on the DK
       consistent with the flashed heartbeat target
+- [x] DK bring-up LED heartbeat is electrically proven after fixing the
+      repo-local nRF52 GPIO register layout used by the bare-metal helpers
 - [x] dedicated `nrf52dk_selftest` proves a real bare-metal boot path on the
       DK, direct LED drive, and internal flash erase/write/verify on target
 - [x] serial/VCOM output from the custom DK bring-up app is proven on

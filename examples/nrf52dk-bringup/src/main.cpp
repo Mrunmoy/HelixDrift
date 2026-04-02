@@ -8,8 +8,14 @@ constexpr uint32_t kLedPin = 17;  // LED1 on nRF52 DK, active low.
 constexpr uint32_t kTxPin = 6;    // UART0 TXD -> interface MCU RXD.
 constexpr uint32_t kRxPin = 8;    // UART0 RXD <- interface MCU TXD.
 constexpr uint32_t kStatusMagic = 0x48445537u; // "HDU7"
+constexpr uint32_t kCoreClockHz = 64000000u;
 
 constexpr uintptr_t kUart0Base = 0x40002000u;
+constexpr uintptr_t kDemcrAddr = 0xE000EDFCu;
+constexpr uintptr_t kDwtCtrlAddr = 0xE0001000u;
+constexpr uintptr_t kDwtCyccntAddr = 0xE0001004u;
+constexpr uint32_t kDemcrTrcena = 1u << 24;
+constexpr uint32_t kDwtCtrlCyccntena = 1u << 0;
 
 enum class Phase : uint32_t {
     Boot = 0,
@@ -81,6 +87,10 @@ static Uart0Regs& uart0() {
     return *reinterpret_cast<Uart0Regs*>(kUart0Base);
 }
 
+volatile uint32_t& reg32(uintptr_t addr) {
+    return *reinterpret_cast<volatile uint32_t*>(addr);
+}
+
 void setPhase(Phase phase) {
     g_bringupStatus.phase = static_cast<uint32_t>(phase);
 }
@@ -134,6 +144,19 @@ void uartWrite(const char* s) {
         uartWriteByte(static_cast<uint8_t>(*s++));
     }
 }
+
+void delayInit() {
+    reg32(kDemcrAddr) |= kDemcrTrcena;
+    reg32(kDwtCyccntAddr) = 0u;
+    reg32(kDwtCtrlAddr) |= kDwtCtrlCyccntena;
+}
+
+void delayMs(uint32_t ms) {
+    const uint32_t start = reg32(kDwtCyccntAddr);
+    const uint32_t target = ms * (kCoreClockHz / 1000u);
+    while (static_cast<uint32_t>(reg32(kDwtCyccntAddr) - start) < target) {
+    }
+}
 } // namespace
 
 int main() {
@@ -157,6 +180,7 @@ int main() {
     g_bringupStatus.magic = kStatusMagic;
     setPhase(Phase::Boot);
 
+    delayInit();
     uartInit();
     setPhase(Phase::BannerWrite);
     uartWrite("HelixDrift nRF52 DK bring-up app\n");
@@ -177,6 +201,6 @@ int main() {
         ++g_bringupStatus.heartbeat;
         ++counter;
         setPhase(Phase::Delay);
-        nrf_delay_ms(500);
+        delayMs(500u);
     }
 }

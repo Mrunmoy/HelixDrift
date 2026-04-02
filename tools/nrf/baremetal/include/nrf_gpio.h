@@ -11,6 +11,7 @@ enum {
 };
 
 typedef struct {
+    uint32_t _reserved0[321];
     volatile uint32_t OUT;
     volatile uint32_t OUTSET;
     volatile uint32_t OUTCLR;
@@ -18,7 +19,9 @@ typedef struct {
     volatile uint32_t DIR;
     volatile uint32_t DIRSET;
     volatile uint32_t DIRCLR;
-    uint32_t _reserved0[120];
+    volatile uint32_t LATCH;
+    volatile uint32_t DETECTMODE;
+    uint32_t _reserved1[118];
     volatile uint32_t PIN_CNF[32];
 } nrf_gpio_regs_t;
 
