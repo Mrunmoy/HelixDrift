@@ -79,6 +79,24 @@ tools/nrf/flash_openocd.sh \
   target/nrf52.cfg
 ```
 
+## Over-The-Air Smoke
+
+The repo also provides a smoke path that:
+- builds the Nordic UART Service sample
+- recovers the DK if APPROTECT is active
+- flashes it to the connected DK
+- scans for the BLE peripheral from this PC
+- writes a test payload over BLE
+- verifies that payload reaches the DK serial console
+
+```bash
+nix develop --command bash -lc 'tools/nrf/ble_reference_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
+```
+
+Supporting tool:
+- `tools/nrf/ble_nus_smoke.py`
+- `tools/nrf/recover_openocd.sh`
+
 ## Why This Exists
 
 HelixDrift already proves:
@@ -97,6 +115,11 @@ Validated in this branch:
 - nix-provided GNU Arm toolchain is accepted by the Nordic/Zephyr build
 - missing host utilities previously observed (`dtc`, `gperf`) are now expected
   from the nix shell
+- the PC can discover the flashed DK over BLE and deliver a payload over the
+  Nordic UART Service, with the payload observed on the DK serial console
+- the repo-local recover + flash + BLE smoke path is reproducible with:
+  `tools/nrf/recover_openocd.sh`, `tools/nrf/flash_openocd.sh`,
+  and `tools/nrf/ble_nus_smoke.py`
 
 Still open:
 - binding HelixDrift OTA transport to a real BLE peripheral implementation

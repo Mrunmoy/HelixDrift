@@ -43,6 +43,9 @@ Result so far:
   host dependencies present
 - the BLE reference build path now bootstraps a pinned Nordic workspace under
   `.deps/ncs/v3.2.4` instead of relying on an out-of-repo personal install
+- the DK can now be recovered, reflashed with Nordic's `peripheral_uart`
+  sample, discovered over BLE from this PC, and exercised end to end by
+  sending a payload over NUS and observing that payload on the DK UART console
 
 #### Outcome
 

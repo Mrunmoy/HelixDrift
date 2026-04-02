@@ -251,6 +251,10 @@
   BLE reference lane reproducible from `nix develop` plus repo-local scripts
 - Task: Keep the Nordic/Zephyr BLE lane explicitly reference-only until a real
   HelixDrift target app advertises OTA characteristics on hardware
+- Task: Use the recovered Nordic UART Service smoke path as the current proof
+  that this PC, BLE adapter, DK, and nix shell can exercise a real over-the-
+  air data path before replacing the reference sample with a HelixDrift BLE
+  target
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

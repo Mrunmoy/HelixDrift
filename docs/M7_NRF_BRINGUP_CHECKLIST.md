@@ -131,7 +131,7 @@ Prove that this repository can drive a BLE-capable Nordic reference build from
 - [x] provide Zephyr/Nordic host utilities through `nix develop`
 - [x] bootstrap a pinned Nordic workspace under `.deps/ncs/`
 - [x] build a BLE reference sample for `nrf52dk/nrf52832`
-- [ ] flash and observe the reference BLE sample on hardware if needed
+- [x] recover, flash, and observe the reference BLE sample on hardware
 
 ### Commands
 
@@ -145,6 +145,8 @@ nix develop --command bash -lc 'tools/nrf/build_ncs_sample.sh'
 - the BLE reference workspace is bootstrapped locally under `.deps/`
 - the reference sample builds from the nix shell
 - no separately installed personal NCS toolchain is required
+- the PC can discover the DK over BLE and deliver a payload that is visible on
+  the DK UART console
 
 ## Phase 2: Board Bring-Up
 

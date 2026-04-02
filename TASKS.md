@@ -77,6 +77,9 @@ Current M7 bring-up progress:
 - [x] repo-local scripts now bootstrap a pinned Nordic Connect SDK workspace
       under `.deps/ncs/` and build a BLE reference sample without requiring a
       separately installed personal NCS toolchain
+- [x] repo-local BLE reference smoke now recovers the DK, flashes a Nordic
+      UART sample, discovers it over BLE from this PC, and verifies payload
+      delivery on the DK UART console
 - [ ] HelixDrift-target BLE OTA transport on the DK remains open
 
 ### Wave A — Immediate (Codex / Fusion)
@@ -125,7 +128,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
 | M5-M6: Calibration + Multi-node | ~100% | Simulation-side calibration, disturbance characterization, and three-node body-chain proofs are landed; long-run mild-impairment drift is documented as a current limitation |
-| M7: Platform Port (nRF52) | ~90% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, OTA manager/service state handling, MCUboot slot promotion, and a repo-local BLE reference build lane are proven; real HelixDrift BLE OTA transport and attached-sensor bring-up remain open |
+| M7: Platform Port (nRF52) | ~92% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, OTA manager/service state handling, MCUboot slot promotion, and a repo-local BLE reference build + over-the-air smoke lane are proven; real HelixDrift BLE OTA transport and attached-sensor bring-up remain open |
 
 ## Reference Documents
 
