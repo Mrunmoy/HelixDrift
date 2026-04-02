@@ -2101,6 +2101,60 @@ consume stable traces later.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M7 DK UART OTA Transport
+
+**Intent:**  
+Close the biggest remaining OTA transport gap on currently available hardware
+ by proving the existing backend + `OtaManager` + MCUboot chain can be driven
+ remotely over the DK's VCOM path, without depending on a BLE stack that does
+ not yet exist in-repo.
+
+**Changes made:**
+
+1. Added `firmware/common/ota/UartOtaProtocol.hpp`, a tiny framed protocol for:
+   - device info query/response
+   - OTA control writes and status responses
+   - chunked data writes and acknowledgements
+2. Added `tests/test_uart_ota_protocol.cpp` covering:
+   - frame encode/decode
+   - checksum rejection
+   - parser resynchronization through noise
+   - oversized-payload rejection
+3. Added bootable DK app targets:
+   - `nrf52dk_ota_serial_v1`
+   - `nrf52dk_ota_serial_v2`
+4. Added `examples/nrf52dk-ota-serial/src/main.cpp`, which:
+   - keeps the LED heartbeat alive
+   - exposes OTA info/status/control/data over `/dev/ttyACM0`
+   - reuses `NrfOtaFlashBackend`, `OtaManager`, `OtaManagerAdapter`, and
+     `BleOtaService` instead of inventing a parallel OTA state machine
+   - schedules a reset after successful commit so MCUboot can promote the
+     staged image
+5. Added `tools/nrf/uart_ota_upload.py`, a repo-local uploader that:
+   - queries the current version over UART
+   - sends begin/data/commit frames
+   - waits through reboot
+   - verifies the post-upgrade version over UART
+6. Added `tools/nrf/ota_dk_uart_smoke.sh`, which performs the full clean-board
+   smoke:
+   - build nRF targets and bootloader
+   - sign `ota-v1` and `ota-v2`
+   - mass erase the DK
+   - flash MCUboot + signed `ota-v1`
+   - upload signed `ota-v2` over `/dev/ttyACM0`
+   - verify that the board comes back as `ota-v2`
+
+**Result:**  
+Remote OTA is now proven end-to-end on the currently available DK hardware.
+The project no longer depends on synthetic on-target OTA traffic alone: a host
+ uploader can stage a signed image through the real VCOM path, commit it, and
+ watch the board reboot into the upgraded image through MCUboot.
+
+**Verification:**  
+`./build.py --host-only -t`  
+`./build.py --nrf-only`  
+`tools/nrf/ota_dk_uart_smoke.sh /dev/ttyACM0 target/nrf52.cfg`
+
 ### Feature: Nix-Only nRF Toolchain And Honest OTA Layout
 
 **Intent:**  

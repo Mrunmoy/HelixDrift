@@ -26,6 +26,7 @@ target_include_directories(helix_mocap_common PUBLIC
 
 add_library(helix_ota STATIC
     firmware/common/ota/McubootOverwriteOnlyTrailer.hpp
+    firmware/common/ota/UartOtaProtocol.hpp
     firmware/common/ota/OtaManager.cpp
     firmware/common/ota/BleOtaService.cpp
 )
@@ -124,6 +125,31 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     helix_add_nrf52dk_ota_probe(nrf52dk_ota_probe_v1 "v1" 500)
     helix_add_nrf52dk_ota_probe(nrf52dk_ota_probe_v2 "v2" 125)
 
+    function(helix_add_nrf52dk_ota_serial target label interval_ms)
+        add_executable(${target}
+            ${NRF52DK_STARTUP}
+            examples/nrf52dk-ota-serial/src/main.cpp
+            examples/nrf52-mocap-node/src/NrfOtaFlashBackend.cpp
+        )
+        target_include_directories(${target} PRIVATE
+            tools/nrf/baremetal/include
+            tools/nrf/stubs/include
+            firmware/common/ota
+            examples/nrf52-mocap-node/src
+        )
+        target_compile_definitions(${target} PRIVATE
+            HELIX_OTA_PROBE_LABEL="${label}"
+            HELIX_OTA_PROBE_INTERVAL_MS=${interval_ms}
+        )
+        target_link_libraries(${target} PRIVATE helix_blink helix_ota)
+        target_link_options(${target} PRIVATE -T${NRF52DK_APP_LD} -Wl,-Map=${target}.map)
+        set_target_properties(${target} PROPERTIES LINK_DEPENDS "${NRF52DK_APP_LD}")
+        helix_add_nrf_artifacts(${target})
+    endfunction()
+
+    helix_add_nrf52dk_ota_serial(nrf52dk_ota_serial_v1 "ota-v1" 500)
+    helix_add_nrf52dk_ota_serial(nrf52dk_ota_serial_v2 "ota-v2" 125)
+
     add_executable(nrf52dk_selftest
         ${NRF52DK_STARTUP}
         examples/nrf52dk-selftest/src/main.cpp
@@ -184,6 +210,7 @@ if(HELIXDRIFT_BUILD_TESTS)
         tests/test_mocap_profiles.cpp
         tests/test_ota_manager.cpp
         tests/test_ble_ota_service.cpp
+        tests/test_uart_ota_protocol.cpp
     )
     target_include_directories(helix_tests PRIVATE
         tests/mocks

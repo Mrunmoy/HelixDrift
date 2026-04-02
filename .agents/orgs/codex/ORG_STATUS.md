@@ -244,6 +244,9 @@
   the real BLE transport path into the already-proven backend + MCUboot chain
 - Task: Push M7 from proven SWD flashing into real OTA-path validation once
   the DK runtime observability path is credible
+- Task: Treat UART/VCOM OTA as the current stable remote-update path on the DK
+  and use it to harden OTA semantics while BLE transport remains unimplemented
+  in-repo
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)
@@ -259,3 +262,15 @@
 - Ready to merge into codex integration: yes
 - Waiting on fixes: no
 - Ready for top-level integration: yes
+
+## Latest Milestone Note
+
+- M7 UART OTA is now proven end-to-end on real hardware:
+  - signed `nrf52dk_ota_serial_v1` boots through MCUboot
+  - repo-local uploader stages signed `nrf52dk_ota_serial_v2` over
+    `/dev/ttyACM0`
+  - the app commits via the real OTA backend
+  - MCUboot promotes the image
+  - the board comes back reporting `ota-v2`
+- Remaining M7 OTA gap:
+  - real BLE transport path

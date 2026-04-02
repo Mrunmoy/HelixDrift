@@ -33,6 +33,6 @@ fi
   "${APP_BIN}" \
   "${OUT_BASE}.bin"
 
-echo "Signed DK OTA probe:"
+echo "Signed DK OTA target:"
 echo "  HEX: ${OUT_BASE}.hex"
 echo "  BIN: ${OUT_BASE}.bin"

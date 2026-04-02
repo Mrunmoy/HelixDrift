@@ -243,7 +243,12 @@ Current note:
   - stage signed `nrf52dk_ota_probe_v2` into slot 1
   - write overwrite-only permanent pending trailer
   - reboot into `v2` and observe live serial output on `/dev/ttyACM0`
-- the remaining work is the real BLE transport path into the already-proven
+- the repo now also proves a real transport-driven remote update on the DK:
+  - flash signed `nrf52dk_ota_serial_v1`
+  - upload signed `nrf52dk_ota_serial_v2` over `/dev/ttyACM0`
+  - commit via the real backend/service path
+  - reboot and observe `ota-v2` over the same UART path
+- the remaining OTA transport work is the real BLE path into the already-proven
   backend and bootloader flow
 
 ## Phase 5: BLE OTA Service Validation
@@ -269,6 +274,11 @@ upgrade.
 - new image boots
 - new image can be confirmed or retained according to the chosen OTA policy
 - confirmation logic works
+
+Current note:
+- The OTA transport semantics are now proven over UART/VCOM on the DK.
+- BLE transport is still open, but it is now a transport-binding problem rather
+  than a storage/commit/MCUboot reliability problem.
 
 ## Phase 6: Failure Cases
 
