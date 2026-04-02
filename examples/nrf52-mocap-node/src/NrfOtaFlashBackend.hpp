@@ -11,8 +11,8 @@ namespace helix {
  * controller) via nrfx_nvmc.
  *
  * Secondary slot layout (from xiao_nrf52840_app.ld):
- *   Base:  0x00070000  (448 KB offset from flash start)
- *   Size:  384 KB
+ *   Base:  0x00070000
+ *   Size:  352 KB
  *
  * Flash write rules for nRF52840:
  *   - Must erase a full 4 KB page before writing (NVMC_PAGE_SIZE = 4096).
@@ -32,7 +32,7 @@ public:
     uint32_t slotBase() const                                         { return slotBase_; }
 
     static constexpr uint32_t kDefaultSecondarySlotBase = 0x00070000u;
-    static constexpr uint32_t kDefaultSecondarySlotSize = 384u * 1024u;
+    static constexpr uint32_t kDefaultSecondarySlotSize = 352u * 1024u;
     static constexpr uint32_t kPageSize                 = 4096u;
 
 private:

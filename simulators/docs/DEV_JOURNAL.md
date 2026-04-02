@@ -1945,6 +1945,62 @@ consume stable traces later.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: Nix-Only nRF Toolchain And Honest OTA Layout
+
+**Intent:**  
+Make the `nrf-xiao-nrf52840` branch reproducible from `git clone --recurse-submodules`
++ `nix develop` alone, while replacing the now-false 64 KB bootloader assumption
+with a measured flash layout that matches the standalone MCUboot build.
+
+**Changes made:**
+
+1. Added vendored `third_party/mcuboot` usage for the nRF branch and removed
+   the old ESP-IDF top-level dependency from the supported nRF path.
+2. Hardened `flake.nix` so the dev shell now provides:
+   - ARM cross tools
+   - OpenOCD / pyOCD / west / dfu-util / serial tools
+   - Python packages needed by the repo's analysis and signing helpers
+3. Added repo-local developer helpers:
+   - `tools/dev/doctor.sh`
+   - `tools/imgtool.sh`
+   - `tools/nrf/flash_openocd.sh` nix self-wrap
+4. Updated `build.py` to initialize the required top-level submodules and use
+   repo-local signing helpers instead of assuming a globally installed `imgtool`.
+5. Reworked the standalone bootloader build to use the vendored MCUboot tree
+   directly, including the minimum crypto / ASN.1 / key / flash-map glue needed
+   for a bare-metal build on this branch.
+6. Measured the actual standalone MCUboot image size and updated the branch
+   flash layout accordingly:
+   - bootloader: `96 KB`
+   - primary slot: `352 KB`
+   - secondary slot: `352 KB`
+   - scratch: `32 KB`
+   - NVS/calibration: `192 KB`
+7. Updated the app linker, boot linker, OTA backend defaults, and signing
+   script to match the new measured layout.
+8. Corrected the DK bring-up UART pins to match Nordic's `nrf52dk_nrf52832`
+   VCOM routing (`TX=P0.23`, `RX=P0.22`) for the next live serial pass.
+
+**Result:**  
+The repo no longer depends on the local Nordic toolchain install for HelixDrift
+itself. From the nix shell, the supported paths now cover:
+
+- `tools/dev/doctor.sh`
+- `./build.py --host-only -t`
+- `./build.py --nrf-only`
+- `./build.py --nrf-only --sign`
+- `./build.py --bootloader`
+
+The old 64 KB bootloader plan is now replaced by a layout backed by a real
+standalone MCUboot size measurement.
+
+**Verification:**  
+`tools/dev/doctor.sh`  
+`./build.py --host-only -t`  
+`./build.py --nrf-only`  
+`./build.py --nrf-only --sign`  
+`./build.py --bootloader`
+
 ### Feature: M5 Reusable Calibrated Magnetometer Path
 
 **Intent:**  

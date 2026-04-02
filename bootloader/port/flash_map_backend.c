@@ -6,10 +6,10 @@
  * core (boot/bootutil/include/flash_map_backend/flash_map_backend.h).
  *
  * Flash layout matching tools/linker/xiao_nrf52840_app.ld:
- *   FLASH_AREA_BOOTLOADER (id=0):  0x00000000, 64 KB
- *   FLASH_AREA_IMAGE_0   (id=1):  0x00010000, 384 KB  (primary slot)
- *   FLASH_AREA_IMAGE_1   (id=2):  0x00070000, 384 KB  (secondary slot)
- *   FLASH_AREA_IMAGE_SCRATCH (id=3): 0x000D0000, 32 KB  (unused in OVERWRITE_ONLY)
+ *   FLASH_AREA_BOOTLOADER (id=0):  0x00000000, 96 KB
+ *   FLASH_AREA_IMAGE_0   (id=1):  0x00018000, 352 KB  (primary slot)
+ *   FLASH_AREA_IMAGE_1   (id=2):  0x00070000, 352 KB  (secondary slot)
+ *   FLASH_AREA_IMAGE_SCRATCH (id=3): 0x000C8000, 32 KB  (unused in OVERWRITE_ONLY)
  */
 
 #include <stddef.h>
@@ -31,27 +31,27 @@ static const struct flash_area s_flash_areas[] = {
         .fa_device_id = 0,
         .pad16      = 0,
         .fa_off     = 0x00000000u,
-        .fa_size    = 64u * 1024u,
+        .fa_size    = 96u * 1024u,
     },
     [FLASH_AREA_ID_IMAGE_0] = {
         .fa_id      = FLASH_AREA_ID_IMAGE_0,
         .fa_device_id = 0,
         .pad16      = 0,
-        .fa_off     = 0x00010000u,
-        .fa_size    = 384u * 1024u,
+        .fa_off     = 0x00018000u,
+        .fa_size    = 352u * 1024u,
     },
     [FLASH_AREA_ID_IMAGE_1] = {
         .fa_id      = FLASH_AREA_ID_IMAGE_1,
         .fa_device_id = 0,
         .pad16      = 0,
         .fa_off     = 0x00070000u,
-        .fa_size    = 384u * 1024u,
+        .fa_size    = 352u * 1024u,
     },
     [FLASH_AREA_ID_SCRATCH] = {
         .fa_id      = FLASH_AREA_ID_SCRATCH,
         .fa_device_id = 0,
         .pad16      = 0,
-        .fa_off     = 0x000D0000u,
+        .fa_off     = 0x000C8000u,
         .fa_size    = 32u * 1024u,
     },
 };
@@ -145,6 +145,19 @@ int flash_area_get_sectors(int fa_id, uint32_t* count,
     }
     *count = n;
     flash_area_close(fap);
+    return 0;
+}
+
+int flash_area_get_sector(const struct flash_area* fap, uint32_t off,
+                          struct flash_sector* sector) {
+    const uint32_t page_size = NRFX_NVMC_FLASH_PAGE_SIZE;
+
+    if (fap == NULL || sector == NULL || off >= fap->fa_size) {
+        return -1;
+    }
+
+    sector->fs_off = (off / page_size) * page_size;
+    sector->fs_size = page_size;
     return 0;
 }
 

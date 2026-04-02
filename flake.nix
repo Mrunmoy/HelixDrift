@@ -7,11 +7,21 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
+      pythonEnv = pkgs.python3.withPackages (ps: with ps; [
+        pytest
+        numpy
+        matplotlib
+        pydantic
+        click
+        cbor2
+        intelhex
+        cryptography
+      ]);
     in {
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
           git
-          python3
+          pythonEnv
           curl
           cmake
           ninja
@@ -23,6 +33,7 @@
           python3Packages.pyusb
           usbutils
           dfu-util
+          netcat-openbsd
           picocom
           minicom
         ];

@@ -8,18 +8,33 @@ Simulation-first mocap node firmware workspace for the `nRF52` integration path.
 ## Quick Start
 
 ```bash
-./build.py --clean --host-only -t
+git clone --recurse-submodules <repo-url>
+cd HelixDrift
+nix develop --command bash -lc 'tools/dev/doctor.sh'
+nix develop --command bash -lc './build.py --clean --host-only -t'
 ```
 
 This runs the full host-side build and test suite, including simulator-backed
 integration tests.
 
+Supported developer setup on this branch:
+
+- `git`
+- `nix`
+- `git clone --recurse-submodules`
+
+No separate manual installation of Nordic SDKs, Zephyr SDKs, `nrfutil`,
+`west`, Python packages, or flash helpers is required for HelixDrift itself.
+
 ## Build Commands
 
 - `./build.py --host-only -t`: host build and tests only.
 - `./build.py --nrf-only`: nRF firmware build only.
+- `./build.py --bootloader`: bootloader build only.
+- `./build.py --nrf-only --sign`: build and sign the nRF app image.
 - `./build.py --clean`: clean then build.
 - `./magic.sh`: convenience wrapper for host tests + nRF build.
+- `tools/dev/doctor.sh`: verify the nix shell provides the full supported toolchain.
 
 `build.py` auto-initializes submodules and calls platform tooling when needed.
 
@@ -83,6 +98,20 @@ Or flash the DK bring-up target:
 
 ```bash
 nix develop --command bash -lc 'tools/nrf/flash_openocd.sh build/nrf/nrf52dk_bringup.hex'
+```
+
+## Signing Images
+
+Sign via the repo-local wrapper around the vendored MCUboot `imgtool`:
+
+```bash
+nix develop --command bash -lc './build.py --nrf-only --sign'
+```
+
+Or directly:
+
+```bash
+nix develop --command bash -lc './scripts/sign_firmware.sh'
 ```
 
 ## Sensor Assembly

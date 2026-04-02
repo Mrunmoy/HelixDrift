@@ -11,12 +11,16 @@ def run(cmd, cwd):
     subprocess.run(cmd, cwd=cwd, shell=True, check=True)
 
 
+def ensure_submodules(repo_root):
+    run("git submodule update --init external/SensorFusion third_party/mcuboot", repo_root)
+
+
 def nix_wrap(inner_cmd):
     return "nix develop --command bash -lc " + shlex.quote(inner_cmd)
 
 
 def build_host(repo_root, run_tests):
-    run("git submodule update --init external/SensorFusion", repo_root)
+    ensure_submodules(repo_root)
     cmake_cfg = (
         "cmake -S . -B build/host -G Ninja "
         "-DHELIXDRIFT_BUILD_TESTS=ON -DHELIXDRIFT_BUILD_NRF_EXAMPLES=OFF"
@@ -28,11 +32,12 @@ def build_host(repo_root, run_tests):
 
 
 def build_nrf(repo_root):
-    run("git submodule update --init external/SensorFusion", repo_root)
+    ensure_submodules(repo_root)
     run("rm -rf build/nrf", repo_root)
+    toolchain = os.path.join(repo_root, "tools/toolchains/arm-none-eabi-gcc.cmake")
     cmake_cfg = (
         "cmake -S . -B build/nrf -G Ninja "
-        "-DCMAKE_TOOLCHAIN_FILE=tools/toolchains/arm-none-eabi-gcc.cmake "
+        f"-DCMAKE_TOOLCHAIN_FILE={shlex.quote(toolchain)} "
         "-DHELIXDRIFT_BUILD_TESTS=OFF -DHELIXDRIFT_BUILD_NRF_EXAMPLES=ON"
     )
     run(nix_wrap(cmake_cfg), repo_root)
@@ -40,31 +45,20 @@ def build_nrf(repo_root):
 
 
 def build_bootloader(repo_root):
+    ensure_submodules(repo_root)
     run("rm -rf build/bootloader", repo_root)
+    toolchain = os.path.join(repo_root, "tools/toolchains/arm-none-eabi-gcc.cmake")
     cmake_cfg = (
         "cmake -S bootloader -B build/bootloader -G Ninja "
-        "-DCMAKE_TOOLCHAIN_FILE=tools/toolchains/arm-none-eabi-gcc.cmake "
-        f"-DCMAKE_SOURCE_DIR={repo_root}"
+        f"-DCMAKE_TOOLCHAIN_FILE={shlex.quote(toolchain)}"
     )
     run(nix_wrap(cmake_cfg), repo_root)
     run(nix_wrap("cmake --build build/bootloader --parallel"), repo_root)
 
 
 def sign_firmware(repo_root, key="keys/dev_signing_key.pem"):
-    app_hex = "build/nrf/nrf52_mocap_node.hex"
-    signed_hex = "build/nrf/nrf52_mocap_node_signed.hex"
-    sign_cmd = (
-        f"imgtool sign "
-        f"--key {key} "
-        f"--align 4 "
-        f"--version 1.0.0+0 "
-        f"--header-size 0x200 "
-        f"--slot-size 0x60000 "
-        f"--pad-header "
-        f"{app_hex} {signed_hex}"
-    )
+    sign_cmd = f"./scripts/sign_firmware.sh build/nrf/nrf52_mocap_node.hex {key} 1.0.0+0 build/nrf/nrf52_mocap_node_signed.hex"
     run(nix_wrap(sign_cmd), repo_root)
-    print(f"Signed image: {signed_hex}")
 
 
 def main():

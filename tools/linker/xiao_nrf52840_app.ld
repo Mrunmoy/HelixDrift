@@ -3,11 +3,11 @@
  * Application linker script for Seeed XIAO nRF52840 running behind MCUboot.
  *
  * Flash layout (1 MB):
- *   0x00000000 - 0x0000FFFF  MCUboot bootloader   (64 KB)
- *   0x00010000 - 0x0006FFFF  Primary slot          (384 KB)
- *   0x00070000 - 0x000CFFFF  Secondary slot        (384 KB)
- *   0x000D0000 - 0x000D7FFF  Scratch               (32 KB)
- *   0x000D8000 - 0x000FFFFF  NVS / Calibration     (160 KB)
+ *   0x00000000 - 0x00017FFF  MCUboot bootloader    (96 KB)
+ *   0x00018000 - 0x0006FFFF  Primary slot         (352 KB)
+ *   0x00070000 - 0x000C7FFF  Secondary slot       (352 KB)
+ *   0x000C8000 - 0x000CFFFF  Scratch               (32 KB)
+ *   0x000D0000 - 0x000FFFFF  NVS / Calibration    (192 KB)
  *
  * The app binary is placed at PRIMARY_SLOT_BASE + MCUBOOT_HEADER_SIZE.
  * MCUboot header size: 0x200 (512 B), so app FLASH starts at 0x00010200.
@@ -17,9 +17,9 @@
  */
 
 MCUBOOT_HEADER_SIZE = 0x200;
-PRIMARY_SLOT_BASE   = 0x00010000;
+PRIMARY_SLOT_BASE   = 0x00018000;
 APP_FLASH_ORIGIN    = PRIMARY_SLOT_BASE + MCUBOOT_HEADER_SIZE;
-APP_FLASH_LENGTH    = 384K - MCUBOOT_HEADER_SIZE;
+APP_FLASH_LENGTH    = 352K - MCUBOOT_HEADER_SIZE;
 
 MEMORY {
     FLASH (rx)  : ORIGIN = APP_FLASH_ORIGIN, LENGTH = APP_FLASH_LENGTH

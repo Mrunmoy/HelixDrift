@@ -1,6 +1,7 @@
 [submodule "external/SensorFusion"]
 	path = external/SensorFusion
 	url = https://github.com/Mrunmoy/SensorFusion.git
-[submodule "third_party/esp-idf"]
-	path = third_party/esp-idf
-	url = https://github.com/espressif/esp-idf.git
+[submodule "third_party/mcuboot"]
+	path = third_party/mcuboot
+	url = https://github.com/mcu-tools/mcuboot.git
+	shallow = true

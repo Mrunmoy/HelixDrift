@@ -20,11 +20,11 @@ is:
 
 | Region | Start | Size |
 |---|---:|---:|
-| Bootloader | `0x00000000` | `64 KB` |
-| Primary slot | `0x00010000` | `384 KB` |
-| Secondary slot | `0x00070000` | `384 KB` |
-| Scratch | `0x000D0000` | `32 KB` |
-| NVS / calibration | `0x000D8000` | `160 KB` |
+| Bootloader | `0x00000000` | `96 KB` |
+| Primary slot | `0x00018000` | `352 KB` |
+| Secondary slot | `0x00070000` | `352 KB` |
+| Scratch | `0x000C8000` | `32 KB` |
+| NVS / calibration | `0x000D0000` | `192 KB` |
 
 The current application image is small relative to that layout.
 
@@ -34,7 +34,7 @@ Latest measured nRF app size:
 - `bss`: `8560 B`
 - total reported by `arm-none-eabi-size`: `35808 B`
 
-That means the current app occupies under `10%` of a `384 KB` slot.
+That means the current app occupies under `10%` of a `352 KB` slot.
 
 ## Recommendation
 
@@ -58,9 +58,9 @@ Practical conclusion:
 ## 2. Keep the Current Slot Sizes for Now
 
 Recommended current layout:
-- Bootloader: `64 KB`
-- Primary slot: `384 KB`
-- Secondary slot: `384 KB`
+- Bootloader: `96 KB`
+- Primary slot: `352 KB`
+- Secondary slot: `352 KB`
 - Scratch: `32 KB`
 - NVS/calibration: `160 KB`
 

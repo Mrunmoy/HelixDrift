@@ -10,8 +10,8 @@
 #   VERSION    1.0.0+0
 #   OUTPUT_HEX build/nrf/nrf52_mocap_node_signed.hex
 #
-# The signed image is padded to the primary slot size (0x60000 = 384 KB)
-# and ready to flash at offset 0x00010000 (after the 64 KB MCUboot bootloader).
+# The signed image is padded to the primary slot size (0x58000 = 352 KB)
+# and ready to flash at offset 0x00018000 (after the 96 KB MCUboot bootloader).
 #
 # Flash procedure (J-Link):
 #   nrfjprog --program build/bootloader/nrf52_bootloader.hex --chiperase --verify --reset
@@ -28,14 +28,14 @@ OUTPUT_HEX="${4:-${REPO_ROOT}/build/nrf/nrf52_mocap_node_signed.hex}"
 
 # Flash layout constants (must match tools/linker/xiao_nrf52840_app.ld)
 HEADER_SIZE="0x200"    # 512 B — MCUboot image header
-SLOT_SIZE="0x60000"    # 384 KB — primary / secondary slot size
+SLOT_SIZE="0x58000"    # 352 KB — primary / secondary slot size
 ALIGN="4"              # nRF52840 NVMC write alignment
 
 echo "Signing: ${APP_HEX}"
 echo "Key:     ${KEY_PEM}"
 echo "Version: ${VERSION}"
 
-imgtool sign \
+"${REPO_ROOT}/tools/imgtool.sh" sign \
     --key        "${KEY_PEM}" \
     --align      "${ALIGN}" \
     --version    "${VERSION}" \
@@ -47,12 +47,16 @@ imgtool sign \
 
 echo "Signed image: ${OUTPUT_HEX}"
 
-# Extract the public key for verification (imgtool verify requires pubkey only).
+# Extract the public key if the installed imgtool emits a PEM-compatible format.
+# Older MCUboot/imgtool revisions emit a C array instead, which is still useful
+# for embedding in the bootloader but cannot be fed back into `imgtool verify`.
 PUB_KEY="${KEY_PEM%.pem}_pub.pem"
-imgtool getpub --key "${KEY_PEM}" --output "${PUB_KEY}" 2>/dev/null || true
+"${REPO_ROOT}/tools/imgtool.sh" getpub --key "${KEY_PEM}" --output "${PUB_KEY}" 2>/dev/null || true
 
-# Verify the signed image if a public key is available.
-if [ -f "${PUB_KEY}" ]; then
-    imgtool verify --key "${PUB_KEY}" "${OUTPUT_HEX}"
+# Verify only when the generated public key is actually PEM.
+if [ -f "${PUB_KEY}" ] && grep -q "BEGIN PUBLIC KEY" "${PUB_KEY}"; then
+    "${REPO_ROOT}/tools/imgtool.sh" verify --key "${PUB_KEY}" "${OUTPUT_HEX}"
     echo "Signature verification: OK"
+else
+    echo "Signature verification: skipped (imgtool getpub did not emit PEM)"
 fi

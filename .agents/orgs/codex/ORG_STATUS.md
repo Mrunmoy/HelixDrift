@@ -111,6 +111,16 @@
   - real-hardware OTA manager/service proof on the DK through synthetic
     begin/data/commit traffic routed via `BleOtaService`, `OtaManager`, and
     `NrfOtaFlashBackend` into a dedicated test flash slot
+  - nix-only nRF developer contract hardened so repo clone + submodules +
+    `nix develop` now covers doctor/build/sign/bootloader paths without
+    relying on manual NCS / Zephyr / imgtool installs
+  - standalone MCUboot build ported onto the vendored top-level `third_party/mcuboot`
+    tree with repo-local crypto, key, and flash-map glue for the nRF branch
+  - measured standalone bootloader size proving the old 64 KB plan was too
+    small; branch layout updated to a 96 KB bootloader slot with 352 KB
+    primary/secondary slots and a 192 KB NVS region
+  - DK bring-up UART pins corrected to Nordic's `P0.23/P0.22` VCOM routing for
+    the next real serial-output pass
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -215,6 +225,9 @@
   branch
 - Task: Use the available nRF52 DK as a generic hardware bring-up target
   without conflating it with the final nRF52840 board assumptions
+- Task: Keep the nix-only developer contract intact while moving the next
+  hardware-observability step from retained-RAM readback toward live DK VCOM
+  output on the corrected Nordic UART pins
 - Task: Prove serial/VCOM output or otherwise establish a reliable real-board
   runtime observability path on the DK
 - Task: Treat retained-RAM status plus direct flash readback as the current

@@ -18,6 +18,7 @@ Rule: if a fix belongs to SensorFusion, fix it in `SensorFusion` first, push it,
 - [x] Pose inference v1 requirements defined (orientation-only)
 - [x] Pose inference feasibility analysis complete
 - [x] nRF branch scrubbed of legacy ESP32/ESP-IDF paths and docs
+- [x] nix-only nRF developer shell hardened with vendored MCUboot and repo-local doctor/sign/flash helpers
 
 ## Mission Focus
 
@@ -42,6 +43,8 @@ removed so platform-specific work stays isolated to the ESP branch.
 See `docs/CODEX_NEXT_WAVES.md` for detailed execution plan and acceptance criteria.
 
 Current M7 bring-up progress:
+- [x] clone + submodules + `nix develop` is now sufficient for HelixDrift host build,
+      nRF build, standalone bootloader build, and signed-image generation
 - [x] `nix develop` now provides OpenOCD, pyOCD, west, and serial tools
 - [x] nRF builds now emit `.bin` and `.hex` artifacts automatically
 - [x] OpenOCD flashing is proven on a connected Nordic nRF52 DK
@@ -56,6 +59,8 @@ Current M7 bring-up progress:
       proven on real hardware via the DK self-test
 - [x] OTA manager/service state-machine path is now proven on real hardware via
       synthetic begin/data/commit self-test traffic on the DK
+- [x] standalone MCUboot build now fits the branch layout after resizing the
+      bootloader slot to `96 KB` and the primary/secondary slots to `352 KB`
 
 ### Wave A — Immediate (Codex / Fusion)
 

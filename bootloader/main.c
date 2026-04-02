@@ -8,7 +8,7 @@
  *   4. On failure (no valid image), a fault LED is toggled forever.
  *
  * The application image header is MCUBOOT_IMAGE_HEADER_SIZE (0x200) bytes,
- * so the app vectors start at PRIMARY_SLOT_BASE + 0x200.
+ * so the app vectors start at the configured primary slot base + 0x200.
  */
 
 #include "bootutil/bootutil.h"
@@ -62,7 +62,7 @@ int main(void) {
     }
 
     /* Compute the address of the application's vector table.
-     * rsp.br_image_off is the primary slot base (0x00010000).
+     * rsp.br_image_off is the primary slot base from the flash map.
      * rsp.br_hdr->ih_hdr_size is MCUBOOT_IMAGE_HEADER_SIZE (0x200). */
     uint32_t app_vector_table = rsp.br_image_off + rsp.br_hdr->ih_hdr_size;
 

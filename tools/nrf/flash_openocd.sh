@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! command -v openocd >/dev/null 2>&1; then
+  exec nix develop --command bash -lc "$(printf '%q ' "$0" "$@")"
+fi
+
 if [[ $# -lt 1 || $# -gt 2 ]]; then
   echo "usage: $0 <image.hex|image.bin> [target_cfg]" >&2
   echo "example: $0 build/nrf/nrf52dk_blinky.hex target/nrf52.cfg" >&2

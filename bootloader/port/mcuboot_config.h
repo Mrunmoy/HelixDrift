@@ -27,16 +27,19 @@
 
 /* ---- Image header size (bytes) ------------------------------------------ */
 /* Must match the --header-size argument passed to imgtool.py. */
-#define BOOT_MAX_IMG_SECTORS          256
+#define MCUBOOT_MAX_IMG_SECTORS       256
 #define MCUBOOT_IMAGE_HEADER_SIZE     0x200   /* 512 bytes */
 
 /* ---- Flash write alignment (bytes) -------------------------------------- */
 /* nRF52840 NVMC requires 4-byte aligned writes. */
 #define MCUBOOT_BOOT_MAX_ALIGN        4
 
-/* ---- Logging ------------------------------------------------------------- */
-/* Disable MCUboot's logging subsystem (no UART in minimal bootloader). */
-#define MCUBOOT_HAVE_LOGGING          0
+/* ---- Image topology ------------------------------------------------------ */
+#define MCUBOOT_IMAGE_NUMBER          1
+
+/* ---- Bare-metal stubs expected by MCUboot ------------------------------- */
+#define MCUBOOT_WATCHDOG_FEED()       do { } while (0)
+#define MCUBOOT_CPU_IDLE()            do { } while (0)
 
 /* ---- Assert -------------------------------------------------------------- */
 /* Trap on assertion failure — loop forever. */

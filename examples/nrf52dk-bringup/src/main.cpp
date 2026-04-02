@@ -4,8 +4,9 @@
 
 namespace {
 constexpr uint32_t kLedPin = 17;  // LED1 on nRF52 DK, active low.
-constexpr uint32_t kTxPin = 6;    // Virtual COM TXD.
-constexpr uint32_t kRxPin = 8;    // Virtual COM RXD.
+// nRF52 DK VCOM routing from Nordic's nrf52dk_nrf52832 overlay.
+constexpr uint32_t kTxPin = 23;   // UART0 TXD -> interface MCU RX.
+constexpr uint32_t kRxPin = 22;   // UART0 RXD <- interface MCU TX.
 
 constexpr uintptr_t kUart0Base = 0x40002000u;
 

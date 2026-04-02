@@ -1,7 +1,7 @@
 /* xiao_nrf52840_boot.ld
  *
  * Bootloader linker script for the MCUboot binary on nRF52840.
- * MCUboot occupies the first 64 KB of flash (0x00000000 – 0x0000FFFF).
+ * MCUboot occupies the first 96 KB of flash (0x00000000 – 0x00017FFF).
  * After validating the application image it jumps to PRIMARY_SLOT_BASE + HEADER_SIZE.
  *
  * nRF52840: Cortex-M4F, 1 MB Flash @ 0x00000000, 256 KB RAM @ 0x20000000.
@@ -9,7 +9,7 @@
  */
 
 MEMORY {
-    FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 64K
+    FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 96K
     RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 32K   /* MCUboot only needs ~8-16 KB */
 }
 
@@ -24,6 +24,7 @@ SECTIONS {
     .text : {
         *(.text*)
         *(.rodata*)
+        *(.eh_frame*)
         . = ALIGN(4);
     } > FLASH
 
@@ -51,16 +52,19 @@ SECTIONS {
         _ebss = .;
     } > RAM
 
+    end = .;
+    _end = .;
+
     /* 4 KB bootloader stack anchored at the top of its RAM region */
-    .stack (NOLOAD) : ORIGIN(RAM) + LENGTH(RAM) - 4K {
+    . = ORIGIN(RAM) + LENGTH(RAM) - 0x1000;
+    .stack (NOLOAD) : {
         _stack_bottom = .;
-        . += 4K;
+        . += 0x1000;
         _stack_top = .;
     } > RAM
 
     /DISCARD/ : {
         *(.ARM.exidx*)
         *(.ARM.extab*)
-        *(.eh_frame*)
     }
 }
