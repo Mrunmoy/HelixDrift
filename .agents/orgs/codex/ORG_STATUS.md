@@ -127,12 +127,20 @@
     `/dev/ttyACM0`
   - repo-local nRF52 bare-metal GPIO helper corrected to Nordic's real
     register layout, restoring the DK LED heartbeat path on `P0.17`
+  - repo-local Zephyr/NCS Helix BLE OTA app for `nrf52dk/nrf52832`, built from
+    the nix shell through a bootstrapped `.deps/ncs/` workspace
+  - real Helix BLE OTA proven end to end on the connected DK:
+    `HelixOTA-v1` accepts a signed `v2` image over BLE from this PC, stages
+    it, commits it, reboots through MCUboot, and comes back advertising
+    `HelixOTA-v2`
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
   - `simulators/tests/`
   - `docs/`
   - `simulators/docs/DEV_JOURNAL.md`
+  - `tools/nrf/`
+  - `zephyr_apps/`
 - Review-only scopes:
   - `.agents/`
   - `TASKS.md`
@@ -218,6 +226,9 @@
 - Task: Prove the first end-to-end magnetic disturbance and recovery path
   through the real `Bmm350Simulator` and `MocapNodePipeline` before opening M6
   body-chain work
+- Task: Close the remaining M7 OTA gap by binding the proven Helix OTA manager
+  and backend path to a real BLE transport on the connected DK and verifying a
+  real `v1 -> v2` promotion over the air
 - Task: Start M6 with bounded three-node/body-chain scenarios only after the
   disturbance path is host-verified
 - Task: Expand M6 from the first static three-node chain proof into dynamic

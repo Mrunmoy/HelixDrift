@@ -17,7 +17,8 @@ This workflow is for:
   into HelixDrift
 - reducing developer setup friction for future OTA-over-BLE work
 
-It is not yet the final HelixDrift BLE OTA implementation.
+It now also includes a repo-local Helix BLE OTA lane for the connected
+`nrf52dk/nrf52832`.
 
 ## Prerequisites
 
@@ -134,5 +135,31 @@ Validated in this branch:
   and `tools/nrf/ble_nus_smoke.py`
 
 Still open:
-- binding HelixDrift OTA transport to a real BLE peripheral implementation
-- proving `v1 -> v2` over BLE on the DK
+- attached-sensor bring-up on real hardware
+- later RF sanity checks on additional Nordic targets
+
+## Helix BLE OTA On DK
+
+The repository now includes a real Helix BLE OTA target app:
+
+- `zephyr_apps/nrf52dk-ota-ble/`
+
+Supported build helper:
+
+```bash
+tools/nrf/build_helix_ble_ota.sh v1
+tools/nrf/build_helix_ble_ota.sh v2
+```
+
+Supported end-to-end smoke:
+
+```bash
+nix develop --command bash -lc 'tools/nrf/ble_ota_dk_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
+```
+
+This flow:
+- bootstraps the pinned NCS workspace if needed
+- builds the `HelixOTA-v1` and `HelixOTA-v2` images
+- recovers and flashes the DK with `v1`
+- uploads the signed `v2` image over BLE from this PC
+- waits for MCUboot promotion and the post-update `HelixOTA-v2` advertisement

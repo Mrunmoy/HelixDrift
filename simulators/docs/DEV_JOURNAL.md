@@ -1,5 +1,72 @@
 # Simulator Development Journal
 
+## 2026-04-03 - M7 Real Helix BLE OTA On DK
+
+### Feature: End-To-End HelixDrift BLE OTA On Current Hardware
+
+#### Intent
+
+Close the remaining M7 OTA gap by proving that the real Helix OTA control,
+data, backend, commit, and MCUboot promotion path can run over BLE on the
+connected nRF52 DK.
+
+#### Implementation Summary
+
+- Added an in-repo Zephyr/NCS external app under
+  `zephyr_apps/nrf52dk-ota-ble/` for `nrf52dk/nrf52832`.
+- Bound the existing Helix OTA logic to a real BLE GATT peripheral using:
+  - `BleOtaService`
+  - `OtaManager`
+  - `ZephyrOtaFlashBackend`
+- Added build variants for:
+  - `HelixOTA-v1`
+  - `HelixOTA-v2`
+- Added repo-local tooling for the full BLE OTA path:
+  - `tools/nrf/build_helix_ble_ota.sh`
+  - `tools/nrf/ble_ota_upload.py`
+  - `tools/nrf/ble_ota_dk_smoke.sh`
+- Hardened the upload path by:
+  - resuming advertising after disconnect
+  - using write-without-response for OTA data chunks
+  - using a proven small default data-chunk size
+- Extended `tools/dev/doctor.sh` so the nix shell now verifies the Python BLE
+  uploader dependency (`bleak`) as part of the supported developer contract.
+
+#### Verification
+
+Commands run:
+
+```bash
+./build.py --host-only -t
+./build.py --nrf-only
+nix develop --command bash -lc 'tools/nrf/build_helix_ble_ota.sh v1'
+nix develop --command bash -lc 'tools/nrf/build_helix_ble_ota.sh v2'
+nix develop --command bash -lc 'tools/nrf/ble_ota_dk_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
+```
+
+Observed result:
+
+- the DK boots `ota-ble-v1` and advertises `HelixOTA-v1`
+- this PC uploads the signed `v2` image over BLE
+- the image is staged and committed through the real Helix OTA backend
+- MCUboot promotes the staged image
+- the DK comes back advertising `HelixOTA-v2`
+
+Representative uploader output:
+
+```text
+before: F2:A5:1E:5F:5B:9C HelixOTA-v1
+status-before: state=0 bytes=0 last=0
+commit: OK, waiting for reboot
+after: F2:A5:1E:5F:5B:9C HelixOTA-v2
+```
+
+#### Outcome
+
+Real OTA over the air is now proven on current hardware. The remaining M7 work
+is no longer bootloader or OTA transport. It is attached-sensor bring-up on
+real hardware and later RF sanity checks on additional Nordic targets.
+
 ## 2026-04-03 - M7 Repo-Local BLE Reference Lane
 
 ### Feature: Nix-Driven Nordic BLE Reference Build Workflow

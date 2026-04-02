@@ -157,7 +157,7 @@ Prove the real nRF board boots, reaches main, and does not immediately fault.
 ### Checklist
 
 - [x] Flash a real DK-targeted image using the agreed nRF tool
-- [ ] Open serial log on the board port
+- [x] Open serial log on the board port
 - [x] Confirm startup reaches application main loop
 - [x] Confirm no immediate reset loop or hard fault
 - [x] Confirm watchdog is not tripping immediately
@@ -196,8 +196,37 @@ Current note:
 - serial/VCOM output from the custom bring-up app is now proven on
   `/dev/ttyACM0` using the DK's documented `P0.06/P0.08` UART routing
 - repo-local helpers exist for this path:
-  - `tools/nrf/read_symbol_words.sh`
-  - `tools/nrf/read_nrf52dk_selftest.sh`
+- `tools/nrf/read_symbol_words.sh`
+- `tools/nrf/read_nrf52dk_selftest.sh`
+
+## Phase 5: BLE OTA Validation
+
+### Goal
+
+Prove that the real Helix OTA control/data path runs over BLE on the DK, not
+just through synthetic traffic or UART/VCOM.
+
+### Checklist
+
+- [x] Build a repo-local Helix BLE OTA target app from `nix develop`
+- [x] Flash `HelixOTA-v1` to the DK
+- [x] Discover the target over BLE from this PC
+- [x] Upload a signed `v2` image over BLE
+- [x] Stage and commit the image through the real Helix OTA backend
+- [x] Observe MCUboot promotion and `HelixOTA-v2` after reboot
+
+### Commands
+
+```bash
+nix develop --command bash -lc 'tools/nrf/ble_ota_dk_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
+```
+
+### Pass Condition
+
+- the DK advertises `HelixOTA-v1`
+- the PC uploads the signed `v2` image over BLE
+- the board reboots through MCUboot into `v2`
+- the DK advertises `HelixOTA-v2` after the update
 
 ## Phase 3: Sensor Bring-Up With Substitute Sensors
 
