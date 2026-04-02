@@ -8,6 +8,8 @@ It assumes:
 - OTA uses the dual-slot plan in
   [`docs/NRF_OTA_MEMORY_PLAN.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF_OTA_MEMORY_PLAN.md)
 - tooling is run through `nix develop`
+- the BLE reference workflow is defined in
+  [`docs/NRF_BLE_REFERENCE_WORKFLOW.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF_BLE_REFERENCE_WORKFLOW.md)
 
 ## Current Bring-Up Reality
 
@@ -20,6 +22,9 @@ As of this branch state:
 - a dedicated bare-metal DK self-test image now boots on hardware, updates a
   retained status block in RAM, drives the board LEDs directly, and proves
   real internal flash erase/write/verify on the target
+- a repo-local Nordic/Zephyr BLE reference lane can now be bootstrapped under
+  `.deps/ncs/` and built from `nix develop` without depending on a personal
+  NCS install
 
 Official nRF52 DK LED and button mapping from the Nordic user guide:
 
@@ -77,6 +82,10 @@ The current shell already has the cross-compiler available there. Additional
 nRF flashing/debug tools may need to be added to the flake later if they are
 not already included.
 
+Current note:
+- the Zephyr/Nordic host-side build dependencies needed for BLE reference work
+  are now included in `nix develop`
+
 ## Phase 1: Boot And Binary Sanity
 
 ### Goal
@@ -109,6 +118,33 @@ Current useful board-specific artifacts:
 - `build/nrf/nrf52dk_blinky.hex`
 - `build/nrf/nrf52dk_bringup.hex`
 - `build/nrf/nrf52dk_selftest.hex`
+
+## Phase 1.5: BLE Reference Lane
+
+### Goal
+
+Prove that this repository can drive a BLE-capable Nordic reference build from
+`nix develop` without relying on a separately installed personal NCS toolchain.
+
+### Checklist
+
+- [x] provide Zephyr/Nordic host utilities through `nix develop`
+- [x] bootstrap a pinned Nordic workspace under `.deps/ncs/`
+- [x] build a BLE reference sample for `nrf52dk/nrf52832`
+- [ ] flash and observe the reference BLE sample on hardware if needed
+
+### Commands
+
+```bash
+nix develop --command bash -lc 'tools/dev/doctor.sh'
+nix develop --command bash -lc 'tools/nrf/build_ncs_sample.sh'
+```
+
+### Pass Condition
+
+- the BLE reference workspace is bootstrapped locally under `.deps/`
+- the reference sample builds from the nix shell
+- no separately installed personal NCS toolchain is required
 
 ## Phase 2: Board Bring-Up
 

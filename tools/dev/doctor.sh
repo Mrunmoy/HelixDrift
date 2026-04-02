@@ -21,6 +21,10 @@ required_tools=(
   openocd
   west
   pyocd
+  dtc
+  gperf
+  pkg-config
+  bluetoothctl
   dfu-util
   picocom
   nc
@@ -42,6 +46,7 @@ import cryptography
 import intelhex
 import matplotlib
 import numpy
+import serial
 import pydantic
 import pytest
 print("python deps OK")

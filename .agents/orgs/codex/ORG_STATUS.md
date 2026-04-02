@@ -247,6 +247,10 @@
 - Task: Treat UART/VCOM OTA as the current stable remote-update path on the DK
   and use it to harden OTA semantics while BLE transport remains unimplemented
   in-repo
+- Task: Remove dependence on a personal Nordic toolchain install by making the
+  BLE reference lane reproducible from `nix develop` plus repo-local scripts
+- Task: Keep the Nordic/Zephyr BLE lane explicitly reference-only until a real
+  HelixDrift target app advertises OTA characteristics on hardware
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`
 - Tests first: yes
 - Journal updated: yes (`simulators/docs/DEV_JOURNAL.md`)

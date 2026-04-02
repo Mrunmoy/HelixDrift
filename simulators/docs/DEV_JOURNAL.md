@@ -1,5 +1,55 @@
 # Simulator Development Journal
 
+## 2026-04-03 - M7 Repo-Local BLE Reference Lane
+
+### Feature: Nix-Driven Nordic BLE Reference Build Workflow
+
+#### Intent
+
+Remove the hidden dependency on a personally installed Nordic toolchain while
+preparing the project for real BLE OTA transport work on the DK.
+
+#### Implementation Summary
+
+- Extended `flake.nix` so `nix develop` now provides the additional host tools
+  needed by Nordic/Zephyr BLE builds:
+  - `dtc`
+  - `gperf`
+  - `pkg-config`
+  - `bluez`
+  - Python `pyserial`
+  - Python `bleak`
+- Added `tools/dev/bootstrap_ncs_workspace.sh` to initialize a pinned Nordic
+  Connect SDK workspace under `.deps/ncs/v3.2.4`.
+- Added `tools/nrf/build_ncs_sample.sh` to build a Nordic BLE reference sample
+  from that repo-local workspace using the nix-provided GNU Arm toolchain.
+- Added `docs/NRF_BLE_REFERENCE_WORKFLOW.md` as the supported developer-facing
+  path for this BLE reference lane.
+- Added `.deps/` to `.gitignore` so the bootstrapped SDK workspace remains
+  disposable local state.
+
+#### Verification
+
+Commands run:
+
+```bash
+nix develop --command bash -lc 'tools/dev/doctor.sh'
+nix develop --command bash -lc 'tools/nrf/build_ncs_sample.sh nrf/samples/bluetooth/peripheral_uart nrf52dk/nrf52832 build-nrf52dk-nrf52832-peripheral_uart'
+```
+
+Result so far:
+
+- `tools/dev/doctor.sh` passes in the nix shell with the new Zephyr/Nordic
+  host dependencies present
+- the BLE reference build path now bootstraps a pinned Nordic workspace under
+  `.deps/ncs/v3.2.4` instead of relying on an out-of-repo personal install
+
+#### Outcome
+
+The BLE path is no longer blocked on host tooling. The remaining work is the
+target-side BLE peripheral integration needed to expose the HelixDrift OTA
+transport over the air on real hardware.
+
 ## 2026-04-03 - M7 DK MCUboot OTA Promotion Proof
 
 ### Feature: End-To-End Secondary-Slot Promotion On Real Hardware

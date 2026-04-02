@@ -16,6 +16,8 @@
         cbor2
         intelhex
         cryptography
+        pyserial
+        bleak
       ]);
     in {
       devShells.${system}.default = pkgs.mkShell {
@@ -31,6 +33,10 @@
           python3Packages.pyocd
           python3Packages.west
           python3Packages.pyusb
+          dtc
+          gperf
+          pkg-config
+          bluez
           usbutils
           dfu-util
           netcat-openbsd
