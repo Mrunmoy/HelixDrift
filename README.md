@@ -114,6 +114,29 @@ Or directly:
 nix develop --command bash -lc './scripts/sign_firmware.sh'
 ```
 
+## BLE OTA
+
+The current branch has a real, hardware-proven BLE OTA path on the `nRF52 DK`.
+
+Supported docs and scripts:
+- workflow: [`docs/NRF_BLE_OTA_WORKFLOW.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF_BLE_OTA_WORKFLOW.md)
+- build helper: [`tools/nrf/build_helix_ble_ota.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/build_helix_ble_ota.sh)
+- uploader: [`tools/nrf/ble_ota_upload.py`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/ble_ota_upload.py)
+- one-command smoke:
+  [`tools/nrf/ble_ota_dk_smoke.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/ble_ota_dk_smoke.sh)
+
+Full smoke:
+
+```bash
+nix develop --command bash -lc 'tools/nrf/ble_ota_dk_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
+```
+
+That flow is currently proven to:
+- flash `HelixOTA-v1`
+- upload signed `v2` over BLE
+- reboot through MCUboot
+- come back as `HelixOTA-v2`
+
 ## Sensor Assembly
 
 Recommended wiring for the current dual-I2C architecture:

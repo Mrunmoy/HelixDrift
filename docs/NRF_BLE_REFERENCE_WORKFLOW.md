@@ -163,3 +163,6 @@ This flow:
 - recovers and flashes the DK with `v1`
 - uploads the signed `v2` image over BLE from this PC
 - waits for MCUboot promotion and the post-update `HelixOTA-v2` advertisement
+
+For the locked supported procedure, use:
+- [`docs/NRF_BLE_OTA_WORKFLOW.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF_BLE_OTA_WORKFLOW.md)
