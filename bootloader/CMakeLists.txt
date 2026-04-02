@@ -3,6 +3,15 @@ project(helixdrift_bootloader LANGUAGES C ASM)
 
 get_filename_component(HELIXDRIFT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 
+function(helix_add_bootloader_artifacts target)
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${target}> $<TARGET_FILE:${target}>.bin
+        COMMAND ${CMAKE_OBJCOPY} -O ihex   $<TARGET_FILE:${target}> $<TARGET_FILE:${target}>.hex
+        COMMENT "Generating ${target} .bin and .hex artifacts"
+        VERBATIM
+    )
+endfunction()
+
 # ---------------------------------------------------------------------------
 # Vendored MCUboot (bootutil core only — no Zephyr, no MyNewt)
 # ---------------------------------------------------------------------------
@@ -41,7 +50,7 @@ target_include_directories(tinycrypt PUBLIC
     "${MCUBOOT_DIR}/boot/bootutil/include"
     "${MCUBOOT_SUPPORT_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/port"
-    "${HELIXDRIFT_ROOT}/tools/nrf/stubs/include"
+    "${HELIXDRIFT_ROOT}/tools/nrf/baremetal/include"
 )
 target_compile_options(tinycrypt PRIVATE
     -fno-unwind-tables
@@ -84,12 +93,11 @@ target_include_directories(bootutil PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/port"          # mcuboot_config.h
     "${MCUBOOT_SUPPORT_DIR}"                    # generic sysflash/flash_map stubs
     "${MCUBOOT_MBEDTLS_ASN1_DIR}"               # ASN.1 parsing for Ed25519 keys
-    "${HELIXDRIFT_ROOT}/tools/nrf/stubs/include"  # nrfx_nvmc.h (stub only)
+    "${HELIXDRIFT_ROOT}/tools/nrf/baremetal/include"
 )
 
 target_compile_definitions(bootutil PUBLIC
     MCUBOOT_IMAGE_HEADER_SIZE=0x200
-    NRFX_STUB    # enable the no-op stub; remove for real hardware builds
 )
 target_compile_options(bootutil PRIVATE
     -fno-unwind-tables
@@ -99,62 +107,72 @@ target_compile_options(bootutil PRIVATE
 target_link_libraries(bootutil PUBLIC tinycrypt)
 
 # ---------------------------------------------------------------------------
-# Flash map backend (nRF52840 NVMC implementation)
-# ---------------------------------------------------------------------------
-add_library(flash_map_backend STATIC
-    port/flash_map_backend.c
-    port/mcuboot_port.c
-)
-target_include_directories(flash_map_backend PUBLIC
-    "${MCUBOOT_DIR}/boot/bootutil/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/port"
-    "${MCUBOOT_SUPPORT_DIR}"
-    "${HELIXDRIFT_ROOT}/tools/nrf/stubs/include"
-)
-target_compile_definitions(flash_map_backend PUBLIC NRFX_STUB)
-target_compile_options(flash_map_backend PRIVATE
-    -fno-unwind-tables
-    -fno-asynchronous-unwind-tables
-)
-
-# ---------------------------------------------------------------------------
-# Bootloader executable
+# Bootloader executables
 # ---------------------------------------------------------------------------
 set(BOOT_LD "${HELIXDRIFT_ROOT}/tools/linker/xiao_nrf52840_boot.ld")
+set(DK_BOOT_LD "${HELIXDRIFT_ROOT}/tools/linker/nrf52dk_nrf52832_boot.ld")
 set(NRF_STARTUP "${HELIXDRIFT_ROOT}/firmware/platform/startup_nrf52840.S")
+set(DK_STARTUP "${HELIXDRIFT_ROOT}/firmware/platform/startup_nrf52dk_minimal.S")
 
-add_executable(nrf52_bootloader
-    "${NRF_STARTUP}"
-    main.c
-)
+function(helix_add_bootloader_target target startup linker)
+    add_executable(${target}
+        "${startup}"
+        main.c
+        port/flash_map_backend.c
+        port/mcuboot_port.c
+    )
+    target_include_directories(${target} PRIVATE
+        "${MCUBOOT_DIR}/boot/bootutil/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/port"
+        "${MCUBOOT_SUPPORT_DIR}"
+        "${MCUBOOT_MBEDTLS_ASN1_DIR}"
+        "${HELIXDRIFT_ROOT}/tools/nrf/baremetal/include"
+    )
+    target_compile_definitions(${target} PRIVATE
+        MCUBOOT_IMAGE_HEADER_SIZE=0x200
+    )
+    target_compile_options(${target} PRIVATE
+        -fno-unwind-tables
+        -fno-asynchronous-unwind-tables
+    )
+    target_link_libraries(${target} PRIVATE
+        bootutil
+        tinycrypt
+    )
+    target_link_options(${target} PRIVATE
+        -T${linker}
+        -Wl,-Map=${target}.map
+        -Wl,--print-memory-usage
+    )
+    set_target_properties(${target} PROPERTIES LINK_DEPENDS "${linker}")
+endfunction()
 
-target_include_directories(nrf52_bootloader PRIVATE
-    "${MCUBOOT_DIR}/boot/bootutil/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/port"
-    "${MCUBOOT_SUPPORT_DIR}"
-    "${MCUBOOT_MBEDTLS_ASN1_DIR}"
-    "${HELIXDRIFT_ROOT}/tools/nrf/stubs/include"
-)
-
+helix_add_bootloader_target(nrf52_bootloader "${NRF_STARTUP}" "${BOOT_LD}")
 target_compile_definitions(nrf52_bootloader PRIVATE
-    MCUBOOT_IMAGE_HEADER_SIZE=0x200
-    NRFX_STUB
+    HELIX_FAULT_LED_PIN=26u
+    HELIX_FLASH_AREA_BOOTLOADER_OFF=0x00000000u
+    HELIX_FLASH_AREA_BOOTLOADER_SIZE=98304u
+    HELIX_FLASH_AREA_IMAGE_0_OFF=0x00018000u
+    HELIX_FLASH_AREA_IMAGE_0_SIZE=360448u
+    HELIX_FLASH_AREA_IMAGE_1_OFF=0x00070000u
+    HELIX_FLASH_AREA_IMAGE_1_SIZE=360448u
+    HELIX_FLASH_AREA_SCRATCH_OFF=0x000C8000u
+    HELIX_FLASH_AREA_SCRATCH_SIZE=32768u
 )
-target_compile_options(nrf52_bootloader PRIVATE
-    -fno-unwind-tables
-    -fno-asynchronous-unwind-tables
-)
+helix_add_bootloader_artifacts(nrf52_bootloader)
 
-target_link_libraries(nrf52_bootloader PRIVATE
-    bootutil
-    flash_map_backend
-    tinycrypt
+helix_add_bootloader_target(nrf52dk_bootloader "${DK_STARTUP}" "${DK_BOOT_LD}")
+target_compile_definitions(nrf52dk_bootloader PRIVATE
+    HELIX_FAULT_LED_PIN=20u
+    HELIX_BOOT_UART_TX_PIN=6u
+    HELIX_BOOT_UART_RX_PIN=8u
+    HELIX_FLASH_AREA_BOOTLOADER_OFF=0x00000000u
+    HELIX_FLASH_AREA_BOOTLOADER_SIZE=98304u
+    HELIX_FLASH_AREA_IMAGE_0_OFF=0x00018000u
+    HELIX_FLASH_AREA_IMAGE_0_SIZE=147456u
+    HELIX_FLASH_AREA_IMAGE_1_OFF=0x0003C000u
+    HELIX_FLASH_AREA_IMAGE_1_SIZE=147456u
+    HELIX_FLASH_AREA_SCRATCH_OFF=0x00060000u
+    HELIX_FLASH_AREA_SCRATCH_SIZE=32768u
 )
-
-target_link_options(nrf52_bootloader PRIVATE
-    -T${BOOT_LD}
-    -Wl,-Map=nrf52_bootloader.map
-    -Wl,--print-memory-usage
-)
-
-set_target_properties(nrf52_bootloader PROPERTIES LINK_DEPENDS "${BOOT_LD}")
+helix_add_bootloader_artifacts(nrf52dk_bootloader)

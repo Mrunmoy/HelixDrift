@@ -1,5 +1,95 @@
 # Simulator Development Journal
 
+## 2026-04-03 - M7 DK MCUboot OTA Promotion Proof
+
+### Feature: End-To-End Secondary-Slot Promotion On Real Hardware
+
+#### Intent
+
+Move the DK OTA story from "flash backend and OTA manager logic work on real
+flash" to "the board can actually boot a newer staged image through MCUboot."
+
+#### Root Cause
+
+The app-side OTA backend was staging images but not making them bootable by
+MCUboot:
+
+- `NrfOtaFlashBackend::setPendingUpgrade()` was effectively a no-op
+- the backend treated the full secondary slot as payload capacity instead of
+  reserving space for the MCUboot overwrite-only trailer
+- the standalone bootloader port did not match Zephyr's
+  `MCUBOOT_OVERWRITE_ONLY + MCUBOOT_OVERWRITE_ONLY_FAST` configuration
+- the DK bootloader smoke flow was not starting from a guaranteed blank board,
+  so stale slot-1 contents could contaminate results
+
+#### Implementation Summary
+
+- Added `McubootOverwriteOnlyTrailer` as a shared helper for overwrite-only
+  trailer sizing, offsets, and pending-mark generation.
+- Updated `NrfOtaFlashBackend` to:
+  - report maximum image payload size rather than raw slot size
+  - write `swap_info`, `image_ok`, and magic bytes into the slot-1 trailer
+    during `setPendingUpgrade()`
+- Added host tests for overwrite-only trailer layout and pending-mark behavior.
+- Added dedicated DK OTA probe targets:
+  - `nrf52dk_ota_probe_v1`
+  - `nrf52dk_ota_probe_v2`
+- Added repo-local helpers for OTA smoke/debug:
+  - `tools/nrf/flash_openocd_bin.sh`
+  - `tools/nrf/write_mcuboot_pending_trailer.sh`
+  - `tools/nrf/mass_erase_openocd.sh`
+  - `tools/nrf/ota_dk_smoke.sh`
+- Added UART breadcrumbs inside the standalone `nrf52dk_bootloader` and fixed
+  the standalone port to match Zephyr's `MCUBOOT_OVERWRITE_ONLY_FAST` mode.
+- Switched the bootloader NVMC backend to hold write mode across full flash
+  writes instead of bouncing the controller state per word.
+- Corrected the DK bootloader linker script to use the board's full `64 KB`
+  RAM region instead of an erroneous `16 KB`.
+
+#### Verification
+
+Commands run:
+
+```bash
+./build.py --host-only -t
+./build.py --nrf-only
+nix develop --command bash -lc 'cmake -S bootloader -B build/bootloader -G Ninja -DCMAKE_TOOLCHAIN_FILE=$PWD/tools/toolchains/arm-none-eabi-gcc.cmake && cmake --build build/bootloader --parallel --target nrf52dk_bootloader'
+tools/nrf/ota_dk_smoke.sh /dev/ttyACM0 target/nrf52.cfg
+```
+
+Observed serial checkpoints:
+
+- initial boot:
+  - `mcuboot start`
+  - `swap=00000001`
+  - `boot_go rc=00000000 off=00018000 ver=00000001.00000000`
+  - `version=v1 boot=1`
+- after staging `v2` in slot 1 and marking it pending:
+  - `mcuboot start`
+  - `swap=00000003`
+  - `boot_go rc=00000000 off=00018000 ver=00000001.00000001`
+  - `version=v2 boot=1`
+
+Result:
+
+- a blank-board smoke run now stages `v2` into the secondary slot
+- MCUboot recognizes the permanent pending upgrade
+- the primary slot is overwritten successfully
+- the DK reboots into `v2` and keeps logging on `/dev/ttyACM0`
+
+#### Outcome
+
+The current DK hardware path now proves:
+
+- SWD flashing and bring-up
+- UART/VCOM runtime observability
+- real-flash OTA backend behavior
+- OTA manager/service state handling
+- real MCUboot secondary-slot promotion into a new booted image
+
+The remaining OTA gap is no longer the bootloader/storage path. It is the real
+BLE transport layer that must feed the already-proven OTA backend on hardware.
+
 ## 2026-04-03 - M7 Nordic DK VCOM Proof
 
 ### Feature: Real DK UART/VCOM Bring-Up Confirmed

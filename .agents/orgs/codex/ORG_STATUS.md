@@ -111,6 +111,9 @@
   - real-hardware OTA manager/service proof on the DK through synthetic
     begin/data/commit traffic routed via `BleOtaService`, `OtaManager`, and
     `NrfOtaFlashBackend` into a dedicated test flash slot
+  - real-hardware MCUboot promotion proof on the DK using staged
+    `nrf52dk_ota_probe_v1` / `nrf52dk_ota_probe_v2` images, explicit
+    overwrite-only pending markers, and repo-local OpenOCD smoke helpers
   - nix-only nRF developer contract hardened so repo clone + submodules +
     `nix develop` now covers doctor/build/sign/bootloader paths without
     relying on manual NCS / Zephyr / imgtool installs
@@ -238,7 +241,7 @@
 - Task: Use the DK self-test path to close board-local flash/backend questions
   before attempting full OTA transport on hardware
 - Task: Treat OTA state handling as proven on the DK; remaining OTA work is now
-  transport-layer integration and board observability
+  the real BLE transport path into the already-proven backend + MCUboot chain
 - Task: Push M7 from proven SWD flashing into real OTA-path validation once
   the DK runtime observability path is credible
 - Design doc: `docs/PER_SENSOR_VALIDATION_MATRIX.md`

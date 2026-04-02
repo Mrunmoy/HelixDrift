@@ -25,6 +25,7 @@ target_include_directories(helix_mocap_common PUBLIC
 )
 
 add_library(helix_ota STATIC
+    firmware/common/ota/McubootOverwriteOnlyTrailer.hpp
     firmware/common/ota/OtaManager.cpp
     firmware/common/ota/BleOtaService.cpp
 )
@@ -101,6 +102,28 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     set_target_properties(nrf52dk_bringup PROPERTIES LINK_DEPENDS "${NRF52DK_BAREMETAL_LD}")
     helix_add_nrf_artifacts(nrf52dk_bringup)
 
+    function(helix_add_nrf52dk_ota_probe target label interval_ms)
+        add_executable(${target}
+            ${NRF52DK_STARTUP}
+            examples/nrf52dk-ota-probe/src/main.cpp
+        )
+        target_include_directories(${target} PRIVATE
+            tools/nrf/baremetal/include
+            tools/nrf/stubs/include
+        )
+        target_compile_definitions(${target} PRIVATE
+            HELIX_OTA_PROBE_LABEL="${label}"
+            HELIX_OTA_PROBE_INTERVAL_MS=${interval_ms}
+        )
+        target_link_libraries(${target} PRIVATE helix_blink)
+        target_link_options(${target} PRIVATE -T${NRF52DK_APP_LD} -Wl,-Map=${target}.map)
+        set_target_properties(${target} PROPERTIES LINK_DEPENDS "${NRF52DK_APP_LD}")
+        helix_add_nrf_artifacts(${target})
+    endfunction()
+
+    helix_add_nrf52dk_ota_probe(nrf52dk_ota_probe_v1 "v1" 500)
+    helix_add_nrf52dk_ota_probe(nrf52dk_ota_probe_v2 "v2" 125)
+
     add_executable(nrf52dk_selftest
         ${NRF52DK_STARTUP}
         examples/nrf52dk-selftest/src/main.cpp
@@ -153,6 +176,7 @@ if(HELIXDRIFT_BUILD_TESTS)
     add_executable(helix_tests
         tests/test_blink_engine.cpp
         tests/test_flash_word_packer.cpp
+        tests/test_mcuboot_overwrite_only_trailer.cpp
         tests/test_mocap_ble_sender.cpp
         tests/test_mocap_health_telemetry.cpp
         tests/test_mocap_node_loop.cpp

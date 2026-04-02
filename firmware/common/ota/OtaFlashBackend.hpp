@@ -34,7 +34,7 @@ public:
      */
     virtual bool setPendingUpgrade() = 0;
 
-    /** Size in bytes of the secondary slot. */
+    /** Maximum accepted image payload size in bytes. */
     virtual uint32_t slotSize() const = 0;
 };
 

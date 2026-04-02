@@ -6,7 +6,7 @@
 namespace helix {
 
 uint32_t NrfOtaFlashBackend::slotSize() const {
-    return slotSize_;
+    return McubootOverwriteOnlyTrailer::maxImageSize(slotSize_);
 }
 
 bool NrfOtaFlashBackend::eraseSlot() {
@@ -26,11 +26,21 @@ bool NrfOtaFlashBackend::writeChunk(uint32_t offset, const uint8_t* data, size_t
 }
 
 bool NrfOtaFlashBackend::setPendingUpgrade() {
-    // MCUboot OVERWRITE_ONLY mode: MCUboot upgrades automatically when it finds
-    // a valid image with a higher version number in the secondary slot.
-    // No trailer magic write is needed or desired — writing it would corrupt
-    // a full-slot image (the magic would overwrite the last 16 bytes).
-    return true;
+    const uint8_t swapInfo = McubootOverwriteOnlyTrailer::makeSwapInfo(0u, true);
+    if (!writeAligned(slotBase_ + McubootOverwriteOnlyTrailer::swapInfoOffset(slotSize_),
+                      &swapInfo, 1u)) {
+        return false;
+    }
+
+    const uint8_t imageOk = McubootOverwriteOnlyTrailer::kBootFlagSet;
+    if (!writeAligned(slotBase_ + McubootOverwriteOnlyTrailer::imageOkOffset(slotSize_),
+                      &imageOk, 1u)) {
+        return false;
+    }
+
+    return writeAligned(slotBase_ + McubootOverwriteOnlyTrailer::magicOffset(slotSize_),
+                        McubootOverwriteOnlyTrailer::kMagic.data(),
+                        McubootOverwriteOnlyTrailer::kMagic.size());
 }
 
 /* static */

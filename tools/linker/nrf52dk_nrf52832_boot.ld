@@ -1,28 +1,18 @@
-/* nrf52dk_nrf52832_app.ld
+/* nrf52dk_nrf52832_boot.ld
  *
- * Development-board linker script for the Nordic nRF52 DK (nRF52832).
+ * MCUboot linker script for the Nordic nRF52 DK (nRF52832).
  *
- * This layout is for bring-up and generic nRF runtime work on the DK, not the
- * final product target. It mirrors the dual-slot OTA strategy used on the
- * nRF52840 branch but fits inside 512 KB flash:
- *
+ * Layout:
  *   0x00000000 - 0x00017FFF  Bootloader            (96 KB)
  *   0x00018000 - 0x0003BFFF  Primary slot         (144 KB)
  *   0x0003C000 - 0x0005FFFF  Secondary slot       (144 KB)
  *   0x00060000 - 0x00067FFF  Scratch               (32 KB)
  *   0x00068000 - 0x0007FFFF  NVS / Calibration     (96 KB)
- *
- * App flash starts at PRIMARY_SLOT_BASE + MCUBOOT_HEADER_SIZE.
  */
 
-MCUBOOT_HEADER_SIZE = 0x200;
-PRIMARY_SLOT_BASE   = 0x00018000;
-APP_FLASH_ORIGIN    = PRIMARY_SLOT_BASE + MCUBOOT_HEADER_SIZE;
-APP_FLASH_LENGTH    = 144K - MCUBOOT_HEADER_SIZE;
-
 MEMORY {
-    FLASH (rx)  : ORIGIN = APP_FLASH_ORIGIN, LENGTH = APP_FLASH_LENGTH
-    RAM   (rwx) : ORIGIN = 0x20000000,       LENGTH = 64K
+    FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 96K
+    RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
 }
 
 ENTRY(Reset_Handler)
@@ -36,6 +26,7 @@ SECTIONS {
     .text : {
         *(.text*)
         *(.rodata*)
+        *(.eh_frame*)
         . = ALIGN(4);
     } > FLASH
 
@@ -63,14 +54,12 @@ SECTIONS {
         _ebss = .;
     } > RAM
 
-    .noinit (NOLOAD) : {
-        *(.noinit*)
-        . = ALIGN(4);
-    } > RAM
+    end = .;
+    _end = .;
 
-    .stack ORIGIN(RAM) + LENGTH(RAM) - 0x2000 (NOLOAD) : {
+    .stack ORIGIN(RAM) + LENGTH(RAM) - 0x1000 (NOLOAD) : {
         _stack_bottom = .;
-        . += 0x2000;
+        . += 0x1000;
         _stack_top = .;
     } > RAM
 

@@ -206,8 +206,10 @@ works on real flash rather than only in host tests.
 - [x] prove real erase on target flash
 - [x] write a known test pattern
 - [x] read back and compare
-- [ ] repeat with unaligned and tail-partial writes through the OTA backend
-- [ ] verify full-slot bounds enforcement through the OTA backend
+- [x] repeat with unaligned and tail-partial writes through the OTA backend
+- [x] verify full-slot bounds enforcement through the OTA backend
+- [x] prove a staged secondary image can be marked pending and booted through
+      MCUboot on the DK
 
 ### Critical Questions
 
@@ -234,8 +236,15 @@ Current note:
   - `BleOtaService` begin/data/commit command parsing
   - `OtaManager` state transitions and CRC validation
   - committed-state readback after a synthetic image transfer into target flash
-- the remaining work is to prove the repo's OTA-backend code paths, not whether
-  the target flash can be programmed at all
+- the standalone DK OTA smoke now also proves the MCUboot promotion step:
+  - mass erase board
+  - flash `nrf52dk_bootloader`
+  - flash signed `nrf52dk_ota_probe_v1`
+  - stage signed `nrf52dk_ota_probe_v2` into slot 1
+  - write overwrite-only permanent pending trailer
+  - reboot into `v2` and observe live serial output on `/dev/ttyACM0`
+- the remaining work is the real BLE transport path into the already-proven
+  backend and bootloader flow
 
 ## Phase 5: BLE OTA Service Validation
 
@@ -258,6 +267,7 @@ upgrade.
 
 - complete transfer succeeds
 - new image boots
+- new image can be confirmed or retained according to the chosen OTA policy
 - confirmation logic works
 
 ## Phase 6: Failure Cases

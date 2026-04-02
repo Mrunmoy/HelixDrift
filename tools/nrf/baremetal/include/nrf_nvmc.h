@@ -34,11 +34,23 @@ static inline void nrf_nvmc_page_erase(uint32_t page_addr) {
     nrf_nvmc_set_mode(0u);
 }
 
-static inline void nrf_nvmc_word_write(uint32_t address, uint32_t value) {
+static inline void nrf_nvmc_begin_write(void) {
     nrf_nvmc_set_mode(1u);
+}
+
+static inline void nrf_nvmc_end_write(void) {
+    nrf_nvmc_set_mode(0u);
+}
+
+static inline void nrf_nvmc_word_write_raw(uint32_t address, uint32_t value) {
     *(volatile uint32_t*)address = value;
     nrf_nvmc_wait_ready();
-    nrf_nvmc_set_mode(0u);
+}
+
+static inline void nrf_nvmc_word_write(uint32_t address, uint32_t value) {
+    nrf_nvmc_begin_write();
+    nrf_nvmc_word_write_raw(address, value);
+    nrf_nvmc_end_write();
 }
 
 #ifdef __cplusplus

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "McubootOverwriteOnlyTrailer.hpp"
 #include "OtaFlashBackend.hpp"
 
 namespace helix {
@@ -7,8 +8,7 @@ namespace helix {
 /**
  * NrfOtaFlashBackend
  *
- * Implements OtaFlashBackend using the nRF52840's NVMC (non-volatile memory
- * controller) via nrfx_nvmc.
+ * Implements OtaFlashBackend using the nRF52 NVMC via bare-metal helpers.
  *
  * Secondary slot layout (from xiao_nrf52840_app.ld):
  *   Base:  0x00070000
@@ -29,6 +29,7 @@ public:
     bool     writeChunk(uint32_t offset, const uint8_t* data, size_t len) override;
     bool     setPendingUpgrade()                                      override;
     uint32_t slotSize() const                                         override;
+    uint32_t rawSlotSize() const                                      { return slotSize_; }
     uint32_t slotBase() const                                         { return slotBase_; }
 
     static constexpr uint32_t kDefaultSecondarySlotBase = 0x00070000u;

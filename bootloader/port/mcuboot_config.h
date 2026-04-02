@@ -18,6 +18,7 @@
 
 /* ---- Upgrade strategy --------------------------------------------------- */
 #define MCUBOOT_OVERWRITE_ONLY        1
+#define MCUBOOT_OVERWRITE_ONLY_FAST   1
 
 /* ---- Signing algorithm -------------------------------------------------- */
 #define MCUBOOT_SIGN_ED25519          1

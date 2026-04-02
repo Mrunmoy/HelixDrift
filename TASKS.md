@@ -62,6 +62,9 @@ Current M7 bring-up progress:
       proven on real hardware via the DK self-test
 - [x] OTA manager/service state-machine path is now proven on real hardware via
       synthetic begin/data/commit self-test traffic on the DK
+- [x] standalone MCUboot boot path on the DK now performs a real
+      `v1 -> staged v2` slot-1 upgrade into the primary slot and boots the
+      updated image successfully
 - [x] standalone MCUboot build now fits the branch layout after resizing the
       bootloader slot to `96 KB` and the primary/secondary slots to `352 KB`
 
@@ -111,7 +114,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
 | M5-M6: Calibration + Multi-node | ~100% | Simulation-side calibration, disturbance characterization, and three-node body-chain proofs are landed; long-run mild-impairment drift is documented as a current limitation |
-| M7: Platform Port (nRF52) | ~70% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, and OTA manager/service state handling are proven; full OTA transport over real BLE and attached-sensor bring-up remain open |
+| M7: Platform Port (nRF52) | ~80% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, OTA manager/service state handling, and MCUboot slot promotion are proven; real BLE OTA transport and attached-sensor bring-up remain open |
 
 ## Reference Documents
 
