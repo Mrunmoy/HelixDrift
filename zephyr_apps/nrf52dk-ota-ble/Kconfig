@@ -1,0 +1,13 @@
+source "Kconfig.zephyr"
+
+menu "Helix OTA BLE app"
+
+config HELIX_OTA_LABEL
+	string "OTA label"
+	default "helix-ota"
+
+config HELIX_OTA_REBOOT_DELAY_MS
+	int "Reboot delay after commit (ms)"
+	default 300
+
+endmenu

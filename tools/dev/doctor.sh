@@ -44,6 +44,7 @@ import click
 import cbor2
 import cryptography
 import intelhex
+import bleak
 import matplotlib
 import numpy
 import serial
