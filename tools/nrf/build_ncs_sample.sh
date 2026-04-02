@@ -12,6 +12,7 @@ BOARD="${2:-nrf52dk/nrf52832}"
 BUILD_DIR_NAME="${3:-build-${BOARD//\//-}-$(basename "${SAMPLE_REL}")}"
 NCS_VERSION="${NCS_VERSION:-v3.2.4}"
 WORKSPACE_DIR="${NCS_WORKSPACE_DIR:-${REPO_ROOT}/.deps/ncs/${NCS_VERSION}}"
+PRISTINE_MODE="${HELIX_NCS_PRISTINE:-auto}"
 
 "${REPO_ROOT}/tools/dev/bootstrap_ncs_workspace.sh" "${NCS_VERSION}" "${WORKSPACE_DIR}"
 
@@ -21,5 +22,5 @@ GNUARMEMB_TOOLCHAIN_PATH="$(dirname "$(dirname "$(command -v arm-none-eabi-gcc)"
 
 (
   cd "${WORKSPACE_DIR}"
-  west build -p always -b "${BOARD}" "${SAMPLE_REL}" -d "${BUILD_DIR_NAME}"
+  west build -p "${PRISTINE_MODE}" -b "${BOARD}" "${SAMPLE_REL}" -d "${BUILD_DIR_NAME}"
 )

@@ -54,6 +54,11 @@ Default bootstrap location:
 This keeps Nordic dependencies outside the tracked tree while preserving a
 repo-local, reproducible path for any developer.
 
+Behavior:
+- first run initializes and updates the workspace
+- later runs reuse the existing workspace by default
+- force a refresh with `HELIX_NCS_REFRESH=1`
+
 ## Build A BLE Reference Sample
 
 The current reference sample is Nordic's `peripheral_uart` on the `nrf52dk`.
@@ -65,9 +70,16 @@ tools/nrf/build_ncs_sample.sh
 Defaults:
 - sample: `nrf/samples/bluetooth/peripheral_uart`
 - board: `nrf52dk/nrf52832`
+- pristine mode: `auto`
 
 Build output:
 - `.deps/ncs/v3.2.4/build-nrf52dk-nrf52832-peripheral_uart/`
+
+Force a pristine rebuild if needed:
+
+```bash
+HELIX_NCS_PRISTINE=always tools/nrf/build_ncs_sample.sh
+```
 
 ## Flashing
 
