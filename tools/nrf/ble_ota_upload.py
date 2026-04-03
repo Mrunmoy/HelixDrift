@@ -28,17 +28,23 @@ def parse_args():
     p.add_argument("--crc-adjust", type=int, default=0)
     p.add_argument("--abort-after-bytes", type=int)
     p.add_argument("--chunk-size", type=int, default=16)
+    p.add_argument("--write-with-response", action="store_true")
     p.add_argument("--poll-every-chunks", type=int, default=1)
     p.add_argument("--inter-chunk-delay-ms", type=float, default=10.0)
     p.add_argument("--scan-timeout", type=float, default=10.0)
+    p.add_argument("--progress-every-bytes", type=int, default=4096)
     return p.parse_args()
 
 
 async def find_device(name: str, timeout: float):
-    return await BleakScanner.find_device_by_filter(
-        lambda d, adv: d.name == name or OTA_SERVICE_UUID in [u.lower() for u in (adv.service_uuids or [])],
-        timeout=timeout,
-    )
+    devices = await BleakScanner.discover(timeout=timeout, return_adv=True)
+    for _addr, (dev, adv) in devices.items():
+        local_name = adv.local_name or ""
+        dev_name = dev.name or ""
+        uuids = [u.lower() for u in (adv.service_uuids or [])]
+        if dev_name == name or local_name == name or OTA_SERVICE_UUID in uuids:
+            return dev
+    return None
 
 
 async def read_status(client: BleakClient):
@@ -78,10 +84,11 @@ async def main_async():
 
         offset = 0
         chunks_since_poll = 0
+        next_progress = args.progress_every_bytes if args.progress_every_bytes > 0 else None
         while offset < len(image):
             chunk = image[offset:offset + args.chunk_size]
             payload = offset.to_bytes(4, "little") + chunk
-            await client.write_gatt_char(OTA_DATA_UUID, payload, response=False)
+            await client.write_gatt_char(OTA_DATA_UUID, payload, response=args.write_with_response)
             expected = offset + len(chunk)
             chunks_since_poll += 1
             if args.inter_chunk_delay_ms > 0:
@@ -91,6 +98,10 @@ async def main_async():
                 status = await read_status(client)
                 if status["last_status"] != 0 or status["bytes_received"] != expected:
                     raise RuntimeError(f"data write failed at {offset}: {status}, expected bytes={expected}")
+                if next_progress is not None:
+                    while expected >= next_progress:
+                        print(f"progress: {expected}/{len(image)}")
+                        next_progress += args.progress_every_bytes
                 chunks_since_poll = 0
             offset = expected
             if args.abort_after_bytes is not None and offset >= args.abort_after_bytes:

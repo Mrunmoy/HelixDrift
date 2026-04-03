@@ -13,8 +13,6 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/reboot.h>
 
-#include <dk_buttons_and_leds.h>
-
 namespace {
 
 #define BT_UUID_HELIX_OTA_SERVICE_VAL \
@@ -34,7 +32,10 @@ static struct bt_uuid_128 g_statusUuid = BT_UUID_INIT_128(BT_UUID_HELIX_OTA_STAT
 helix::ZephyrOtaFlashBackend g_backend;
 helix::OtaManager g_manager{g_backend};
 helix::OtaManagerAdapter g_adapter{g_manager};
-helix::BleOtaService g_service{g_adapter, helix::kOtaTargetIdNrf52dkNrf52832};
+helix::BleOtaService g_service{g_adapter, CONFIG_HELIX_OTA_TARGET_ID};
+
+const gpio_dt_spec g_led = GPIO_DT_SPEC_GET_OR(DT_ALIAS(led0), gpios, {0});
+bool g_ledReady = false;
 
 struct bt_conn* g_conn = nullptr;
 bool g_notifyEnabled = false;
@@ -144,10 +145,8 @@ void startAdvertising() {
 void heartbeat() {
     static bool on = false;
     on = !on;
-    if (on) {
-        dk_set_led_on(DK_LED1);
-    } else {
-        dk_set_led_off(DK_LED1);
+    if (g_ledReady) {
+        gpio_pin_set_dt(&g_led, on ? 1 : 0);
     }
 }
 
@@ -165,8 +164,9 @@ int main() {
         return 1;
     }
 
-    dk_leds_init();
-    dk_set_led_off(DK_LED1);
+    if (gpio_is_ready_dt(&g_led) && gpio_pin_configure_dt(&g_led, GPIO_OUTPUT_INACTIVE) == 0) {
+        g_ledReady = true;
+    }
 
     const int err = bt_enable(nullptr);
     if (err) {

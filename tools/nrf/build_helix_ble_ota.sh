@@ -12,7 +12,21 @@ BOARD="${2:-nrf52dk/nrf52832}"
 NCS_VERSION="${NCS_VERSION:-v3.2.4}"
 WORKSPACE_DIR="${NCS_WORKSPACE_DIR:-${REPO_ROOT}/.deps/ncs/${NCS_VERSION}}"
 APP_DIR="${REPO_ROOT}/zephyr_apps/nrf52dk-ota-ble"
-BUILD_DIR_NAME="build-helix-nrf52dk-ota-ble-${VARIANT}"
+BUILD_BOARD_SLUG="${BOARD//\//-}"
+BUILD_DIR_NAME="build-helix-${BUILD_BOARD_SLUG}-ota-ble-${VARIANT}"
+
+case "${BOARD}" in
+  nrf52dk/nrf52832)
+    EXTRA_CONF_FILE="${APP_DIR}/${VARIANT}.conf"
+    ;;
+  nrf52840dongle/nrf52840|nrf52840dongle/nrf52840/bare)
+    EXTRA_CONF_FILE="${APP_DIR}/${VARIANT}-nrf52840dongle.conf"
+    ;;
+  *)
+    echo "unsupported OTA BLE board: ${BOARD}" >&2
+    exit 2
+    ;;
+esac
 
 case "${VARIANT}" in
   v1|v2) ;;
@@ -31,5 +45,5 @@ GNUARMEMB_TOOLCHAIN_PATH="$(dirname "$(dirname "$(command -v arm-none-eabi-gcc)"
 (
   cd "${WORKSPACE_DIR}"
   west build --sysbuild -p auto -b "${BOARD}" "${APP_DIR}" -d "${BUILD_DIR_NAME}" \
-    -- -DEXTRA_CONF_FILE="${APP_DIR}/${VARIANT}.conf"
+    -- -DEXTRA_CONF_FILE="${EXTRA_CONF_FILE}"
 )

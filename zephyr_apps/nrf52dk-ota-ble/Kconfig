@@ -6,6 +6,10 @@ config HELIX_OTA_LABEL
 	string "OTA label"
 	default "helix-ota"
 
+config HELIX_OTA_TARGET_ID
+	hex "OTA target identity"
+	default 0x52832001
+
 config HELIX_OTA_REBOOT_DELAY_MS
 	int "Reboot delay after commit (ms)"
 	default 300
