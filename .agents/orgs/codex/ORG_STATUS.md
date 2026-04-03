@@ -133,6 +133,9 @@
     `HelixOTA-v1` accepts a signed `v2` image over BLE from this PC, stages
     it, commits it, reboots through MCUboot, and comes back advertising
     `HelixOTA-v2`
+  - BLE OTA failure handling proven on the DK:
+    bad CRC is rejected without promoting `v2`, explicit abort returns the
+    OTA state machine to idle on `v1`, and a later good update still succeeds
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -229,6 +232,9 @@
 - Task: Close the remaining M7 OTA gap by binding the proven Helix OTA manager
   and backend path to a real BLE transport on the connected DK and verifying a
   real `v1 -> v2` promotion over the air
+- Task: Harden the proven BLE OTA lane with real negative-path validation:
+  corrupted image CRC, explicit abort, and recovery into a later successful
+  update
 - Task: Start M6 with bounded three-node/body-chain scenarios only after the
   disturbance path is host-verified
 - Task: Expand M6 from the first static three-node chain proof into dynamic

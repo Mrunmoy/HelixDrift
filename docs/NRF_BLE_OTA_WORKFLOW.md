@@ -157,6 +157,33 @@ This will:
 6. upload `v2` over BLE
 7. wait for reboot into `HelixOTA-v2`
 
+## Failure-Handling Smoke
+
+The repository also provides a negative-path smoke:
+
+```bash
+nix develop --command bash -lc 'tools/nrf/ble_ota_negative_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
+```
+
+This validates three real-hardware cases:
+1. bad CRC over BLE must not promote `v2`
+2. explicit abort mid-transfer must return the target to idle on `v1`
+3. a later valid BLE OTA must still promote successfully to `v2`
+
+Representative result:
+
+```text
+== bad CRC must not reboot into v2 ==
+... ATT error: 0x13 (Value Not Allowed)
+tick ota-ble-v1 state=0 bytes=166548
+
+abort: OK after 4096 bytes
+tick ota-ble-v1 state=0 bytes=0
+
+== final good update must still work ==
+after: F2:A5:1E:5F:5B:9C HelixOTA-v2
+```
+
 ## Bootloader / Layout Notes
 
 Current validated branch layout:

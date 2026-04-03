@@ -84,6 +84,9 @@ Current M7 bring-up progress:
       a repo-local Zephyr/NCS app exposes the Helix OTA GATT service,
       this PC uploads a signed `v2` image over BLE, the board stages it,
       reboots through MCUboot, and comes back advertising `HelixOTA-v2`
+- [x] BLE OTA failure handling is now proven on the DK:
+      bad CRC is rejected without promoting `v2`, explicit abort returns the
+      device to idle on `v1`, and a later good BLE update still succeeds
 
 ### Wave A — Immediate (Codex / Fusion)
 
@@ -131,7 +134,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
 | M5-M6: Calibration + Multi-node | ~100% | Simulation-side calibration, disturbance characterization, and three-node body-chain proofs are landed; long-run mild-impairment drift is documented as a current limitation |
-| M7: Platform Port (nRF52) | ~97% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, MCUboot slot promotion, repo-local BLE reference workflow, and real HelixDrift BLE OTA on the DK are proven; attached-sensor bring-up remains open |
+| M7: Platform Port (nRF52) | ~98% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, MCUboot slot promotion, repo-local BLE reference workflow, real HelixDrift BLE OTA, and BLE OTA failure-path handling on the DK are proven; attached-sensor bring-up remains open |
 
 ## Reference Documents
 

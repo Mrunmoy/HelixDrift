@@ -1,5 +1,71 @@
 # Simulator Development Journal
 
+## 2026-04-03 - M7 BLE OTA Failure Handling On DK
+
+### Feature: Negative OTA Cases Proven On Real Hardware
+
+#### Intent
+
+Move the OTA story past the happy path by proving that common failure cases do
+not promote a bad image and do not wedge the target.
+
+#### Implementation Summary
+
+- Extended [`tools/nrf/ble_ota_upload.py`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/ble_ota_upload.py)
+  with negative-test controls:
+  - CRC adjustment
+  - explicit abort after N bytes
+  - optional no-wait-after mode
+  - tunable status-poll cadence for faster regression testing
+- Added
+  [`tools/nrf/ble_ota_negative_smoke.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/ble_ota_negative_smoke.sh)
+  to run three real DK cases:
+  1. bad CRC transfer
+  2. explicit abort mid-transfer
+  3. later good update
+- Used serial-console checkpoints to verify the target returned to idle on
+  `ota-ble-v1` after the negative cases.
+
+#### Verification
+
+Command run:
+
+```bash
+nix develop --command bash -lc 'tools/nrf/ble_ota_negative_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
+```
+
+Observed result:
+
+```text
+== bad CRC must not reboot into v2 ==
+error: [org.bluez.Error.Failed] Operation failed with ATT error: 0x13 (Value Not Allowed)
+before: F2:A5:1E:5F:5B:9C HelixOTA-v1
+status-before: state=0 bytes=0 last=0
+tick ota-ble-v1 state=0 bytes=166548
+
+before: F2:A5:1E:5F:5B:9C HelixOTA-v1
+status-before: state=0 bytes=0 last=0
+abort: OK after 4096 bytes
+tick ota-ble-v1 state=0 bytes=0
+
+== final good update must still work ==
+before: F2:A5:1E:5F:5B:9C HelixOTA-v1
+status-before: state=0 bytes=0 last=0
+commit: OK, waiting for reboot
+after: F2:A5:1E:5F:5B:9C HelixOTA-v2
+```
+
+#### Outcome
+
+The current DK OTA path now proves:
+
+- a corrupted BLE OTA transfer does not promote the new image
+- an explicit abort returns the OTA state machine to idle on the running image
+- a later good BLE OTA still succeeds after those failures
+
+That is good enough to treat the current OTA lane as stable for this hardware
+phase.
+
 ## 2026-04-03 - M7 Real Helix BLE OTA On DK
 
 ### Feature: End-To-End HelixDrift BLE OTA On Current Hardware

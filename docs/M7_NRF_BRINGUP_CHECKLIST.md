@@ -228,6 +228,18 @@ nix develop --command bash -lc 'tools/nrf/ble_ota_dk_smoke.sh /dev/ttyACM0 targe
 - the board reboots through MCUboot into `v2`
 - the DK advertises `HelixOTA-v2` after the update
 
+### Failure Handling Follow-Up
+
+- [x] bad CRC transfer is rejected and does not promote `v2`
+- [x] explicit abort returns the target to idle on `v1`
+- [x] a later valid BLE OTA still succeeds after those failures
+
+Current negative smoke:
+
+```bash
+nix develop --command bash -lc 'tools/nrf/ble_ota_negative_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
+```
+
 ## Phase 3: Sensor Bring-Up With Substitute Sensors
 
 ### Goal
