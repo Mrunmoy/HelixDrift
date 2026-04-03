@@ -79,6 +79,8 @@ The project direction is:
 - `nrf52dk_blinky`: board-correct LED heartbeat for the Nordic nRF52 DK
 - `nrf52dk_bringup`: board-correct UART + LED bring-up image for the Nordic
   nRF52 DK
+- `nrf52840dongle_blinky`: repo-native first bring-up target for the soldered
+  `nRF52840` dongle
 
 Artifacts are emitted automatically under `build/nrf/` as:
 
@@ -116,10 +118,18 @@ nix develop --command bash -lc './scripts/sign_firmware.sh'
 
 ## BLE OTA
 
-The current branch has a real, hardware-proven BLE OTA path on the `nRF52 DK`.
+The current branch has:
+
+- a real, hardware-proven BLE OTA path on the `nRF52 DK`
+- a real `nRF52840` dongle OTA lane with build + first-flash + advertising
+  proven, but final `v1 -> v2` BLE OTA closure still in progress
 
 Supported docs and scripts:
 - workflow: [`docs/NRF_BLE_OTA_WORKFLOW.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF_BLE_OTA_WORKFLOW.md)
+- `nRF52840` dongle getting started:
+  [`docs/NRF52840_DONGLE_GETTING_STARTED.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_DONGLE_GETTING_STARTED.md)
+- `nRF52840` checkpoint:
+  [`docs/NRF52840_BLE_OTA_CHECKPOINT.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_BLE_OTA_CHECKPOINT.md)
 - build helper: [`tools/nrf/build_helix_ble_ota.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/build_helix_ble_ota.sh)
 - uploader: [`tools/nrf/ble_ota_upload.py`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/ble_ota_upload.py)
 - one-command smoke:
@@ -136,6 +146,10 @@ That flow is currently proven to:
 - upload signed `v2` over BLE
 - reboot through MCUboot
 - come back as `HelixOTA-v2`
+
+Current `nRF52840` note:
+- use the dedicated dongle guide for build/flash/bring-up
+- do not yet treat the `52840` BLE OTA lane as fully locked
 
 ## Sensor Assembly
 

@@ -85,6 +85,8 @@ not already included.
 Current note:
 - the Zephyr/Nordic host-side build dependencies needed for BLE reference work
   are now included in `nix develop`
+- the current `nRF52840` dongle getting-started flow is documented in
+  [`docs/NRF52840_DONGLE_GETTING_STARTED.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_DONGLE_GETTING_STARTED.md)
 
 ## Phase 1: Boot And Binary Sanity
 
@@ -241,6 +243,29 @@ Current negative smoke:
 ```bash
 nix develop --command bash -lc 'tools/nrf/ble_ota_negative_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
 ```
+
+## Phase 5.5: nRF52840 Dongle OTA Lane
+
+### Goal
+
+Carry the OTA path from the proven `nRF52 DK` reference lane onto the intended
+`nRF52840` target lane.
+
+### Current Status
+
+- [x] `nrf52840dongle/nrf52840/bare` build path exists
+- [x] first flash to the dongle works through J-Link
+- [x] the dongle boots and advertises `Helix840-v1`
+- [ ] clean `Helix840-v1 -> Helix840-v2` BLE OTA proof on the first dongle
+- [ ] same BLE OTA proof on the second 52840 target
+- [ ] final 52840 README/how-to lock-in after those two proofs pass
+
+### Current References
+
+- getting started:
+  [`docs/NRF52840_DONGLE_GETTING_STARTED.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_DONGLE_GETTING_STARTED.md)
+- exact blocker checkpoint:
+  [`docs/NRF52840_BLE_OTA_CHECKPOINT.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_BLE_OTA_CHECKPOINT.md)
 
 ## Phase 3: Sensor Bring-Up With Substitute Sensors
 

@@ -8,6 +8,17 @@ Current validated hardware:
 - BLE central/uploader: this Linux PC over `hci0`
 - debug/flash path: onboard SEGGER J-Link via OpenOCD
 
+Current `nRF52840` status:
+- the `nrf52840dongle/nrf52840/bare` OTA lane now builds and boots
+- first flash and advertising as `Helix840-v1` are proven
+- final `Helix840-v1 -> Helix840-v2` BLE OTA closure is still open
+- use
+  [`docs/NRF52840_DONGLE_GETTING_STARTED.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_DONGLE_GETTING_STARTED.md)
+  plus
+  [`docs/NRF52840_BLE_OTA_CHECKPOINT.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_BLE_OTA_CHECKPOINT.md)
+  for the current 52840 lane instead of treating this DK workflow as the final
+  52840 guide
+
 This workflow is fully repo-local:
 - clone with submodules
 - enter `nix develop`
@@ -231,6 +242,20 @@ tools/nrf/ble_ota_dk_smoke.sh /dev/ttyACM0 target/nrf52.cfg
 ```
 
 If that sequence works, the OTA path is considered healthy.
+
+## nRF52840 Dongle Variant
+
+This workflow document should still be treated as the fully validated
+`nRF52 DK` baseline.
+
+For the intended `nRF52840` target lane:
+
+- getting started / first flash:
+  [`docs/NRF52840_DONGLE_GETTING_STARTED.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_DONGLE_GETTING_STARTED.md)
+- current narrowed blocker:
+  [`docs/NRF52840_BLE_OTA_CHECKPOINT.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_BLE_OTA_CHECKPOINT.md)
+
+That 52840 path is close, but it is not yet the fully locked OTA baseline.
 
 ## What Is Still Not Claimed
 
