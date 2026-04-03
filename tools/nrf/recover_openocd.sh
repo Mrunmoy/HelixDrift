@@ -6,6 +6,12 @@ if ! command -v openocd >/dev/null 2>&1; then
 fi
 
 TARGET_CFG="${1:-target/nrf52.cfg}"
+JLINK_SERIAL="${JLINK_SERIAL:-}"
 
-exec openocd \
-  -c "adapter driver jlink; transport select swd; source [find ${TARGET_CFG}]; init; nrf52_recover; shutdown"
+OPENOCD_CMDS="adapter driver jlink; "
+if [[ -n "${JLINK_SERIAL}" ]]; then
+  OPENOCD_CMDS+="adapter serial ${JLINK_SERIAL}; "
+fi
+OPENOCD_CMDS+="transport select swd; source [find ${TARGET_CFG}]; init; nrf52_recover; shutdown"
+
+exec openocd -c "${OPENOCD_CMDS}"

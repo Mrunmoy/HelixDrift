@@ -8,6 +8,7 @@ fi
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PORT="${1:-/dev/ttyACM0}"
 TARGET_CFG="${2:-target/nrf52.cfg}"
+export JLINK_SERIAL="${JLINK_SERIAL:-1050335103}"
 
 cd "${REPO_ROOT}"
 
@@ -24,4 +25,7 @@ python3 tools/nrf/ble_ota_upload.py \
   .deps/ncs/v3.2.4/build-helix-nrf52dk-ota-ble-v2/nrf52dk-ota-ble/zephyr/zephyr.signed.bin \
   --name HelixOTA-v1 \
   --expect-after HelixOTA-v2 \
-  --chunk-size 16
+  --target-id 0x52832001 \
+  --chunk-size 16 \
+  --poll-every-chunks 64 \
+  --inter-chunk-delay-ms 1

@@ -303,6 +303,8 @@
 - The DK OTA lane is now stable on real hardware:
   - UART/VCOM OTA is proven
   - BLE OTA is proven
+  - OTA target identity is enforced and reported in status on the DK lane
+  - a 52840-targeted OTA is rejected immediately by the 52832 DK
   - BLE OTA negative-path handling is proven
 - The first repo-native nRF52840 dongle bring-up slice is also proven:
   - the soldered dongle is reachable through the external J-Link

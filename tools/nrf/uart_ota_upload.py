@@ -124,10 +124,10 @@ class SerialPort:
 
 
 def decode_info(payload: bytes):
-    if len(payload) < 16:
+    if len(payload) < 20:
         raise ValueError("short info response")
-    version_len = payload[15]
-    if len(payload) < 16 + version_len:
+    version_len = payload[19]
+    if len(payload) < 20 + version_len:
         raise ValueError("truncated version")
     return {
         "protocol": payload[0],
@@ -136,7 +136,8 @@ def decode_info(payload: bytes):
         "bytes_received": int.from_bytes(payload[3:7], "little"),
         "slot_size": int.from_bytes(payload[7:11], "little"),
         "interval_ms": int.from_bytes(payload[11:15], "little"),
-        "version": payload[16:16 + version_len].decode("utf-8", errors="replace"),
+        "target_id": int.from_bytes(payload[15:19], "little"),
+        "version": payload[20:20 + version_len].decode("utf-8", errors="replace"),
     }
 
 
@@ -157,6 +158,7 @@ def main():
     parser.add_argument("--chunk-size", type=int, default=128)
     parser.add_argument("--expect-before")
     parser.add_argument("--expect-after")
+    parser.add_argument("--target-id", type=lambda v: int(v, 0))
     parser.add_argument("--timeout", type=float, default=5.0)
     args = parser.parse_args()
 
@@ -166,12 +168,15 @@ def main():
     port = SerialPort(args.port)
     try:
         info = decode_info(port.transact(FRAME_INFO_REQ, b"", FRAME_INFO_RSP, args.timeout))
-        print(f"before: version={info['version']} state={info['state']} slot=0x{info['slot_size']:x}")
+        print(f"before: version={info['version']} state={info['state']} slot=0x{info['slot_size']:x} target=0x{info['target_id']:08x}")
         if args.expect_before and info["version"] != args.expect_before:
             raise SystemExit(f"unexpected starting version: {info['version']}")
+        if args.target_id is not None and info["target_id"] != args.target_id:
+            raise SystemExit(f"wrong target id: device=0x{info['target_id']:08x} expected=0x{args.target_id:08x}")
 
         crc = crc32_ieee(image)
-        begin_payload = bytes([CMD_BEGIN]) + len(image).to_bytes(4, "little") + crc.to_bytes(4, "little")
+        target_id = args.target_id if args.target_id is not None else info["target_id"]
+        begin_payload = bytes([CMD_BEGIN]) + len(image).to_bytes(4, "little") + crc.to_bytes(4, "little") + target_id.to_bytes(4, "little")
         ctrl = port.transact(FRAME_CTRL_WRITE, begin_payload, FRAME_CTRL_RSP, args.timeout)
         if not ctrl or ctrl[0] != 0:
             raise SystemExit(f"begin failed: {ctrl[0] if ctrl else 'missing'}")
@@ -204,7 +209,7 @@ def main():
                 info = decode_info(port.transact(FRAME_INFO_REQ, b"", FRAME_INFO_RSP, 1.0))
             except TimeoutError:
                 continue
-            print(f"after: version={info['version']} state={info['state']} slot=0x{info['slot_size']:x}")
+            print(f"after: version={info['version']} state={info['state']} slot=0x{info['slot_size']:x} target=0x{info['target_id']:08x}")
             if args.expect_after:
                 if info["version"] == args.expect_after:
                     return 0

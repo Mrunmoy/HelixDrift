@@ -1,6 +1,7 @@
 #include "BleOtaService.hpp"
 #include "IOtaManager.hpp"
 #include "NrfOtaFlashBackend.hpp"
+#include "OtaTargetIdentity.hpp"
 #include "UartOtaProtocol.hpp"
 #include "nrf_gpio.h"
 #include <cstddef>
@@ -30,6 +31,7 @@ constexpr uint32_t kAircrVkey = 0x05FAu << 16;
 constexpr uint32_t kAircrSysResetReq = 1u << 2;
 constexpr uint32_t kDkSecondarySlotBase = 0x0003C000u;
 constexpr uint32_t kDkSecondarySlotSize = 0x00024000u;
+constexpr uint32_t kTargetId = helix::kOtaTargetIdNrf52dkNrf52832;
 constexpr uint32_t kResetDelayMs = 200u;
 constexpr size_t kMaxPayload = 192u;
 constexpr size_t kMaxFrameLen = helix::UartOtaProtocol::kFrameOverhead + kMaxPayload;
@@ -199,17 +201,18 @@ void sendInfoResponse(const helix::BleOtaService& service,
     writeU32Le(payload + 3, manager.bytesReceived());
     writeU32Le(payload + 7, kDkSecondarySlotSize);
     writeU32Le(payload + 11, HELIX_OTA_PROBE_INTERVAL_MS);
+    writeU32Le(payload + 15, kTargetId);
     constexpr const char* kVersion = HELIX_OTA_PROBE_LABEL;
     constexpr size_t kVersionLen = sizeof(HELIX_OTA_PROBE_LABEL) - 1u;
-    payload[15] = static_cast<uint8_t>(kVersionLen);
+    payload[19] = static_cast<uint8_t>(kVersionLen);
     for (size_t i = 0; i < kVersionLen; ++i) {
-        payload[16 + i] = static_cast<uint8_t>(kVersion[i]);
+        payload[20 + i] = static_cast<uint8_t>(kVersion[i]);
     }
     size_t frameLen = 0u;
     helix::UartOtaProtocol::encode(
         static_cast<uint8_t>(helix::UartOtaProtocol::FrameType::InfoRsp),
         payload,
-        16u + kVersionLen,
+        20u + kVersionLen,
         frame,
         kMaxFrameLen,
         frameLen);
@@ -285,7 +288,7 @@ int main() {
     helix::NrfOtaFlashBackend backend{kDkSecondarySlotBase, kDkSecondarySlotSize};
     helix::OtaManager manager{backend};
     helix::OtaManagerAdapter managerAdapter{manager};
-    helix::BleOtaService service{managerAdapter};
+    helix::BleOtaService service{managerAdapter, kTargetId};
     helix::UartOtaFrameParser<kMaxPayload> parser;
     helix::UartOtaMutableFrame decoded{};
 

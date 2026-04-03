@@ -3,6 +3,7 @@
 
 #include "BleOtaService.hpp"
 #include "OtaManager.hpp"
+#include "OtaTargetIdentity.hpp"
 
 using namespace helix;
 using ::testing::Return;
@@ -28,7 +29,8 @@ public:
 // Helpers to build control packets
 // ---------------------------------------------------------------------------
 
-static std::vector<uint8_t> makeBeginPacket(uint32_t size, uint32_t crc) {
+static std::vector<uint8_t> makeBeginPacket(uint32_t size, uint32_t crc,
+                                            uint32_t targetId = kOtaTargetIdNrf52dkNrf52832) {
     return {
         0x01,
         static_cast<uint8_t>(size       & 0xFF),
@@ -39,6 +41,10 @@ static std::vector<uint8_t> makeBeginPacket(uint32_t size, uint32_t crc) {
         static_cast<uint8_t>(crc  >> 8  & 0xFF),
         static_cast<uint8_t>(crc  >> 16 & 0xFF),
         static_cast<uint8_t>(crc  >> 24 & 0xFF),
+        static_cast<uint8_t>(targetId       & 0xFF),
+        static_cast<uint8_t>(targetId >> 8  & 0xFF),
+        static_cast<uint8_t>(targetId >> 16 & 0xFF),
+        static_cast<uint8_t>(targetId >> 24 & 0xFF),
     };
 }
 
@@ -62,7 +68,7 @@ static std::vector<uint8_t> makeDataPacket(uint32_t offset,
 class BleOtaServiceTest : public ::testing::Test {
 protected:
     StrictMock<MockOtaManager> mgr;
-    BleOtaService              svc{mgr};
+    BleOtaService              svc{mgr, kOtaTargetIdNrf52dkNrf52832};
 };
 
 // ---------------------------------------------------------------------------
@@ -86,10 +92,17 @@ TEST_F(BleOtaServiceTest, ControlBeginPropagatesManagerError) {
 }
 
 TEST_F(BleOtaServiceTest, ControlBeginReturnsBadOffsetForShortPacket) {
-    // 8 bytes instead of 9 (missing last CRC byte).
-    const uint8_t shortPkt[] = {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
+    // 12 bytes instead of 13 (missing last target-id byte).
+    const uint8_t shortPkt[] = {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x01, 0x20, 0x83};
     EXPECT_EQ(OtaStatus::ERROR_BAD_OFFSET,
               svc.handleControlWrite(shortPkt, sizeof(shortPkt)));
+}
+
+TEST_F(BleOtaServiceTest, ControlBeginRejectsWrongTargetId) {
+    auto pkt = makeBeginPacket(0x1234, 0xDEADBEEF, kOtaTargetIdNrf52840Dongle);
+    EXPECT_EQ(OtaStatus::ERROR_WRONG_TARGET,
+              svc.handleControlWrite(pkt.data(), pkt.size()));
 }
 
 // ---------------------------------------------------------------------------
@@ -190,11 +203,11 @@ TEST_F(BleOtaServiceTest, GetStatusReturnsStateBytesReceivedAndLastStatus) {
     EXPECT_CALL(mgr, state()).WillOnce(Return(OtaState::RECEIVING));
     EXPECT_CALL(mgr, bytesReceived()).WillOnce(Return(512u));
 
-    uint8_t buf[6] = {};
+    uint8_t buf[BleOtaService::kStatusLen] = {};
     size_t  len    = sizeof(buf);
     svc.getStatus(buf, &len);
 
-    EXPECT_EQ(6u, len);
+    EXPECT_EQ(BleOtaService::kStatusLen, len);
     EXPECT_EQ(static_cast<uint8_t>(OtaState::RECEIVING), buf[0]);
     // bytes_received LE32
     EXPECT_EQ(0x00u, buf[1]);
@@ -203,6 +216,10 @@ TEST_F(BleOtaServiceTest, GetStatusReturnsStateBytesReceivedAndLastStatus) {
     EXPECT_EQ(0x00u, buf[4]);
     // last OtaStatus
     EXPECT_EQ(static_cast<uint8_t>(OtaStatus::OK), buf[5]);
+    EXPECT_EQ(kOtaTargetIdNrf52dkNrf52832 & 0xFFu, buf[6]);
+    EXPECT_EQ((kOtaTargetIdNrf52dkNrf52832 >> 8) & 0xFFu, buf[7]);
+    EXPECT_EQ((kOtaTargetIdNrf52dkNrf52832 >> 16) & 0xFFu, buf[8]);
+    EXPECT_EQ((kOtaTargetIdNrf52dkNrf52832 >> 24) & 0xFFu, buf[9]);
 }
 
 TEST_F(BleOtaServiceTest, GetStatusReflectsLastError) {
@@ -214,7 +231,7 @@ TEST_F(BleOtaServiceTest, GetStatusReflectsLastError) {
     EXPECT_CALL(mgr, state()).WillOnce(Return(OtaState::IDLE));
     EXPECT_CALL(mgr, bytesReceived()).WillOnce(Return(0u));
 
-    uint8_t buf[6] = {};
+    uint8_t buf[BleOtaService::kStatusLen] = {};
     size_t  len    = sizeof(buf);
     svc.getStatus(buf, &len);
 
@@ -222,6 +239,6 @@ TEST_F(BleOtaServiceTest, GetStatusReflectsLastError) {
 }
 
 TEST_F(BleOtaServiceTest, GetStatusHandlesNullBuffer) {
-    size_t len = 6u;
+    size_t len = BleOtaService::kStatusLen;
     svc.getStatus(nullptr, &len);  // must not crash
 }

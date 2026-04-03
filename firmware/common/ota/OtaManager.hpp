@@ -15,6 +15,7 @@ enum class OtaStatus : uint8_t {
     ERROR_INTEGRITY_FAILED, ///< CRC32 mismatch on commit
     ERROR_INCOMPLETE,       ///< commit() called before all declared bytes were written
     ERROR_UPGRADE_FAILED,   ///< setPendingUpgrade() returned false
+    ERROR_WRONG_TARGET,     ///< uploader target ID did not match the running image
 };
 
 enum class OtaState : uint8_t {

@@ -8,6 +8,7 @@ fi
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PORT="${1:-/dev/ttyACM0}"
 TARGET_CFG="${2:-target/nrf52.cfg}"
+export JLINK_SERIAL="${JLINK_SERIAL:-1050335103}"
 
 cd "${REPO_ROOT}"
 
@@ -24,4 +25,5 @@ python3 tools/nrf/uart_ota_upload.py \
   "${PORT}" \
   build/nrf/nrf52dk_ota_serial_v2_signed.bin \
   --expect-before ota-v1 \
-  --expect-after ota-v2
+  --expect-after ota-v2 \
+  --target-id 0x52832001

@@ -1,6 +1,7 @@
 #include "BleOtaService.hpp"
 #include "IOtaManager.hpp"
 #include "OtaManager.hpp"
+#include "OtaTargetIdentity.hpp"
 #include "ZephyrOtaFlashBackend.hpp"
 
 #include <zephyr/bluetooth/bluetooth.h>
@@ -33,7 +34,7 @@ static struct bt_uuid_128 g_statusUuid = BT_UUID_INIT_128(BT_UUID_HELIX_OTA_STAT
 helix::ZephyrOtaFlashBackend g_backend;
 helix::OtaManager g_manager{g_backend};
 helix::OtaManagerAdapter g_adapter{g_manager};
-helix::BleOtaService g_service{g_adapter};
+helix::BleOtaService g_service{g_adapter, helix::kOtaTargetIdNrf52dkNrf52832};
 
 struct bt_conn* g_conn = nullptr;
 bool g_notifyEnabled = false;

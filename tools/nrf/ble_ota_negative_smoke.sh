@@ -8,6 +8,7 @@ fi
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PORT="${1:-/dev/ttyACM0}"
 TARGET_CFG="${2:-target/nrf52.cfg}"
+export JLINK_SERIAL="${JLINK_SERIAL:-1050335103}"
 
 cd "${REPO_ROOT}"
 
@@ -52,7 +53,7 @@ PY
 
 reset_target() {
   openocd \
-    -c "adapter driver jlink; transport select swd; source [find ${TARGET_CFG}]; init; reset run; shutdown"
+    -c "adapter driver jlink; adapter serial ${JLINK_SERIAL}; transport select swd; source [find ${TARGET_CFG}]; init; reset run; shutdown"
 }
 
 tools/dev/doctor.sh
@@ -71,6 +72,7 @@ if python3 tools/nrf/ble_ota_upload.py \
   "${IMAGE}" \
   --name HelixOTA-v1 \
   --expect-after HelixOTA-v2 \
+  --target-id 0x52832001 \
   --crc-adjust 1 \
   --chunk-size 16 \
   --poll-every-chunks 64 \
@@ -81,9 +83,24 @@ fi
 read_console_until "tick ota-ble-v1 state=0 bytes=166548"
 reset_target
 
+echo "== wrong target id must be rejected immediately =="
+if python3 tools/nrf/ble_ota_upload.py \
+  "${IMAGE}" \
+  --name HelixOTA-v1 \
+  --expect-after HelixOTA-v2 \
+  --target-id 0x52840059 \
+  --chunk-size 16 \
+  --scan-timeout 12; then
+  echo "unexpected success for wrong-target OTA" >&2
+  exit 1
+fi
+read_console_until "tick ota-ble-v1 state=0 bytes=0"
+reset_target
+
 python3 tools/nrf/ble_ota_upload.py \
   "${IMAGE}" \
   --name HelixOTA-v1 \
+  --target-id 0x52832001 \
   --abort-after-bytes 4096 \
   --chunk-size 16 \
   --poll-every-chunks 32 \
@@ -97,6 +114,7 @@ python3 tools/nrf/ble_ota_upload.py \
   "${IMAGE}" \
   --name HelixOTA-v1 \
   --expect-after HelixOTA-v2 \
+  --target-id 0x52832001 \
   --chunk-size 16 \
   --poll-every-chunks 64 \
   --inter-chunk-delay-ms 1

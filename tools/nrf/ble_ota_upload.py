@@ -23,6 +23,7 @@ def parse_args():
     p.add_argument("--name", default="HelixOTA-v1")
     p.add_argument("--expect-after", default="HelixOTA-v2")
     p.add_argument("--expect-same-name", action="store_true")
+    p.add_argument("--target-id", type=lambda v: int(v, 0))
     p.add_argument("--no-wait-after", action="store_true")
     p.add_argument("--crc-adjust", type=int, default=0)
     p.add_argument("--abort-after-bytes", type=int)
@@ -42,12 +43,13 @@ async def find_device(name: str, timeout: float):
 
 async def read_status(client: BleakClient):
     raw = bytes(await client.read_gatt_char(OTA_STATUS_UUID))
-    if len(raw) < 6:
+    if len(raw) < 10:
         raise RuntimeError("short status response")
     return {
         "state": raw[0],
         "bytes_received": int.from_bytes(raw[1:5], "little"),
         "last_status": raw[5],
+        "target_id": int.from_bytes(raw[6:10], "little"),
     }
 
 
@@ -63,9 +65,12 @@ async def main_async():
     print(f"before: {device.address} {device.name}")
     async with BleakClient(device) as client:
         status = await read_status(client)
-        print(f"status-before: state={status['state']} bytes={status['bytes_received']} last={status['last_status']}")
+        print(f"status-before: state={status['state']} bytes={status['bytes_received']} last={status['last_status']} target=0x{status['target_id']:08x}")
+        if args.target_id is not None and status["target_id"] != args.target_id:
+            raise RuntimeError(f"wrong target id: device=0x{status['target_id']:08x} expected=0x{args.target_id:08x}")
 
-        begin = bytes([CMD_BEGIN]) + len(image).to_bytes(4, "little") + crc.to_bytes(4, "little")
+        target_id = args.target_id if args.target_id is not None else status["target_id"]
+        begin = bytes([CMD_BEGIN]) + len(image).to_bytes(4, "little") + crc.to_bytes(4, "little") + target_id.to_bytes(4, "little")
         await client.write_gatt_char(OTA_CTRL_UUID, begin, response=True)
         status = await read_status(client)
         if status["last_status"] != 0:

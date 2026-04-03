@@ -21,6 +21,10 @@ OtaStatus BleOtaService::handleControlWrite(const uint8_t* data, size_t len) {
             if (len < kCtrlBeginMinLen) {
                 return OtaStatus::ERROR_BAD_OFFSET;
             }
+            if (readU32Le(data + 9) != m_targetId) {
+                status = OtaStatus::ERROR_WRONG_TARGET;
+                break;
+            }
             status = m_mgr.begin(readU32Le(data + 1), readU32Le(data + 5));
             break;
 
@@ -66,6 +70,10 @@ void BleOtaService::getStatus(uint8_t* out, size_t* outLen) const {
     out[3] = static_cast<uint8_t>(rx >> 16u & 0xFFu);
     out[4] = static_cast<uint8_t>(rx >> 24u & 0xFFu);
     out[5] = static_cast<uint8_t>(m_lastStatus);
+    out[6] = static_cast<uint8_t>(m_targetId & 0xFFu);
+    out[7] = static_cast<uint8_t>(m_targetId >> 8u & 0xFFu);
+    out[8] = static_cast<uint8_t>(m_targetId >> 16u & 0xFFu);
+    out[9] = static_cast<uint8_t>(m_targetId >> 24u & 0xFFu);
 
     if (outLen) *outLen = kStatusLen;
 }

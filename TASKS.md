@@ -84,6 +84,10 @@ Current M7 bring-up progress:
       a repo-local Zephyr/NCS app exposes the Helix OTA GATT service,
       this PC uploads a signed `v2` image over BLE, the board stages it,
       reboots through MCUboot, and comes back advertising `HelixOTA-v2`
+- [x] OTA target identity is now enforced on the DK path:
+      uploaders send an explicit target ID, the running image reports its
+      own target ID, and a 52840-targeted OTA is rejected immediately by the
+      52832 DK before any transfer begins
 - [x] BLE OTA failure handling is now proven on the DK:
       bad CRC is rejected without promoting `v2`, explicit abort returns the
       device to idle on `v1`, and a later good BLE update still succeeds
@@ -140,7 +144,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
 | M5-M6: Calibration + Multi-node | ~100% | Simulation-side calibration, disturbance characterization, and three-node body-chain proofs are landed; long-run mild-impairment drift is documented as a current limitation |
-| M7: Platform Port (nRF52) | ~99% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, MCUboot slot promotion, repo-local BLE reference workflow, real HelixDrift BLE OTA, BLE OTA failure-path handling on the DK, and first repo-native nRF52840 dongle bring-up are proven; attached-sensor bring-up and multi-node RF hardware work remain open |
+| M7: Platform Port (nRF52) | ~99% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, MCUboot slot promotion, repo-local BLE reference workflow, real HelixDrift BLE OTA, wrong-target OTA rejection, BLE OTA failure-path handling on the DK, and first repo-native nRF52840 dongle bring-up are proven; attached-sensor bring-up and multi-node RF hardware work remain open |
 
 ## Reference Documents
 

@@ -38,10 +38,18 @@ Observed smoke result:
 
 ```text
 before: F2:A5:1E:5F:5B:9C HelixOTA-v1
-status-before: state=0 bytes=0 last=0
+status-before: state=0 bytes=0 last=0 target=0x52832001
 commit: OK, waiting for reboot
 after: F2:A5:1E:5F:5B:9C HelixOTA-v2
 ```
+
+The OTA service now also reports and enforces a target identifier:
+
+- `0x52832001` = `nrf52dk/nrf52832`
+- `0x52840059` = `nrf52840` dongle lane
+- `0x52840040` = `XIAO nRF52840` product lane
+
+An uploader must match the running image target ID before `BEGIN` is accepted.
 
 ## Prerequisites
 
@@ -131,7 +139,8 @@ Upload the signed `v2` payload:
 nix develop --command python3 tools/nrf/ble_ota_upload.py \
   .deps/ncs/v3.2.4/build-helix-nrf52dk-ota-ble-v2/nrf52dk-ota-ble/zephyr/zephyr.signed.bin \
   --name HelixOTA-v1 \
-  --expect-after HelixOTA-v2
+  --expect-after HelixOTA-v2 \
+  --target-id 0x52832001
 ```
 
 Current safe default:
@@ -165,10 +174,11 @@ The repository also provides a negative-path smoke:
 nix develop --command bash -lc 'tools/nrf/ble_ota_negative_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
 ```
 
-This validates three real-hardware cases:
+This validates four real-hardware cases:
 1. bad CRC over BLE must not promote `v2`
-2. explicit abort mid-transfer must return the target to idle on `v1`
-3. a later valid BLE OTA must still promote successfully to `v2`
+2. wrong target ID must be rejected before the transfer begins
+3. explicit abort mid-transfer must return the target to idle on `v1`
+4. a later valid BLE OTA must still promote successfully to `v2`
 
 Representative result:
 
@@ -176,6 +186,9 @@ Representative result:
 == bad CRC must not reboot into v2 ==
 ... ATT error: 0x13 (Value Not Allowed)
 tick ota-ble-v1 state=0 bytes=166548
+
+== wrong target id must be rejected immediately ==
+error: wrong target id: device=0x52832001 expected=0x52840059
 
 abort: OK after 4096 bytes
 tick ota-ble-v1 state=0 bytes=0
@@ -240,4 +253,5 @@ Treat this as the current supported OTA baseline:
 - do not shrink slots yet
 - do not raise BLE chunk size casually without revalidation
 - do not bypass `tools/dev/doctor.sh`
+- keep target-ID checks intact across all OTA transports
 - keep the smoke script passing whenever OTA-related code changes

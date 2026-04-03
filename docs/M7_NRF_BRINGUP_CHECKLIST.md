@@ -214,6 +214,7 @@ just through synthetic traffic or UART/VCOM.
 - [x] Upload a signed `v2` image over BLE
 - [x] Stage and commit the image through the real Helix OTA backend
 - [x] Observe MCUboot promotion and `HelixOTA-v2` after reboot
+- [x] Reject a wrong-target OTA before `BEGIN` is accepted
 
 ### Commands
 
@@ -231,6 +232,7 @@ nix develop --command bash -lc 'tools/nrf/ble_ota_dk_smoke.sh /dev/ttyACM0 targe
 ### Failure Handling Follow-Up
 
 - [x] bad CRC transfer is rejected and does not promote `v2`
+- [x] wrong target ID is rejected immediately and the DK remains on `v1`
 - [x] explicit abort returns the target to idle on `v1`
 - [x] a later valid BLE OTA still succeeds after those failures
 

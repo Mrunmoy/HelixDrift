@@ -1,6 +1,7 @@
 #include "BleOtaService.hpp"
 #include "IOtaManager.hpp"
 #include "NrfOtaFlashBackend.hpp"
+#include "OtaTargetIdentity.hpp"
 #include "nrf_delay.h"
 #include "nrf_gpio.h"
 #include <cstddef>
@@ -291,10 +292,10 @@ bool runOtaServiceSelfTest() {
     helix::NrfOtaFlashBackend backend{kOtaServicePageBase, kFlashPageSize};
     helix::OtaManager manager{backend};
     helix::OtaManagerAdapter adapter{manager};
-    helix::BleOtaService service{adapter};
+    helix::BleOtaService service{adapter, helix::kOtaTargetIdNrf52dkNrf52832};
 
     const uint32_t crc = crc32(kImage, sizeof(kImage));
-    uint8_t beginPacket[9] = {
+    uint8_t beginPacket[13] = {
         helix::BleOtaService::CMD_BEGIN,
         static_cast<uint8_t>(sizeof(kImage) & 0xFFu),
         static_cast<uint8_t>((sizeof(kImage) >> 8u) & 0xFFu),
@@ -304,6 +305,10 @@ bool runOtaServiceSelfTest() {
         static_cast<uint8_t>((crc >> 8u) & 0xFFu),
         static_cast<uint8_t>((crc >> 16u) & 0xFFu),
         static_cast<uint8_t>((crc >> 24u) & 0xFFu),
+        static_cast<uint8_t>(helix::kOtaTargetIdNrf52dkNrf52832 & 0xFFu),
+        static_cast<uint8_t>((helix::kOtaTargetIdNrf52dkNrf52832 >> 8u) & 0xFFu),
+        static_cast<uint8_t>((helix::kOtaTargetIdNrf52dkNrf52832 >> 16u) & 0xFFu),
+        static_cast<uint8_t>((helix::kOtaTargetIdNrf52dkNrf52832 >> 24u) & 0xFFu),
     };
 
     setPhase(Phase::OtaServiceBegin);
@@ -343,7 +348,11 @@ bool runOtaServiceSelfTest() {
     }
     if (status[0] != static_cast<uint8_t>(helix::OtaState::COMMITTED) ||
         status[1] != sizeof(kImage) ||
-        status[5] != static_cast<uint8_t>(helix::OtaStatus::OK)) {
+        status[5] != static_cast<uint8_t>(helix::OtaStatus::OK) ||
+        status[6] != static_cast<uint8_t>(helix::kOtaTargetIdNrf52dkNrf52832 & 0xFFu) ||
+        status[7] != static_cast<uint8_t>((helix::kOtaTargetIdNrf52dkNrf52832 >> 8u) & 0xFFu) ||
+        status[8] != static_cast<uint8_t>((helix::kOtaTargetIdNrf52dkNrf52832 >> 16u) & 0xFFu) ||
+        status[9] != static_cast<uint8_t>((helix::kOtaTargetIdNrf52dkNrf52832 >> 24u) & 0xFFu)) {
         g_selfTestStatus.failureCode = 0xE431u;
         return false;
     }

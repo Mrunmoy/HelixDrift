@@ -12,7 +12,7 @@ namespace helix {
  * Characteristic layout:
  *
  *   OTA_CTRL (write):
- *     [0x01][size:4 LE][crc32:4 LE]   → begin(size, crc)
+ *     [0x01][size:4 LE][crc32:4 LE][target_id:4 LE] → begin(size, crc)
  *     [0x02]                           → abort()
  *     [0x03]                           → commit()
  *
@@ -20,7 +20,8 @@ namespace helix {
  *     [offset:4 LE][payload...]        → writeChunk(offset, payload, len)
  *
  *   OTA_STATUS (read / notify):
- *     [state:1][bytes_received:4 LE][last_status:1]   → 6 bytes total
+ *     [state:1][bytes_received:4 LE][last_status:1][target_id:4 LE]
+ *       → 10 bytes total
  *
  * This class has no BLE stack dependency. Platform-specific BLE code calls
  * handleControlWrite(), handleDataWrite(), and getStatus().
@@ -31,11 +32,12 @@ public:
     static constexpr uint8_t CMD_ABORT  = 0x02u;
     static constexpr uint8_t CMD_COMMIT = 0x03u;
 
-    static constexpr size_t kStatusLen       = 6u;
-    static constexpr size_t kCtrlBeginMinLen = 9u;
+    static constexpr size_t kStatusLen       = 10u;
+    static constexpr size_t kCtrlBeginMinLen = 13u;
     static constexpr size_t kDataHeaderLen   = 4u;
 
-    explicit BleOtaService(IOtaManager& manager) : m_mgr(manager) {}
+    explicit BleOtaService(IOtaManager& manager, uint32_t targetId)
+        : m_mgr(manager), m_targetId(targetId) {}
 
     /**
      * Handle a write to the OTA_CTRL characteristic.
@@ -60,6 +62,7 @@ private:
     static uint32_t readU32Le(const uint8_t* p);
 
     IOtaManager& m_mgr;
+    uint32_t     m_targetId{0};
     OtaStatus    m_lastStatus{OtaStatus::OK};
 };
 

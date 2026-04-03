@@ -1,5 +1,102 @@
 # Simulator Development Journal
 
+## 2026-04-03 - M7 OTA Target Identity Guard
+
+### Feature: Board-Specific OTA Payload Gating
+
+#### Intent
+
+Prevent a validly signed image for one Nordic target from being accepted by a
+different Nordic target during development, while both 52832 and 52840 lanes
+coexist in the same repo.
+
+#### Implementation Summary
+
+- Added
+  [`firmware/common/ota/OtaTargetIdentity.hpp`](/home/mrumoy/sandbox/embedded/HelixDrift/firmware/common/ota/OtaTargetIdentity.hpp)
+  with stable target IDs for:
+  - `nrf52dk/nrf52832`
+  - `nrf52840` dongle
+  - `xiao_nrf52840`
+- Extended [`BleOtaService`]( /home/mrumoy/sandbox/embedded/HelixDrift/firmware/common/ota/BleOtaService.hpp )
+  so `CMD_BEGIN` now carries `[target_id:4 LE]`, status reports the running
+  target ID, and mismatches return `ERROR_WRONG_TARGET`.
+- Updated the DK UART OTA app, DK BLE OTA app, DK selftest, and both uploader
+  tools so they send and validate the target ID explicitly.
+- Updated OpenOCD helper scripts so DK smoke paths select the correct J-Link
+  automatically even while the external 52840 dongle probe is attached.
+
+#### Verification
+
+Host-side verification:
+
+```bash
+./build.py --host-only -t
+./build.py --nrf-only
+```
+
+Real-hardware verification on the connected `nRF52 DK`:
+
+```bash
+nix develop --command bash -lc 'tools/nrf/ota_dk_uart_smoke.sh /dev/ttyACM0 target/nrf52.cfg'
+```
+
+Observed UART OTA result:
+
+```text
+before: version=ota-v1 state=0 slot=0x24000 target=0x52832001
+commit: OK, waiting for reboot
+after: version=ota-v2 state=0 slot=0x24000 target=0x52832001
+```
+
+Real-hardware verification over BLE:
+
+```bash
+nix develop --command bash -lc 'python3 tools/nrf/ble_ota_upload.py \
+  .deps/ncs/v3.2.4/build-helix-nrf52dk-ota-ble-v2/nrf52dk-ota-ble/zephyr/zephyr.signed.bin \
+  --name HelixOTA-v1 \
+  --expect-after HelixOTA-v2 \
+  --target-id 0x52832001 \
+  --chunk-size 16 \
+  --poll-every-chunks 64 \
+  --inter-chunk-delay-ms 1 \
+  --scan-timeout 12'
+```
+
+Observed BLE OTA result:
+
+```text
+before: F2:A5:1E:5F:5B:9C HelixOTA-v1
+status-before: state=0 bytes=0 last=0 target=0x52832001
+commit: OK, waiting for reboot
+after: F2:A5:1E:5F:5B:9C HelixOTA-v2
+```
+
+Wrong-target rejection on the same DK:
+
+```bash
+nix develop --command bash -lc 'python3 tools/nrf/ble_ota_upload.py \
+  .deps/ncs/v3.2.4/build-helix-nrf52dk-ota-ble-v2/nrf52dk-ota-ble/zephyr/zephyr.signed.bin \
+  --name HelixOTA-v1 \
+  --target-id 0x52840059 \
+  --chunk-size 16 \
+  --scan-timeout 12'
+```
+
+Observed rejection:
+
+```text
+error: wrong target id: device=0x52832001 expected=0x52840059
+before: F2:A5:1E:5F:5B:9C HelixOTA-v1
+status-before: state=0 bytes=0 last=0 target=0x52832001
+```
+
+#### Outcome
+
+The OTA path now distinguishes 52832 DK, 52840 dongle, and 52840 product-lane
+images before any data transfer begins. That is the right development-time
+safety barrier while multiple Nordic chipsets coexist in this branch.
+
 ## 2026-04-03 - nRF52840 Dongle Repo-Native Bring-Up
 
 ### Feature: First Repo-Owned Firmware Running On The Soldered Dongle
