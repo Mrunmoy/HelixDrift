@@ -5,8 +5,7 @@
  *   1. Enables the FPU (CP10/CP11 full access via CPACR)
  *   2. Copies .data from flash (LMA) to RAM (VMA)
  *   3. Zeros .bss
- *   4. Calls __libc_init_array() (C++ global constructors)
- *   5. Calls main()
+ *   4. Calls main()
  *
  * All IRQ handlers are defined as weak aliases to Default_Handler so they
  * can be overridden by C/C++ code.
@@ -24,7 +23,6 @@
     .extern _edata
     .extern _sbss
     .extern _ebss
-    .extern __libc_init_array
 
 /* -------------------------------------------------------------------------
  * Vector table
@@ -150,9 +148,6 @@ zero_bss_body:
 zero_bss_loop:
     cmp   r2, r4
     bcc   zero_bss_body
-
-    /* Call C++ global constructors (.init_array) */
-    bl    __libc_init_array
 
     /* Call main() */
     bl    main

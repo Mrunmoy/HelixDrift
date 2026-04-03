@@ -13,11 +13,17 @@ fi
 
 IMAGE="$1"
 TARGET_CFG="${2:-target/nrf52.cfg}"
+JLINK_SERIAL="${JLINK_SERIAL:-}"
 
 if [[ ! -f "$IMAGE" ]]; then
   echo "error: image not found: $IMAGE" >&2
   exit 1
 fi
 
-exec openocd \
-  -c "adapter driver jlink; transport select swd; source [find ${TARGET_CFG}]; init; program ${IMAGE} verify reset exit"
+OPENOCD_CMDS="adapter driver jlink; "
+if [[ -n "${JLINK_SERIAL}" ]]; then
+  OPENOCD_CMDS+="adapter serial ${JLINK_SERIAL}; "
+fi
+OPENOCD_CMDS+="transport select swd; source [find ${TARGET_CFG}]; init; program ${IMAGE} verify reset exit"
+
+exec openocd -c "${OPENOCD_CMDS}"

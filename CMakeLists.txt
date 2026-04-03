@@ -55,6 +55,7 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     )
 
     set(NRF_APP_LD "${CMAKE_CURRENT_SOURCE_DIR}/tools/linker/xiao_nrf52840_app.ld")
+    set(NRF52840_DONGLE_BAREMETAL_LD "${CMAKE_CURRENT_SOURCE_DIR}/tools/linker/nrf52840dongle_nrf52840_baremetal.ld")
     set(NRF52DK_APP_LD "${CMAKE_CURRENT_SOURCE_DIR}/tools/linker/nrf52dk_nrf52832_app.ld")
     set(NRF52DK_BAREMETAL_LD "${CMAKE_CURRENT_SOURCE_DIR}/tools/linker/nrf52dk_nrf52832_baremetal.ld")
     set(NRF_STARTUP "${CMAKE_CURRENT_SOURCE_DIR}/firmware/platform/startup_nrf52840.S")
@@ -72,6 +73,23 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     target_link_options(nrf52_blinky PRIVATE -T${NRF_APP_LD} -Wl,-Map=nrf52_blinky.map)
     set_target_properties(nrf52_blinky PROPERTIES LINK_DEPENDS "${NRF_APP_LD}")
     helix_add_nrf_artifacts(nrf52_blinky)
+
+    add_executable(nrf52840dongle_blinky
+        ${NRF_STARTUP}
+        examples/nrf52-blinky/src/main.cpp
+    )
+    target_include_directories(nrf52840dongle_blinky PRIVATE
+        tools/nrf/baremetal/include
+        tools/nrf/stubs/include
+    )
+    target_link_libraries(nrf52840dongle_blinky PRIVATE helix_blink)
+    target_compile_definitions(nrf52840dongle_blinky PRIVATE
+        HELIX_LED_PIN=6
+        HELIX_LED_ACTIVE_LOW=1
+    )
+    target_link_options(nrf52840dongle_blinky PRIVATE -T${NRF52840_DONGLE_BAREMETAL_LD} -Wl,-Map=nrf52840dongle_blinky.map)
+    set_target_properties(nrf52840dongle_blinky PROPERTIES LINK_DEPENDS "${NRF52840_DONGLE_BAREMETAL_LD}")
+    helix_add_nrf_artifacts(nrf52840dongle_blinky)
 
     add_executable(nrf52dk_blinky
         ${NRF52DK_STARTUP}

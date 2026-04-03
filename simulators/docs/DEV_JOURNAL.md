@@ -1,5 +1,60 @@
 # Simulator Development Journal
 
+## 2026-04-03 - nRF52840 Dongle Repo-Native Bring-Up
+
+### Feature: First Repo-Owned Firmware Running On The Soldered Dongle
+
+#### Intent
+
+Move the external nRF52840 dongle from "detectable over SWD" to a real
+repo-native hardware target that can be flashed and debugged independently of
+the nRF52 DK.
+
+#### Implementation Summary
+
+- Added
+  [`tools/linker/nrf52840dongle_nrf52840_baremetal.ld`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/linker/nrf52840dongle_nrf52840_baremetal.ld)
+  for direct-SWD bring-up on the dongle.
+- Added a dedicated `nrf52840dongle_blinky` target in
+  [`CMakeLists.txt`](/home/mrumoy/sandbox/embedded/HelixDrift/CMakeLists.txt)
+  using `LED0 = P0.06`, active low, matching Nordic's `nrf52840dongle`
+  board definition.
+- Updated [`tools/nrf/flash_openocd.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/flash_openocd.sh)
+  to accept probe selection via `JLINK_SERIAL`, so the external J-Link and the
+  DK onboard J-Link can coexist.
+- Found and fixed a bare-metal startup bug on the 52840 path:
+  the old startup called `__libc_init_array()`, which caused an instruction
+  bus fault in the tiny direct-SWD bring-up image. The 52840 startup now
+  matches the proven minimal-init strategy already used on the DK path.
+
+#### Verification
+
+Commands run:
+
+```bash
+./build.py --nrf-only
+JLINK_SERIAL=4294967295 tools/nrf/flash_openocd.sh build/nrf/nrf52840dongle_blinky.hex target/nrf52.cfg
+```
+
+Additional SWD checks after flashing:
+
+- target identified through the external generic J-Link as an `nRF52840`
+- one-second-later halt shows normal `Thread` mode instead of `HardFault`
+- `GPIO0.OUT` samples one second apart toggle bit 6:
+  - `0x00000040`
+  - `0x00000000`
+
+#### Outcome
+
+The repo now has a real split hardware bring-up lane:
+
+- `nrf52dk_*` targets for the connected `nRF52832 DK`
+- `nrf52840dongle_*` targets for the soldered `nRF52840` dongle via the
+  external J-Link
+
+This is enough to start moving from "single-board OTA proof" toward
+multi-target RF hardware work without conflating the two Nordic chipsets.
+
 ## 2026-04-03 - M7 BLE OTA Failure Handling On DK
 
 ### Feature: Negative OTA Cases Proven On Real Hardware

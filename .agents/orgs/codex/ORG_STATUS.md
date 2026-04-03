@@ -136,6 +136,13 @@
   - BLE OTA failure handling proven on the DK:
     bad CRC is rejected without promoting `v2`, explicit abort returns the
     OTA state machine to idle on `v1`, and a later good update still succeeds
+  - first repo-native nRF52840 dongle bring-up now proven through the external
+    J-Link:
+    dedicated `nrf52840dongle_blinky` image, separate 52840 linker path,
+    explicit probe selection, and verified `LED0` toggling on `P0.06`
+  - the 52840 bare-metal startup path now uses the same minimal-init strategy
+    as the proven DK path, removing the direct-SWD `__libc_init_array()` fault
+    in tiny bring-up images
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -248,6 +255,9 @@
   branch
 - Task: Use the available nRF52 DK as a generic hardware bring-up target
   without conflating it with the final nRF52840 board assumptions
+- Task: Keep the new nRF52840 dongle lane explicitly distinct from the DK lane
+  and use it for follow-on RF/node hardware experiments once the single-node
+  bring-up path is stable
 - Task: Keep the nix-only developer contract intact while moving the next
   hardware-observability step from retained-RAM readback toward live DK VCOM
   output on the corrected Nordic UART pins
@@ -290,12 +300,14 @@
 
 ## Latest Milestone Note
 
-- M7 UART OTA is now proven end-to-end on real hardware:
-  - signed `nrf52dk_ota_serial_v1` boots through MCUboot
-  - repo-local uploader stages signed `nrf52dk_ota_serial_v2` over
-    `/dev/ttyACM0`
-  - the app commits via the real OTA backend
-  - MCUboot promotes the image
-  - the board comes back reporting `ota-v2`
-- Remaining M7 OTA gap:
-  - real BLE transport path
+- The DK OTA lane is now stable on real hardware:
+  - UART/VCOM OTA is proven
+  - BLE OTA is proven
+  - BLE OTA negative-path handling is proven
+- The first repo-native nRF52840 dongle bring-up slice is also proven:
+  - the soldered dongle is reachable through the external J-Link
+  - `nrf52840dongle_blinky` flashes and runs
+  - one-second-apart SWD samples show `GPIO0.OUT` toggling bit 6 for `LED0`
+- Remaining M7 gap:
+  - attached-sensor bring-up
+  - multi-target RF/node hardware work
