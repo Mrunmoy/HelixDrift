@@ -25,6 +25,15 @@ python3 tools/nrf/ble_ota_upload.py \
   --name Helix840-v1 \
   --expect-after Helix840-v2 \
   --target-id 0x52840059 \
-  --chunk-size 16 \
-  --poll-every-chunks 64 \
-  --inter-chunk-delay-ms 1
+  --chunk-size 64 \
+  --write-with-response \
+  --poll-every-chunks 4 \
+  --inter-chunk-delay-ms 0 \
+  --progress-every-bytes 8192 \
+  --resume-retries 2 \
+  --tail-safe-bytes 4096 \
+  --tail-chunk-size 4 \
+  --tail-write-with-response \
+  --tail-poll-every-chunks 1 \
+  --tail-inter-chunk-delay-ms 5 \
+  --page-cross-delay-ms 200

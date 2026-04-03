@@ -1,5 +1,55 @@
 # Simulator Development Journal
 
+## 2026-04-03 - nRF52840 BLE OTA Checkpoint
+
+### Feature: Narrowed 52840 BLE OTA Closure Work
+
+#### Intent
+
+Record the exact state of the `nrf52840` BLE OTA lane before stopping for the
+day so the remaining work can resume from facts instead of trial-and-error.
+
+#### What Is Proven
+
+- The `nrf52840dongle/nrf52840/bare` Zephyr/MCUboot OTA lane now builds
+  cleanly from the repo-local NCS workspace through `nix develop`.
+- The first `nRF52840` dongle boots the repo-local `Helix840-v1` image and
+  advertises over BLE reliably.
+- The uploader-side `BEGIN` timeout issue on the 52840 is understood:
+  the secondary-slot erase takes materially longer than the old default GATT
+  timeout, so `BEGIN` must be allowed to run longer on this target.
+- A full-image `v2` transfer can progress deep into the image on the real
+  dongle instead of failing immediately at transport start.
+- Two stale assumptions were identified and corrected locally:
+  - the 52840 helper flow had drifted onto a hand-written 28-byte footer even
+    though the build reports `CONFIG_MCUBOOT_UPDATE_FOOTER_SIZE=0x30`
+  - old manual tests had relied on stale trailer-format assumptions instead of
+    the current bootutil offsets and magic constants
+
+#### Remaining Blocker
+
+The unresolved 52840 problem is no longer generic BLE transport bring-up.
+It is the final `slot1 -> pending -> reboot into Helix840-v2` closure.
+
+At this checkpoint:
+
+- the first 52840 dongle can advertise `Helix840-v1`
+- BLE OTA `BEGIN` succeeds with the longer timeout
+- image transfer proceeds on the real target
+- but the end-to-end `Helix840-v1 -> Helix840-v2` promotion has not yet been
+  proven repeatably on the 52840
+
+#### Next Actions
+
+1. Align the manual trailer helper exactly to the generated 52840 footer
+   contract so it becomes a trustworthy debug aid again.
+2. Re-run the first-dongle `Helix840-v1 -> Helix840-v2` BLE OTA proof with the
+   corrected footer logic already patched into the target backend.
+3. Once the first 52840 passes cleanly, repeat the same OTA proof on the
+   second 52840 target.
+4. Only after both 52840 targets pass should the README/how-to docs be updated
+   to lock the 52840 BLE OTA workflow.
+
 ## 2026-04-03 - M7 OTA Target Identity Guard
 
 ### Feature: Board-Specific OTA Payload Gating

@@ -15,7 +15,14 @@ public:
     uint32_t slotSize() const override;
 
 private:
+    bool flushBuffered();
+
     const ::flash_area* slot1_ = nullptr;
+    uint32_t            nextWriteOffset_ = 0u;
+    uint32_t            bufferBaseOffset_ = 0u;
+    size_t              bufferedBytes_ = 0u;
+    static constexpr size_t kFlashBatchBytes = 256u;
+    uint8_t             buffer_[kFlashBatchBytes] = {};
 };
 
 } // namespace helix

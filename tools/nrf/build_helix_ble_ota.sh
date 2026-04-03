@@ -18,9 +18,11 @@ BUILD_DIR_NAME="build-helix-${BUILD_BOARD_SLUG}-ota-ble-${VARIANT}"
 case "${BOARD}" in
   nrf52dk/nrf52832)
     EXTRA_CONF_FILE="${APP_DIR}/${VARIANT}.conf"
+    SYSBUILD_EXTRA_ARGS=()
     ;;
   nrf52840dongle/nrf52840|nrf52840dongle/nrf52840/bare)
     EXTRA_CONF_FILE="${APP_DIR}/${VARIANT}-nrf52840dongle.conf"
+    SYSBUILD_EXTRA_ARGS=(-DSB_CONFIG_MCUBOOT_MODE_OVERWRITE_ONLY=y)
     ;;
   *)
     echo "unsupported OTA BLE board: ${BOARD}" >&2
@@ -45,5 +47,5 @@ GNUARMEMB_TOOLCHAIN_PATH="$(dirname "$(dirname "$(command -v arm-none-eabi-gcc)"
 (
   cd "${WORKSPACE_DIR}"
   west build --sysbuild -p auto -b "${BOARD}" "${APP_DIR}" -d "${BUILD_DIR_NAME}" \
-    -- -DEXTRA_CONF_FILE="${EXTRA_CONF_FILE}"
+    -- -DEXTRA_CONF_FILE="${EXTRA_CONF_FILE}" "${SYSBUILD_EXTRA_ARGS[@]}"
 )

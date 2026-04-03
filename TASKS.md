@@ -97,6 +97,20 @@ Current M7 bring-up progress:
       aligning the 52840 bare-metal startup with the DK's minimal-init path
 - [x] SWD samples on the dongle prove the core stays in `Thread` mode and
       `GPIO0.OUT` toggles bit 6 as expected for `LED0`
+- [ ] `nrf52840` BLE OTA is narrowed but not closed:
+      `Helix840-v1` now boots and advertises on the real dongle, `BEGIN`
+      succeeds once the uploader allows enough time for the full-slot erase,
+      and the first dongle can stream most or all of the signed `v2` image;
+      the remaining blocker is a clean, repeatable `slot1 -> pending ->
+      reboot into Helix840-v2` closure on `nrf52840dongle/nrf52840/bare`
+- [ ] stale 52840 OTA helper assumptions still need one cleanup pass:
+      the manual pending-trailer helper was based on an old hand-written
+      28-byte footer and must be aligned to the build-generated
+      `CONFIG_MCUBOOT_UPDATE_FOOTER_SIZE=0x30` contract before it is useful as
+      a validation tool again
+- [ ] once the first `nrf52840` dongle proves `Helix840-v1 -> Helix840-v2`
+      over BLE cleanly, repeat the same flow on the second 52840 target and
+      then lock the 52840 BLE OTA lane with updated README/how-to docs
 
 ### Wave A — Immediate (Codex / Fusion)
 
@@ -144,7 +158,7 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
 | M5-M6: Calibration + Multi-node | ~100% | Simulation-side calibration, disturbance characterization, and three-node body-chain proofs are landed; long-run mild-impairment drift is documented as a current limitation |
-| M7: Platform Port (nRF52) | ~99% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, MCUboot slot promotion, repo-local BLE reference workflow, real HelixDrift BLE OTA, wrong-target OTA rejection, BLE OTA failure-path handling on the DK, and first repo-native nRF52840 dongle bring-up are proven; attached-sensor bring-up and multi-node RF hardware work remain open |
+| M7: Platform Port (nRF52) | ~99% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, MCUboot slot promotion, repo-local BLE reference workflow, real HelixDrift BLE OTA, wrong-target OTA rejection, BLE OTA failure-path handling on the DK, and first repo-native nRF52840 dongle bring-up are proven; attached-sensor bring-up and multi-node RF hardware work remain open, and the remaining 52840-specific OTA closure is narrowed to the dongle pending/commit boot path |
 
 ## Reference Documents
 

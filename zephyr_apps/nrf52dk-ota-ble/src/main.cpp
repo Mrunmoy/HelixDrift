@@ -40,7 +40,41 @@ bool g_ledReady = false;
 struct bt_conn* g_conn = nullptr;
 bool g_notifyEnabled = false;
 
+enum : uint32_t {
+    DBG_EVT_BOOT = 0x01u,
+    DBG_EVT_ADV_START = 0x02u,
+    DBG_EVT_CONNECTED = 0x03u,
+    DBG_EVT_DISCONNECTED = 0x04u,
+    DBG_EVT_CTRL = 0x10u,
+    DBG_EVT_DATA = 0x11u,
+    DBG_EVT_REBOOT_SCHEDULED = 0x12u,
+};
+
+struct OtaDebugState {
+    uint32_t magic;
+    uint32_t boots;
+    uint32_t event;
+    uint32_t arg0;
+    uint32_t arg1;
+    uint32_t arg2;
+    uint32_t arg3;
+};
+
+extern "C" OtaDebugState g_otaDebug __attribute__((section(".noinit")));
+OtaDebugState g_otaDebug;
+
+void updateDebug(uint32_t event, uint32_t arg0 = 0u, uint32_t arg1 = 0u, uint32_t arg2 = 0u, uint32_t arg3 = 0u) {
+    g_otaDebug.magic = 0x484F5441u; // 'HOTA'
+    g_otaDebug.event = event;
+    g_otaDebug.arg0 = arg0;
+    g_otaDebug.arg1 = arg1;
+    g_otaDebug.arg2 = arg2;
+    g_otaDebug.arg3 = arg3;
+}
+
 K_WORK_DELAYABLE_DEFINE(g_rebootWork, [](k_work*) { sys_reboot(SYS_REBOOT_COLD); });
+void startAdvertising();
+K_WORK_DELAYABLE_DEFINE(g_advRetryWork, [](k_work*) { startAdvertising(); });
 
 void notifyStatus() {
     if (!g_conn || !g_notifyEnabled) {
@@ -61,19 +95,43 @@ ssize_t readStatus(struct bt_conn*, const struct bt_gatt_attr* attr, void* buf, 
 
 void maybeScheduleReboot(helix::OtaStatus status) {
     if (status == helix::OtaStatus::OK && g_manager.state() == helix::OtaState::COMMITTED) {
+        updateDebug(DBG_EVT_REBOOT_SCHEDULED,
+                    static_cast<uint32_t>(g_manager.state()),
+                    g_manager.bytesReceived(),
+                    static_cast<uint32_t>(status));
         k_work_schedule(&g_rebootWork, K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
     }
 }
 
 ssize_t writeCtrl(struct bt_conn*, const struct bt_gatt_attr*, const void* buf, uint16_t len, uint16_t, uint8_t) {
     const auto status = g_service.handleControlWrite(static_cast<const uint8_t*>(buf), len);
+    const auto* bytes = static_cast<const uint8_t*>(buf);
+    const uint32_t cmd = len > 0 ? bytes[0] : 0u;
+    updateDebug(DBG_EVT_CTRL,
+                cmd,
+                static_cast<uint32_t>(status),
+                static_cast<uint32_t>(g_manager.state()),
+                g_manager.bytesReceived());
     notifyStatus();
     maybeScheduleReboot(status);
     return status == helix::OtaStatus::OK ? static_cast<ssize_t>(len) : BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 }
 
 ssize_t writeData(struct bt_conn*, const struct bt_gatt_attr*, const void* buf, uint16_t len, uint16_t, uint8_t) {
+    const auto* bytes = static_cast<const uint8_t*>(buf);
+    uint32_t offset = 0u;
+    if (len >= 4u) {
+        offset = static_cast<uint32_t>(bytes[0])
+               | (static_cast<uint32_t>(bytes[1]) << 8u)
+               | (static_cast<uint32_t>(bytes[2]) << 16u)
+               | (static_cast<uint32_t>(bytes[3]) << 24u);
+    }
     const auto status = g_service.handleDataWrite(static_cast<const uint8_t*>(buf), len);
+    updateDebug(DBG_EVT_DATA,
+                offset,
+                static_cast<uint32_t>(len),
+                static_cast<uint32_t>(status),
+                g_manager.bytesReceived());
     notifyStatus();
     return status == helix::OtaStatus::OK ? static_cast<ssize_t>(len) : BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 }
@@ -99,11 +157,11 @@ BT_GATT_SERVICE_DEFINE(helix_ota_svc,
     BT_GATT_CCC(statusCccChanged, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 );
 
-void startAdvertising();
-
 void connected(struct bt_conn* conn, uint8_t err) {
     if (err == 0 && !g_conn) {
         g_conn = bt_conn_ref(conn);
+        k_work_cancel_delayable(&g_advRetryWork);
+        updateDebug(DBG_EVT_CONNECTED, 0u, 0u, 0u, 0u);
         printk("ble: connected\n");
     }
 }
@@ -114,8 +172,9 @@ void disconnected(struct bt_conn* conn, uint8_t reason) {
         bt_conn_unref(g_conn);
         g_conn = nullptr;
         g_notifyEnabled = false;
+        updateDebug(DBG_EVT_DISCONNECTED, reason, 0u, 0u, 0u);
         printk("ble: disconnected\n");
-        startAdvertising();
+        k_work_reschedule(&g_advRetryWork, K_MSEC(250));
     }
 }
 
@@ -136,8 +195,11 @@ const struct bt_data g_sd[] = {
 void startAdvertising() {
     const int advErr = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, g_ad, ARRAY_SIZE(g_ad), g_sd, ARRAY_SIZE(g_sd));
     if (advErr) {
+        updateDebug(DBG_EVT_ADV_START, static_cast<uint32_t>(advErr), 1u, 0u, 0u);
         printk("ble: adv start failed %d\n", advErr);
+        k_work_reschedule(&g_advRetryWork, K_MSEC(500));
     } else {
+        updateDebug(DBG_EVT_ADV_START, 0u, 0u, 0u, 0u);
         printk("ble: advertising as %s\n", CONFIG_BT_DEVICE_NAME);
     }
 }
@@ -153,6 +215,12 @@ void heartbeat() {
 } // namespace
 
 int main() {
+    if (g_otaDebug.magic != 0x484F5441u) {
+        g_otaDebug = {};
+        g_otaDebug.magic = 0x484F5441u;
+    }
+    g_otaDebug.boots += 1u;
+    updateDebug(DBG_EVT_BOOT, g_otaDebug.boots, 0u, 0u, 0u);
     printk("helix ota ble boot: %s\n", CONFIG_HELIX_OTA_LABEL);
 
     if (boot_write_img_confirmed() == 0) {
@@ -176,12 +244,22 @@ int main() {
 
     startAdvertising();
 
+    uint32_t lastLoggedBytes = 0u;
     while (true) {
         heartbeat();
-        printk("tick %s state=%u bytes=%u\n",
-               CONFIG_HELIX_OTA_LABEL,
-               static_cast<unsigned>(g_manager.state()),
-               static_cast<unsigned>(g_manager.bytesReceived()));
+        const auto state = g_manager.state();
+        const auto bytes = g_manager.bytesReceived();
+        if (state != helix::OtaState::RECEIVING) {
+            printk("tick %s state=%u bytes=%u\n",
+                   CONFIG_HELIX_OTA_LABEL,
+                   static_cast<unsigned>(state),
+                   static_cast<unsigned>(bytes));
+        } else if (bytes - lastLoggedBytes >= 16384u) {
+            lastLoggedBytes = bytes;
+            printk("ota %s bytes=%u\n",
+                   CONFIG_HELIX_OTA_LABEL,
+                   static_cast<unsigned>(bytes));
+        }
         k_sleep(K_MSEC(500));
     }
 }

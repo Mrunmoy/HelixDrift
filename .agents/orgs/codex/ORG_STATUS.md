@@ -143,6 +143,12 @@
   - the 52840 bare-metal startup path now uses the same minimal-init strategy
     as the proven DK path, removing the direct-SWD `__libc_init_array()` fault
     in tiny bring-up images
+  - 52840 BLE OTA closure is narrowed to one remaining issue:
+    the first dongle boots and advertises `Helix840-v1`, the uploader-side
+    `BEGIN` timeout for full-slot erase is understood and fixed locally, and
+    transfer can progress into the signed `v2` image; the missing proof is a
+    clean `slot1 -> pending -> reboot into Helix840-v2` closure on the real
+    `nrf52840dongle/nrf52840/bare` path
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -179,6 +185,13 @@
 
 ## Current Work
 
+- Task: Finish the remaining `nrf52840` BLE OTA closure by proving
+  `Helix840-v1 -> Helix840-v2` on the first dongle, then repeating the same
+  proof on the second `nrf52840` target before updating the README/how-to
+  docs for the 52840 lane
+- Task: Treat the 52840 BLE OTA blocker as footer/pending-mark correctness,
+  not a generic BLE bring-up problem; the DK path is already closed and the
+  52840 path is narrowed to commit/promotion closure
 - Task: Add deterministic per-sensor simulator seeding and document standalone sensor proof criteria
 - Task: Deliver the Sensor Validation slice, reusable sensor-assembly harness,
   virtual mocap node harness, and first pose-metric assertions for host
