@@ -5,6 +5,7 @@ __pycache__/
 experiments/runs/
 experiments/analysis/
 .deps/
+third_party/nrf52840_propico/supermini-nrf52840-kicad/
 
 # Production signing keys — never commit production private keys.
 # The committed keys/dev_signing_key.pem is a CI-only development key.
