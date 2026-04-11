@@ -149,6 +149,13 @@
     transfer can progress into the signed `v2` image; the missing proof is a
     clean `slot1 -> pending -> reboot into Helix840-v2` closure on the real
     `nrf52840dongle/nrf52840/bare` path
+  - `nrf52840propico_bringup` is now proven on real ProPico hardware, with the
+    repo-local bare-metal bring-up path stabilized around SysTick delays and a
+    sequential J-Link build/flash helper
+  - split-host two-target flashing is now proven workable:
+    this workstation and `hpserver1` can each own one `nRF52840` ProPico and
+    one clone `J-Link-OB`, with repo mirroring used to avoid duplicate-probe
+    identity collisions
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -189,6 +196,9 @@
   `Helix840-v1 -> Helix840-v2` on the first dongle, then repeating the same
   proof on the second `nrf52840` target before updating the README/how-to
   docs for the 52840 lane
+- Task: Use the newly proven split-host ProPico setup as the default hardware
+  base for the next real RF transport and sync experiments once the current
+  OTA closure work yields diminishing returns
 - Task: Treat the 52840 BLE OTA blocker as footer/pending-mark correctness,
   not a generic BLE bring-up problem; the DK path is already closed and the
   52840 path is narrowed to commit/promotion closure

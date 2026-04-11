@@ -95,6 +95,20 @@ tools/nrf/build_and_flash_jlink.sh nrf52dk_bringup 1050335103 NRF52832_XXAA 2
 tools/nrf/build_and_flash_jlink.sh nrf52840propico_bringup 123456 NRF52840_XXAA 0
 ```
 
+- for split-host multi-board development, keep this checkout as the source of
+  truth and mirror it to the second machine before remote flash:
+
+```bash
+tools/dev/sync_remote_workspace.sh litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift
+tools/nrf/remote_build_and_flash.sh litu@hpserver1 nrf52840propico_bringup 123456 NRF52840_XXAA 0 /home/litu/sandbox/embedded/HelixDrift
+```
+
+Split-host note:
+- this is the current workaround for duplicate-serial clone `J-Link-OB` probes
+- each machine only sees one probe, so probe identity collisions disappear
+- the remote mirror is not an authoritative checkout; resync it before remote
+  build/flash
+
 Reset note:
 - `RSetType 0` (`NORMAL`) may use `SYSRESETREQ`, not a hardware reset pin
 - `RSetType 2` (`RESETPIN`) should be preferred when the probe and board wiring

@@ -1,5 +1,46 @@
 # Simulator Development Journal
 
+## 2026-04-11 - Split-Host nRF52840 Bring-Up Workflow
+
+### Feature: Two-Target Development Without Unique J-Link-OB Identities
+
+#### Intent
+
+Establish a practical two-board development workflow even though the cheap
+clone `J-Link-OB` probes all report the same SEGGER serial number (`123456`)
+and therefore cannot be addressed reliably from one machine.
+
+#### What Was Proven
+
+- A repo-local `nrf52840propico_bringup` target now runs correctly on the
+  attached ProPico boards, with visible slow and faster blink variants
+  verified after fixing the bare-metal delay implementation.
+- The bare-metal delay helper no longer depends on `DWT_CYCCNT`; it now uses
+  a SysTick-based delay that behaves correctly under the reset strategies used
+  by the available probes.
+- Repo-local helper scripts now support:
+  - mirroring this checkout to a second host:
+    [`tools/dev/sync_remote_workspace.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/dev/sync_remote_workspace.sh)
+  - building and flashing from that second host:
+    [`tools/nrf/remote_build_and_flash.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/remote_build_and_flash.sh)
+- `hpserver1` is reachable over SSH, has enough space under
+  `/home/litu/sandbox/embedded/HelixDrift`, and now has the required probe-side
+  tools installed for J-Link flashing.
+- A full remote mirror + `nix develop` build + J-Link flash of
+  `nrf52840propico_bringup` completed successfully on `hpserver1`.
+
+#### Outcome
+
+The current practical two-target hardware workflow is:
+
+- this workstation owns one `nRF52840` ProPico target
+- `hpserver1` owns the second `nRF52840` ProPico target
+- this checkout remains the only authoritative workspace
+- the remote host receives a mirrored copy before remote build/flash
+
+That is enough to proceed with two-node RF transport and sync work without
+burning more time on duplicate-serial clone-probe repair.
+
 ## 2026-04-03 - nRF52840 BLE OTA Checkpoint
 
 ### Feature: Narrowed 52840 BLE OTA Closure Work
