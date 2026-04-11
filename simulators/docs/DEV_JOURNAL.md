@@ -19,6 +19,7 @@ remaining dongle OTA closure.
   - [`tools/nrf/flash_hex_jlink.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/flash_hex_jlink.sh)
   - [`tools/nrf/remote_flash_hex_jlink.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/remote_flash_hex_jlink.sh)
   - [`tools/nrf/read_symbol_words_jlink.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/read_symbol_words_jlink.sh)
+  - [`tools/nrf/propico_esb_split_host_smoke.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/propico_esb_split_host_smoke.sh)
 
 #### What Was Proven
 
@@ -57,8 +58,9 @@ remaining dongle OTA closure.
 #### Outcome
 
 The branch now has the first real two-node `nRF52840` RF proof on hardware.
-The next RF work can build on this baseline instead of returning to board or
-probe bring-up.
+The proof is now also reproducible via a repo-local split-host smoke command,
+so the next RF work can build on this baseline instead of returning to board
+or probe bring-up.
 
 ## 2026-04-11 - Split-Host nRF52840 Bring-Up Workflow
 

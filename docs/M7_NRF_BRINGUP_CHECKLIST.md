@@ -451,6 +451,15 @@ are healthy.
 - [ ] measure drop rate in a normal room
 - [ ] compare real latency/jitter behavior against M4 simulation assumptions
 
+Useful command:
+
+```bash
+nix develop --command bash -lc \
+  'tools/nrf/propico_esb_split_host_smoke.sh \
+     litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift \
+     123456 123456 NRF52840_XXAA 3000'
+```
+
 ### Use This For
 
 - cheap real RF timing probes
