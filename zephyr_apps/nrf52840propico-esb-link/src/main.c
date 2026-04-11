@@ -8,6 +8,7 @@
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/types.h>
+#include <zephyr/sys_clock.h>
 
 #include <esb.h>
 #include <nrfx.h>
@@ -29,6 +30,14 @@ struct HelixEsbStatus {
 	uint32_t last_rx_len;
 	uint32_t last_error;
 	uint32_t heartbeat;
+	uint32_t anchors_received;
+	uint32_t anchors_sent;
+	uint32_t last_anchor_sequence;
+	int32_t estimated_offset_us;
+	uint32_t last_master_timestamp_us;
+	uint32_t last_local_timestamp_us;
+	uint32_t last_anchor_raw_word0;
+	uint32_t last_anchor_raw_word1;
 };
 
 volatile struct HelixEsbStatus g_helixEsbStatus;
@@ -52,12 +61,39 @@ enum {
 	HELIX_EVENT_RX = 3,
 };
 
+enum {
+	HELIX_PACKET_ANCHOR = 0xA1,
+	HELIX_PACKET_FRAME = 0xF1,
+};
+
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET_OR(DT_ALIAS(led0), gpios, {0});
 static struct esb_payload rx_payload;
 #if defined(CONFIG_HELIX_ESB_ROLE_NODE)
 static struct esb_payload tx_payload;
 #endif
 static atomic_t tx_ready = ATOMIC_INIT(1);
+static uint8_t next_anchor_sequence;
+
+static void status_store_anchor_bytes(const uint8_t *data, size_t len)
+{
+	uint32_t word0 = 0;
+	uint32_t word1 = 0;
+
+	if (len >= 4U) {
+		memcpy(&word0, &data[0], sizeof(word0));
+	}
+	if (len >= 8U) {
+		memcpy(&word1, &data[4], sizeof(word1));
+	}
+
+	g_helixEsbStatus.last_anchor_raw_word0 = word0;
+	g_helixEsbStatus.last_anchor_raw_word1 = word1;
+}
+
+static uint32_t now_us(void)
+{
+	return (uint32_t)(k_uptime_get() * 1000LL);
+}
 
 static int clocks_start(void)
 {
@@ -116,15 +152,37 @@ static void event_handler(struct esb_evt const *event)
 				g_helixEsbStatus.last_seq = rx_payload.data[2];
 			}
 #if defined(CONFIG_HELIX_ESB_ROLE_MASTER)
+			uint32_t master_timestamp_us = now_us();
 			struct esb_payload ack = {
 				.pipe = rx_payload.pipe,
-				.length = 4,
-				.data = {0xAC, CONFIG_HELIX_ESB_NODE_ID, (uint8_t)g_helixEsbStatus.rx_packets,
-					 (uint8_t)g_helixEsbStatus.heartbeat},
+				.length = 8,
+				.data = {
+					HELIX_PACKET_ANCHOR,
+					CONFIG_HELIX_ESB_NODE_ID,
+					next_anchor_sequence++,
+					0,
+				},
 			};
+			memcpy(&ack.data[4], &master_timestamp_us, sizeof(master_timestamp_us));
 			(void)esb_write_payload(&ack);
-#else
+			status_store_anchor_bytes(ack.data, ack.length);
 			g_helixEsbStatus.ack_payloads++;
+			g_helixEsbStatus.anchors_sent++;
+			g_helixEsbStatus.last_anchor_sequence = ack.data[2];
+			g_helixEsbStatus.last_master_timestamp_us = master_timestamp_us;
+#else
+			if (rx_payload.length >= 8U && rx_payload.data[0] == HELIX_PACKET_ANCHOR) {
+				uint32_t master_timestamp_us = 0;
+				memcpy(&master_timestamp_us, &rx_payload.data[4], sizeof(master_timestamp_us));
+				status_store_anchor_bytes(rx_payload.data, rx_payload.length);
+				g_helixEsbStatus.ack_payloads++;
+				g_helixEsbStatus.anchors_received++;
+				g_helixEsbStatus.last_anchor_sequence = rx_payload.data[2];
+				g_helixEsbStatus.last_master_timestamp_us = master_timestamp_us;
+				g_helixEsbStatus.last_local_timestamp_us = now_us();
+				g_helixEsbStatus.estimated_offset_us =
+					(int32_t)(g_helixEsbStatus.last_local_timestamp_us - master_timestamp_us);
+			}
 #endif
 		}
 		break;
@@ -205,11 +263,16 @@ static void maybe_send_packet(void)
 
 	tx_payload.pipe = CONFIG_HELIX_ESB_PIPE;
 	tx_payload.noack = 0;
-	tx_payload.length = 4;
-	tx_payload.data[0] = 0x48;
+	tx_payload.length = 12;
+	tx_payload.data[0] = HELIX_PACKET_FRAME;
 	tx_payload.data[1] = (uint8_t)CONFIG_HELIX_ESB_NODE_ID;
 	tx_payload.data[2] = (uint8_t)(g_helixEsbStatus.tx_attempts & 0xFF);
 	tx_payload.data[3] = (uint8_t)(g_helixEsbStatus.heartbeat & 0xFF);
+	g_helixEsbStatus.last_local_timestamp_us = now_us();
+	memcpy(&tx_payload.data[4], &g_helixEsbStatus.last_local_timestamp_us,
+	       sizeof(g_helixEsbStatus.last_local_timestamp_us));
+	memcpy(&tx_payload.data[8], &g_helixEsbStatus.estimated_offset_us,
+	       sizeof(g_helixEsbStatus.estimated_offset_us));
 
 	g_helixEsbStatus.tx_attempts++;
 	int err = esb_write_payload(&tx_payload);

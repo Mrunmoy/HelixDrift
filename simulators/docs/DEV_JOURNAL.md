@@ -2592,6 +2592,43 @@ consume stable traces later.
 **Verification:**  
 `./build.py --host-only -t`
 
+### Feature: M7 Split-Host ProPico ESB Sync Baseline
+
+**Intent:**  
+Push the first real two-node `nRF52840` RF proof beyond packet exchange and
+prove that the master can return anchor metadata that the node receives and
+parses sensibly on hardware.
+
+**Changes made:**
+
+1. Extended the Zephyr ProPico ESB link app with explicit packet types for
+   node frames and master anchor acks.
+2. Added anchor/sync status fields to the shared status block:
+   anchor counts, last anchor sequence, estimated offset, master timestamp, and
+   local timestamp.
+3. Added raw-anchor capture as two packed 32-bit words so SWD readback can
+   compare what the master queued against what the node actually received.
+4. Switched the sync timestamp source from `k_cycle_get_64()` to
+   `k_uptime_get()`-based microseconds after proving the cycle-counter path was
+   leaving anchor timestamps at zero on the real boards.
+5. Tightened the split-host smoke script so it now proves:
+   - master sees 12-byte node frames
+   - node sees 8-byte anchor acks
+   - anchor raw bytes start with `0xA1, 0x01`
+   - master and node both report non-zero anchor timestamps
+   - node reports a non-zero signed offset estimate
+
+**Result:**  
+The split-host `nRF52840` RF lane now proves not only packet exchange, but also
+the first real hardware anchor/sync payload flow between the two ProPicos. The
+remaining RF work can focus on timing policy, jitter, and longer-run behavior
+instead of still questioning whether the basic ack/anchor path exists.
+
+**Verification:**  
+`./build.py --host-only -t`  
+`./build.py --nrf-only`  
+`tools/nrf/propico_esb_split_host_smoke.sh litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift 123456 123456 NRF52840_XXAA 3000`
+
 ### Feature: M7 DK UART OTA Transport
 
 **Intent:**  

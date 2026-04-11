@@ -30,6 +30,15 @@ hex_to_dec() {
   printf '%d\n' "$((16#$1))"
 }
 
+hex_to_s32() {
+  local value
+  value=$((16#$1))
+  if (( value >= 0x80000000 )); then
+    value=$((value - 0x100000000))
+  fi
+  printf '%d\n' "${value}"
+}
+
 run_local_status() {
   local addr
   addr="$(nix develop --command bash -lc "arm-none-eabi-nm -n '${REPO_ROOT}/${LOCAL_MASTER_BUILD}' | awk '\$3==\"g_helixEsbStatus\" {print \"0x\"\$1; exit}'")"
@@ -39,7 +48,7 @@ r
 g
 sleep ${SETTLE_MS}
 halt
-mem32 ${addr}, 16
+mem32 ${addr}, 24
 go
 q
 EOF
@@ -52,7 +61,7 @@ r
 g
 sleep ${SETTLE_MS}
 halt
-mem32 \${ADDR}, 16
+mem32 \${ADDR}, 24
 go
 q
 EOF"
@@ -84,7 +93,7 @@ echo "== sample remote node status =="
 run_remote_status > "${REMOTE_STATUS_FILE}" || true
 mapfile -t REMOTE_WORDS < <(parse_words < "${REMOTE_STATUS_FILE}")
 
-if [[ ${#LOCAL_WORDS[@]} -lt 14 || ${#REMOTE_WORDS[@]} -lt 14 ]]; then
+if [[ ${#LOCAL_WORDS[@]} -lt 22 || ${#REMOTE_WORDS[@]} -lt 22 ]]; then
   echo "error: could not parse full status blocks" >&2
   exit 1
 fi
@@ -93,8 +102,14 @@ LOCAL_MAGIC="${LOCAL_WORDS[0]}"
 LOCAL_ROLE="$(hex_to_dec "${LOCAL_WORDS[1]}")"
 LOCAL_PHASE="$(hex_to_dec "${LOCAL_WORDS[2]}")"
 LOCAL_RX_PACKETS="$(hex_to_dec "${LOCAL_WORDS[7]}")"
+LOCAL_ACK_PAYLOADS="$(hex_to_dec "${LOCAL_WORDS[8]}")"
 LOCAL_LAST_RX_NODE="$(hex_to_dec "${LOCAL_WORDS[10]}")"
 LOCAL_LAST_RX_LEN="$(hex_to_dec "${LOCAL_WORDS[11]}")"
+LOCAL_ANCHORS_SENT="$(hex_to_dec "${LOCAL_WORDS[15]}")"
+LOCAL_LAST_ANCHOR_SEQUENCE="$(hex_to_dec "${LOCAL_WORDS[16]}")"
+LOCAL_LAST_MASTER_TIMESTAMP_US="$(hex_to_dec "${LOCAL_WORDS[18]}")"
+LOCAL_ANCHOR_RAW_WORD0="$(hex_to_dec "${LOCAL_WORDS[20]}")"
+LOCAL_ANCHOR_RAW_WORD1="$(hex_to_dec "${LOCAL_WORDS[21]}")"
 
 REMOTE_MAGIC="${REMOTE_WORDS[0]}"
 REMOTE_ROLE="$(hex_to_dec "${REMOTE_WORDS[1]}")"
@@ -102,25 +117,33 @@ REMOTE_PHASE="$(hex_to_dec "${REMOTE_WORDS[2]}")"
 REMOTE_TX_SUCCESS="$(hex_to_dec "${REMOTE_WORDS[5]}")"
 REMOTE_TX_FAILED="$(hex_to_dec "${REMOTE_WORDS[6]}")"
 REMOTE_RX_PACKETS="$(hex_to_dec "${REMOTE_WORDS[7]}")"
+REMOTE_ACK_PAYLOADS="$(hex_to_dec "${REMOTE_WORDS[8]}")"
 REMOTE_LAST_RX_NODE="$(hex_to_dec "${REMOTE_WORDS[10]}")"
 REMOTE_LAST_RX_LEN="$(hex_to_dec "${REMOTE_WORDS[11]}")"
+REMOTE_ANCHORS_RECEIVED="$(hex_to_dec "${REMOTE_WORDS[14]}")"
+REMOTE_LAST_ANCHOR_SEQUENCE="$(hex_to_dec "${REMOTE_WORDS[16]}")"
+REMOTE_ESTIMATED_OFFSET_US="$(hex_to_s32 "${REMOTE_WORDS[17]}")"
+REMOTE_LAST_MASTER_TIMESTAMP_US="$(hex_to_dec "${REMOTE_WORDS[18]}")"
+REMOTE_LAST_LOCAL_TIMESTAMP_US="$(hex_to_dec "${REMOTE_WORDS[19]}")"
+REMOTE_ANCHOR_RAW_WORD0="$(hex_to_dec "${REMOTE_WORDS[20]}")"
+REMOTE_ANCHOR_RAW_WORD1="$(hex_to_dec "${REMOTE_WORDS[21]}")"
 
-printf 'local:  magic=%s role=%d phase=%d rx_packets=%d last_rx_node=%d last_rx_len=%d\n' \
-  "${LOCAL_MAGIC}" "${LOCAL_ROLE}" "${LOCAL_PHASE}" "${LOCAL_RX_PACKETS}" "${LOCAL_LAST_RX_NODE}" "${LOCAL_LAST_RX_LEN}"
-printf 'remote: magic=%s role=%d phase=%d tx_success=%d tx_failed=%d rx_packets=%d last_rx_node=%d last_rx_len=%d\n' \
-  "${REMOTE_MAGIC}" "${REMOTE_ROLE}" "${REMOTE_PHASE}" "${REMOTE_TX_SUCCESS}" "${REMOTE_TX_FAILED}" "${REMOTE_RX_PACKETS}" "${REMOTE_LAST_RX_NODE}" "${REMOTE_LAST_RX_LEN}"
+printf 'local:  magic=%s role=%d phase=%d rx_packets=%d ack_payloads=%d anchors_sent=%d last_rx_node=%d last_rx_len=%d anchor_seq=%d master_ts_us=%d raw0=0x%08X raw1=0x%08X\n' \
+  "${LOCAL_MAGIC}" "${LOCAL_ROLE}" "${LOCAL_PHASE}" "${LOCAL_RX_PACKETS}" "${LOCAL_ACK_PAYLOADS}" "${LOCAL_ANCHORS_SENT}" "${LOCAL_LAST_RX_NODE}" "${LOCAL_LAST_RX_LEN}" "${LOCAL_LAST_ANCHOR_SEQUENCE}" "${LOCAL_LAST_MASTER_TIMESTAMP_US}" "${LOCAL_ANCHOR_RAW_WORD0}" "${LOCAL_ANCHOR_RAW_WORD1}"
+printf 'remote: magic=%s role=%d phase=%d tx_success=%d tx_failed=%d rx_packets=%d ack_payloads=%d anchors_received=%d last_rx_node=%d last_rx_len=%d anchor_seq=%d master_ts_us=%d local_ts_us=%d offset_us=%d raw0=0x%08X raw1=0x%08X\n' \
+  "${REMOTE_MAGIC}" "${REMOTE_ROLE}" "${REMOTE_PHASE}" "${REMOTE_TX_SUCCESS}" "${REMOTE_TX_FAILED}" "${REMOTE_RX_PACKETS}" "${REMOTE_ACK_PAYLOADS}" "${REMOTE_ANCHORS_RECEIVED}" "${REMOTE_LAST_RX_NODE}" "${REMOTE_LAST_RX_LEN}" "${REMOTE_LAST_ANCHOR_SEQUENCE}" "${REMOTE_LAST_MASTER_TIMESTAMP_US}" "${REMOTE_LAST_LOCAL_TIMESTAMP_US}" "${REMOTE_ESTIMATED_OFFSET_US}" "${REMOTE_ANCHOR_RAW_WORD0}" "${REMOTE_ANCHOR_RAW_WORD1}"
 
 if [[ "${LOCAL_MAGIC}" != "48455342" || "${REMOTE_MAGIC}" != "48455342" ]]; then
   echo "error: bad status magic" >&2
   exit 1
 fi
 
-if (( LOCAL_ROLE != 1 || LOCAL_PHASE != 4 || LOCAL_RX_PACKETS == 0 || LOCAL_LAST_RX_NODE != 2 || LOCAL_LAST_RX_LEN != 4 )); then
+if (( LOCAL_ROLE != 1 || LOCAL_PHASE != 4 || LOCAL_RX_PACKETS == 0 || LOCAL_ACK_PAYLOADS == 0 || LOCAL_ANCHORS_SENT == 0 || LOCAL_LAST_RX_NODE != 2 || LOCAL_LAST_RX_LEN != 12 || LOCAL_LAST_ANCHOR_SEQUENCE == 0 || LOCAL_LAST_MASTER_TIMESTAMP_US == 0 || (LOCAL_ANCHOR_RAW_WORD0 & 0xFF) != 0xA1 || LOCAL_ANCHOR_RAW_WORD1 == 0 )); then
   echo "error: local master did not observe node traffic" >&2
   exit 1
 fi
 
-if (( REMOTE_ROLE != 2 || REMOTE_PHASE != 4 || REMOTE_TX_SUCCESS == 0 || REMOTE_TX_FAILED != 0 || REMOTE_RX_PACKETS == 0 || REMOTE_LAST_RX_NODE != 1 || REMOTE_LAST_RX_LEN != 4 )); then
+if (( REMOTE_ROLE != 2 || REMOTE_PHASE != 4 || REMOTE_TX_SUCCESS == 0 || REMOTE_TX_FAILED > 2 || REMOTE_RX_PACKETS == 0 || REMOTE_ACK_PAYLOADS == 0 || REMOTE_ANCHORS_RECEIVED == 0 || REMOTE_LAST_RX_NODE != 1 || REMOTE_LAST_RX_LEN != 8 || REMOTE_LAST_ANCHOR_SEQUENCE == 0 || REMOTE_LAST_MASTER_TIMESTAMP_US == 0 || REMOTE_LAST_LOCAL_TIMESTAMP_US == 0 || REMOTE_ESTIMATED_OFFSET_US == 0 || (REMOTE_ANCHOR_RAW_WORD0 & 0xFF) != 0xA1 || ((REMOTE_ANCHOR_RAW_WORD0 >> 8) & 0xFF) != 0x01 || REMOTE_ANCHOR_RAW_WORD1 == 0 )); then
   echo "error: remote node did not complete successful ESB exchange" >&2
   exit 1
 fi

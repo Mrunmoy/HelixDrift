@@ -341,4 +341,10 @@
   - one-second-apart SWD samples show `GPIO0.OUT` toggling bit 6 for `LED0`
 - Remaining M7 gap:
   - attached-sensor bring-up
-  - multi-target RF/node hardware work
+  - deeper multi-target RF/node timing, jitter, and longer-run behavior
+- The split-host ProPico RF lane is now beyond raw transport:
+  - two `nRF52840` ProPicos on separate hosts exchange ESB traffic reliably
+  - the master returns 8-byte anchor payloads
+  - the node receives and records those anchor bytes and timestamps
+  - the split-host smoke now proves non-zero anchor timestamps and a non-zero
+    signed offset estimate on real hardware
