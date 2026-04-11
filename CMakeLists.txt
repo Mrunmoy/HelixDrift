@@ -91,6 +91,36 @@ if(HELIXDRIFT_BUILD_NRF_EXAMPLES)
     set_target_properties(nrf52840dongle_blinky PROPERTIES LINK_DEPENDS "${NRF52840_DONGLE_BAREMETAL_LD}")
     helix_add_nrf_artifacts(nrf52840dongle_blinky)
 
+    add_executable(nrf52840propico_blinky
+        ${NRF_STARTUP}
+        examples/nrf52-blinky/src/main.cpp
+    )
+    target_include_directories(nrf52840propico_blinky PRIVATE
+        tools/nrf/baremetal/include
+        tools/nrf/stubs/include
+    )
+    target_link_libraries(nrf52840propico_blinky PRIVATE helix_blink)
+    target_compile_definitions(nrf52840propico_blinky PRIVATE
+        HELIX_LED_PIN=15
+        HELIX_LED_ACTIVE_LOW=0
+    )
+    target_link_options(nrf52840propico_blinky PRIVATE -T${NRF52840_DONGLE_BAREMETAL_LD} -Wl,-Map=nrf52840propico_blinky.map)
+    set_target_properties(nrf52840propico_blinky PROPERTIES LINK_DEPENDS "${NRF52840_DONGLE_BAREMETAL_LD}")
+    helix_add_nrf_artifacts(nrf52840propico_blinky)
+
+    add_executable(nrf52840propico_bringup
+        ${NRF_STARTUP}
+        examples/nrf52840propico-bringup/src/main.cpp
+    )
+    target_include_directories(nrf52840propico_bringup PRIVATE
+        tools/nrf/baremetal/include
+        tools/nrf/stubs/include
+    )
+    target_link_libraries(nrf52840propico_bringup PRIVATE helix_blink)
+    target_link_options(nrf52840propico_bringup PRIVATE -T${NRF52840_DONGLE_BAREMETAL_LD} -Wl,-Map=nrf52840propico_bringup.map)
+    set_target_properties(nrf52840propico_bringup PROPERTIES LINK_DEPENDS "${NRF52840_DONGLE_BAREMETAL_LD}")
+    helix_add_nrf_artifacts(nrf52840propico_bringup)
+
     add_executable(nrf52dk_blinky
         ${NRF52DK_STARTUP}
         examples/nrf52-blinky/src/main.cpp

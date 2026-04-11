@@ -67,3 +67,5 @@ Target sensor stack:
   - `measure_led_blink_rate`
 - Use it when serial logs are absent or when firmware timing needs to be
   compared against a visible LED heartbeat on real hardware.
+- For J-Link-based nRF bring-up, do not overlap build and flash commands.
+  Prefer a sequential flow and be explicit about reset strategy.

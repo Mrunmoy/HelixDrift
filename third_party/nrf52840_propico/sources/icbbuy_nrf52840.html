@@ -1,0 +1,2917 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh" dir="ltr" class="no-js">
+<head>
+    <meta charset="UTF-8" />
+    <title>developmentboard:nrf52840 [ICBbuy]</title>
+    <script>(function(H){H.className=H.className.replace(/\bno-js\b/,'js')})(document.documentElement)</script>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="shortcut icon" href="/lib/tpl/bootstrap3/images/favicon.ico" />
+<link rel="apple-touch-icon" href="/lib/tpl/bootstrap3/images/apple-touch-icon.png" />
+<meta name="generator" content="DokuWiki"/>
+<meta name="robots" content="index,follow"/>
+<meta name="keywords" content="developmentboard,nrf52840"/>
+<link rel="search" type="application/opensearchdescription+xml" href="/lib/exe/opensearch.php" title="ICBbuy"/>
+<link rel="start" href="/"/>
+<link rel="contents" href="/doku.php?id=developmentboard:nrf52840&amp;do=index" title="网站地图"/>
+<link rel="manifest" href="/lib/exe/manifest.php"/>
+<link rel="alternate" type="application/rss+xml" title="最近更改" href="/feed.php"/>
+<link rel="alternate" type="application/rss+xml" title="当前命名空间" href="/feed.php?mode=list&amp;ns=developmentboard"/>
+<link rel="alternate" type="text/html" title="纯HTML" href="/doku.php?do=export_xhtml&amp;id=developmentboard:nrf52840"/>
+<link rel="canonical" href="https://wiki.icbbuy.com/doku.php?id=developmentboard:nrf52840"/>
+<link rel="stylesheet" href="/lib/exe/css.php?t=bootstrap3&amp;tseed=4c27f649fac26f3cab84d5cccbdb561d"/>
+<!--[if gte IE 9]><!-->
+<script >/*<![CDATA[*/var NS='developmentboard';var JSINFO = {"confirm_delete":"\u60a8\u786e\u5b9a\u8981\u5220\u9664\u8fd9\u4e2a\u9875\u9762\u5417\uff1f","doku_base":"\/","cg_rev":"","dw_version":53,"chrome_version":0,"hide_captcha_error":"none","ckg_dbl_click":"","ckg_canonical":0,"doku_url":"https:\/\/wiki.icbbuy.com\/","has_tags":"Tag","has_wrap":"Wrap","wrapDiv":"WRAP","wrapSpan":"wrap","ckgEdPaste":"off","rel_links":0,"ckg_template":"bootstrap3","plugins":{"edittable":{"default columnwidth":""},"vshare":{"youtube":"youtube\\.com\/.*[&?]v=([a-z0-9_\\-]+)","vimeo":"vimeo\\.com\\\/(\\d+)","slideshare":"slideshare.*id=(\\d+)","dailymotion":"dailymotion\\.com\/video\/([a-z0-9]+)","archiveorg":"archive\\.org\/(?:embed|details)\/([a-zA-Z0-9_\\-]+)","soundcloud":"soundcloud\\.com\/([\\w-]+\/[\\w-]+)","niconico":"nicovideo\\.jp\/watch\/(sm[0-9]+)","bitchute":"bitchute\\.com\\\/video\\\/([a-zA-Z0-9_\\-]+)","coub":"coub\\.com\\\/view\\\/([a-zA-Z0-9_\\-]+)","odysee":"odysee\\.com\/\\$\/(?:embed|download)\/([-%_?=\/a-zA-Z0-9]+)","youku":"v\\.youku\\.com\/v_show\/id_([0-9A-Za-z=]+)\\.html","bilibili":"bilibili\\.com\\\/video\\\/(BV[0-9A-Za-z]+)","msoffice":"(?:office\\.com.*[&?]videoid=([a-z0-9\\-]+))","msstream":"microsoftstream\\.com\\\/video\\\/([a-f0-9\\-]{36})"}},"fastwiki":{"secedit":1,"preview":1,"fastpages":1,"save":0,"fastshow":0,"fastshow_same_ns":1,"fastshow_include":"","fastshow_exclude":"","preload":0,"preload_head":"====47hsjwycv782nwncv8b920m8bv72jmdm3929bno3b3====","preload_batchsize":10,"preload_per_page":100,"locktime":840,"usedraft":1,"text_btn_show":"\u663e\u793a\u9875\u9762","templatename":"bootstrap3"},"htmlok":0,"isadmin":0,"isauth":0,"move_renameokay":false,"plugin_pdfjs":{"hide_download_button":0},"bootstrap3":{"mode":"show","toc":[],"config":{"collapsibleSections":0,"fixedTopNavbar":1,"showSemanticPopup":0,"sidebarOnNavbar":1,"tagsOnTop":1,"tocAffix":1,"tocCollapseOnScroll":1,"tocCollapsed":0,"tocLayout":"default","useAnchorJS":1,"useAlternativeToolbarIcons":1,"disableSearchSuggest":0}},"id":"developmentboard:nrf52840","namespace":"developmentboard","ACT":"show","useHeadingNavigation":0,"useHeadingContent":0};
+/*!]]>*/</script>
+<script src="/lib/exe/jquery.php?tseed=34a552433bc33cc9c3bc32527289a0b2" defer="defer"></script>
+<script src="/lib/exe/js.php?t=bootstrap3&amp;tseed=4c27f649fac26f3cab84d5cccbdb561d" defer="defer"></script>
+<script type="text/javascript" charset="utf-8" src="/lib/plugins/ckgedit/scripts/mediamgr.js" defer="defer"></script>
+<script type="text/javascript" charset="utf-8">/*<![CDATA[*/NS = "developmentboard";var toolbar = [{"type":"format","title":"\u7c97\u4f53","icon":"bold.png","key":"b","open":"**","close":"**","block":false},{"type":"format","title":"\u659c\u4f53","icon":"italic.png","key":"i","open":"\/\/","close":"\/\/","block":false},{"type":"format","title":"\u4e0b\u5212\u7ebf","icon":"underline.png","key":"u","open":"__","close":"__","block":false},{"type":"format","title":"\u4ee3\u7801","icon":"mono.png","key":"m","open":"''","close":"''","block":false},{"type":"format","title":"\u5220\u9664\u7ebf","icon":"strike.png","key":"d","open":"<del>","close":"<\/del>","block":false},{"type":"autohead","title":"\u540c\u7ea7\u6807\u9898","icon":"hequal.png","key":"8","text":"\u6807\u9898","mod":0,"block":true},{"type":"autohead","title":"\u4e0b\u7ea7\u6807\u9898","icon":"hminus.png","key":"9","text":"\u6807\u9898","mod":1,"block":true},{"type":"autohead","title":"\u4e0a\u7ea7\u6807\u9898","icon":"hplus.png","key":"0","text":"\u6807\u9898","mod":-1,"block":true},{"type":"picker","title":"\u9009\u62e9\u6807\u9898","icon":"h.png","class":"pk_hl","list":[{"type":"format","title":"\u6807\u9898 H1","icon":"h1.png","key":"1","open":"====== ","close":" ======\\n"},{"type":"format","title":"\u6807\u9898 H2 ","icon":"h2.png","key":"2","open":"===== ","close":" =====\\n"},{"type":"format","title":"\u6807\u9898 H3","icon":"h3.png","key":"3","open":"==== ","close":" ====\\n"},{"type":"format","title":"\u6807\u9898 H4","icon":"h4.png","key":"4","open":"=== ","close":" ===\\n"},{"type":"format","title":"\u6807\u9898 H5","icon":"h5.png","key":"5","open":"== ","close":" ==\\n"}],"block":true},{"type":"format","title":"\u5916\u90e8\u94fe\u63a5","icon":"linkextern.png","open":"[[","close":"]]","sample":"http:\/\/example.com|\u5916\u90e8\u94fe\u63a5","block":false},{"type":"formatln","title":"\u6570\u5b57\u5217\u8868\u9879\u76ee","icon":"ol.png","open":"  - ","close":"","key":"-","block":true},{"type":"formatln","title":"\u666e\u901a\u5217\u8868\u9879\u76ee","icon":"ul.png","open":"  * ","close":"","key":".","block":true},{"type":"insert","title":"\u6c34\u5e73\u7ebf","icon":"hr.png","insert":"\\n----\\n","block":true},{"type":"picker","title":"\u8868\u60c5\u7b26\u53f7","icon":"smiley.png","list":{"8-)":"cool.svg","8-O":"eek.svg","8-o":"eek.svg",":-(":"sad.svg",":-)":"smile.svg","=)":"smile2.svg",":-\/":"doubt.svg",":-\\":"doubt2.svg",":-?":"confused.svg",":-D":"biggrin.svg",":-P":"razz.svg",":-o":"surprised.svg",":-O":"surprised.svg",":-x":"silenced.svg",":-X":"silenced.svg",":-|":"neutral.svg",";-)":"wink.svg","m(":"facepalm.svg","^_^":"fun.svg",":?:":"question.svg",":!:":"exclaim.svg","LOL":"lol.svg","FIXME":"fixme.svg","DELETEME":"deleteme.svg"},"icobase":"smileys","block":false},{"type":"picker","title":"\u7279\u6b8a\u5b57\u7b26","icon":"chars.png","list":["\u00c0","\u00e0","\u00c1","\u00e1","\u00c2","\u00e2","\u00c3","\u00e3","\u00c4","\u00e4","\u01cd","\u01ce","\u0102","\u0103","\u00c5","\u00e5","\u0100","\u0101","\u0104","\u0105","\u00c6","\u00e6","\u0106","\u0107","\u00c7","\u00e7","\u010c","\u010d","\u0108","\u0109","\u010a","\u010b","\u00d0","\u0111","\u00f0","\u010e","\u010f","\u00c8","\u00e8","\u00c9","\u00e9","\u00ca","\u00ea","\u00cb","\u00eb","\u011a","\u011b","\u0112","\u0113","\u0116","\u0117","\u0118","\u0119","\u0122","\u0123","\u011c","\u011d","\u011e","\u011f","\u0120","\u0121","\u0124","\u0125","\u00cc","\u00ec","\u00cd","\u00ed","\u00ce","\u00ee","\u00cf","\u00ef","\u01cf","\u01d0","\u012a","\u012b","\u0130","\u0131","\u012e","\u012f","\u0134","\u0135","\u0136","\u0137","\u0139","\u013a","\u013b","\u013c","\u013d","\u013e","\u0141","\u0142","\u013f","\u0140","\u0143","\u0144","\u00d1","\u00f1","\u0145","\u0146","\u0147","\u0148","\u00d2","\u00f2","\u00d3","\u00f3","\u00d4","\u00f4","\u00d5","\u00f5","\u00d6","\u00f6","\u01d1","\u01d2","\u014c","\u014d","\u0150","\u0151","\u0152","\u0153","\u00d8","\u00f8","\u0154","\u0155","\u0156","\u0157","\u0158","\u0159","\u015a","\u015b","\u015e","\u015f","\u0160","\u0161","\u015c","\u015d","\u0162","\u0163","\u0164","\u0165","\u00d9","\u00f9","\u00da","\u00fa","\u00db","\u00fb","\u00dc","\u00fc","\u01d3","\u01d4","\u016c","\u016d","\u016a","\u016b","\u016e","\u016f","\u01d6","\u01d8","\u01da","\u01dc","\u0172","\u0173","\u0170","\u0171","\u0174","\u0175","\u00dd","\u00fd","\u0178","\u00ff","\u0176","\u0177","\u0179","\u017a","\u017d","\u017e","\u017b","\u017c","\u00de","\u00fe","\u00df","\u0126","\u0127","\u00bf","\u00a1","\u00a2","\u00a3","\u00a4","\u00a5","\u20ac","\u00a6","\u00a7","\u00aa","\u00ac","\u00af","\u00b0","\u00b1","\u00f7","\u2030","\u00bc","\u00bd","\u00be","\u00b9","\u00b2","\u00b3","\u00b5","\u00b6","\u2020","\u2021","\u00b7","\u2022","\u00ba","\u2200","\u2202","\u2203","\u018f","\u0259","\u2205","\u2207","\u2208","\u2209","\u220b","\u220f","\u2211","\u203e","\u2212","\u2217","\u00d7","\u2044","\u221a","\u221d","\u221e","\u2220","\u2227","\u2228","\u2229","\u222a","\u222b","\u2234","\u223c","\u2245","\u2248","\u2260","\u2261","\u2264","\u2265","\u2282","\u2283","\u2284","\u2286","\u2287","\u2295","\u2297","\u22a5","\u22c5","\u25ca","\u2118","\u2111","\u211c","\u2135","\u2660","\u2663","\u2665","\u2666","\u03b1","\u03b2","\u0393","\u03b3","\u0394","\u03b4","\u03b5","\u03b6","\u03b7","\u0398","\u03b8","\u03b9","\u03ba","\u039b","\u03bb","\u03bc","\u039e","\u03be","\u03a0","\u03c0","\u03c1","\u03a3","\u03c3","\u03a4","\u03c4","\u03c5","\u03a6","\u03c6","\u03c7","\u03a8","\u03c8","\u03a9","\u03c9","\u2605","\u2606","\u260e","\u261a","\u261b","\u261c","\u261d","\u261e","\u261f","\u2639","\u263a","\u2714","\u2718","\u201e","\u201c","\u201d","\u201a","\u2018","\u2019","\u00ab","\u00bb","\u2039","\u203a","\u2014","\u2013","\u2026","\u2190","\u2191","\u2192","\u2193","\u2194","\u21d0","\u21d1","\u21d2","\u21d3","\u21d4","\u00a9","\u2122","\u00ae","\u2032","\u2033","[","]","{","}","~","(",")","%","\u00a7","$","#","|","@"],"block":false},{"title":"\u63d2\u5165\u65b0\u8868","type":"NewTable","icon":"..\/..\/plugins\/edittable\/images\/add_table.png","block":true},{"type":"picker","title":"Wrap \u63d2\u4ef6","icon":"..\/..\/plugins\/wrap\/images\/toolbar\/picker.png","list":[{"type":"format","title":"\u5206\u680f","icon":"..\/..\/plugins\/wrap\/images\/toolbar\/column.png","open":"<WRAP group>\\n<WRAP half column>\\n","close":"\\n<\/WRAP>\\n\\n<WRAP half column>\\n\\n<\/WRAP>\\n<\/WRAP>\\n"},{"type":"format","title":"\u7b80\u5355\u5c45\u4e2d\u65b9\u6846","icon":"..\/..\/plugins\/wrap\/images\/toolbar\/box.png","open":"<WRAP center round box 60%>\\n","close":"\\n<\/WRAP>\\n"},{"type":"format","title":"\u6d88\u606f\u6846","icon":"..\/..\/plugins\/wrap\/images\/note\/16\/info.png","open":"<WRAP center round info 60%>\\n","close":"\\n<\/WRAP>\\n"},{"type":"format","title":"\u63d0\u793a\u6846","icon":"..\/..\/plugins\/wrap\/images\/note\/16\/tip.png","open":"<WRAP center round tip 60%>\\n","close":"\\n<\/WRAP>\\n"},{"type":"format","title":"\u91cd\u8981\u4fe1\u606f\u65b9\u6846","icon":"..\/..\/plugins\/wrap\/images\/note\/16\/important.png","open":"<WRAP center round important 60%>\\n","close":"\\n<\/WRAP>\\n"},{"type":"format","title":"\u8b66\u544a\u6846","icon":"..\/..\/plugins\/wrap\/images\/note\/16\/alert.png","open":"<WRAP center round alert 60%>\\n","close":"\\n<\/WRAP>\\n"},{"type":"format","title":"\u5e2e\u52a9\u6846","icon":"..\/..\/plugins\/wrap\/images\/note\/16\/help.png","open":"<WRAP center round help 60%>\\n","close":"\\n<\/WRAP>\\n"},{"type":"format","title":"\u4e0b\u8f7d\u6846","icon":"..\/..\/plugins\/wrap\/images\/note\/16\/download.png","open":"<WRAP center round download 60%>\\n","close":"\\n<\/WRAP>\\n"},{"type":"format","title":"\u5f85\u529e\u4e8b\u9879\u65b9\u6846","icon":"..\/..\/plugins\/wrap\/images\/note\/16\/todo.png","open":"<WRAP center round todo 60%>\\n","close":"\\n<\/WRAP>\\n"},{"type":"insert","title":"\u6e05\u9664\u6d6e\u52a8","icon":"..\/..\/plugins\/wrap\/images\/toolbar\/clear.png","insert":"<WRAP clear\/>\\n"},{"type":"format","title":"\u7279\u522b\u5f3a\u8c03","icon":"..\/..\/plugins\/wrap\/images\/toolbar\/em.png","open":"<wrap em>","close":"<\/wrap>"},{"type":"format","title":"\u9ad8\u4eae","icon":"..\/..\/plugins\/wrap\/images\/toolbar\/hi.png","open":"<wrap hi>","close":"<\/wrap>"},{"type":"format","title":"\u4e0d\u91cd\u8981","icon":"..\/..\/plugins\/wrap\/images\/toolbar\/lo.png","open":"<wrap lo>","close":"<\/wrap>"}]}];
+
+/*!]]>*/</script>
+<!--<![endif]-->
+<style type="text/css">@media screen { body { margin-top: 65px; }  #dw__toc.affix { top: 55px; position: fixed !important; }  #dw__toc .nav .nav .nav { display: none; } }</style>
+
+    <script type="text/javascript">
+    //<![CDATA[ 
+    function LoadScript( url )
+    {
+     document.write( '<scr' + 'ipt type="text/javascript" src="' + url + '"><\/scr' + 'ipt>' ) ;        
+
+    }
+   function LoadScriptDefer( url )
+    {
+     document.write( '<scr' + 'ipt type="text/javascript" src="' + url + '" defer><\/scr' + 'ipt>' ) ;        
+
+    }
+//]]> 
+
+ </script>
+     <!--[if lt IE 9]>
+    <script type="text/javascript" src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script type="text/javascript" src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body class="default dokuwiki mode_show tpl_bootstrap3 dw-page-on-panel dw-fluid-container" data-page-id="developmentboard:nrf52840"><div class="dokuwiki">
+    <header id="dokuwiki__header" class="dw-container dokuwiki container-fluid mx-5">
+    <!-- navbar -->
+<nav id="dw__navbar" class="navbar navbar-fixed-top navbar-default" role="navigation">
+
+    <div class="dw-container container-fluid mx-5">
+
+        <div class="navbar-header">
+
+            <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+
+            <a class="navbar-brand d-flex align-items-center" href="/doku.php?id=start" accesskey="h" title="ICBbuy"><img id="dw__logo" class="pull-left h-100 mr-4" alt="ICBbuy" src="/lib/tpl/bootstrap3/images/logo.png" /><div class="pull-right"><div id="dw__title">ICBbuy</div></div></a>
+        </div>
+
+        <div class="collapse navbar-collapse">
+
+            
+            
+            <div class="navbar-right" id="dw__navbar_items">
+
+                <!-- navbar-searchform -->
+<form action="/doku.php?id=developmentboard:nrf52840" accept-charset="utf-8" class="navbar-form navbar-left search" id="dw__search" method="get" role="search">
+    <div class="input-group">
+        <input id="qsearch" autocomplete="off" type="search" placeholder="搜索" value="" accesskey="f" name="q" class="form-control" title="[F]" />
+        <div class="input-group-btn">
+            <button  class="btn btn-default" type="submit" title="搜索">
+                <span class="iconify"  data-icon="mdi:magnify"></span>            </button>
+        </div>
+
+    </div>
+    <input type="hidden" name="do" value="search" />
+</form>
+<!-- /navbar-searchform -->
+<!-- tools-menu -->
+<ul class="nav navbar-nav dw-action-icon" id="dw__tools">
+
+    
+    <li class="dropdown">
+
+        <a href="" class="dropdown-toggle" data-target="#" data-toggle="dropdown" title="" role="button" aria-haspopup="true" aria-expanded="false">
+            <span class="iconify"  data-icon="mdi:wrench"></span> <span class="hidden-lg hidden-md hidden-sm">工具</span> <span class="caret"></span>
+        </a>
+
+        <ul class="dropdown-menu tools" role="menu">
+            
+            <li class="dropdown-header">
+                <span class="iconify"  data-icon="mdi:account"></span> 用户工具            </li>
+
+            <li class="action"><a href="/doku.php?id=developmentboard:nrf52840&amp;do=register" title="注册" rel="nofollow" class="menuitem register"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 14c-2.67 0-8 1.33-8 4v2h16v-2c0-2.67-5.33-4-8-4m-9-4V7H4v3H1v2h3v3h2v-3h3v-2m6 2a4 4 0 0 0 4-4 4 4 0 0 0-4-4 4 4 0 0 0-4 4 4 4 0 0 0 4 4z"/></svg><span>注册</span></a></li><li class="action"><a href="/doku.php?id=developmentboard:nrf52840&amp;do=login&amp;sectok=" title="登录" rel="nofollow" class="menuitem login"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M10 17.25V14H3v-4h7V6.75L15.25 12 10 17.25M8 2h9a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-4h2v4h9V4H8v4H6V4a2 2 0 0 1 2-2z"/></svg><span>登录</span></a></li>
+                        <li class="divider" role="separator"></li>
+            
+        
+            <li class="dropdown-header">
+                <span class="iconify"  data-icon="mdi:toolbox"></span> 站点工具            </li>
+
+            <li class="action"><a href="/doku.php?id=developmentboard:nrf52840&amp;do=recent" title="最近更改 [r]" rel="nofollow" accesskey="r" class="menuitem recent"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 13h1.5v2.82l2.44 1.41-.75 1.3L15 16.69V13m4-5H5v11h4.67c-.43-.91-.67-1.93-.67-3a7 7 0 0 1 7-7c1.07 0 2.09.24 3 .67V8M5 21a2 2 0 0 1-2-2V5c0-1.11.89-2 2-2h1V1h2v2h8V1h2v2h1a2 2 0 0 1 2 2v6.1c1.24 1.26 2 2.99 2 4.9a7 7 0 0 1-7 7c-1.91 0-3.64-.76-4.9-2H5m11-9.85A4.85 4.85 0 0 0 11.15 16c0 2.68 2.17 4.85 4.85 4.85A4.85 4.85 0 0 0 20.85 16c0-2.68-2.17-4.85-4.85-4.85z"/></svg><span>最近更改</span></a></li><li class="action"><a href="/doku.php?id=developmentboard:nrf52840&amp;do=media&amp;ns=developmentboard" title="媒体管理器" rel="nofollow" class="menuitem media"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 15l4.5-6 3.5 4.5 2.5-3L21 15m1-11h-8l-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M2 6H0v14a2 2 0 0 0 2 2h18v-2H2V6z"/></svg><span>媒体管理器</span></a></li><li class="action"><a href="/doku.php?id=developmentboard:nrf52840&amp;do=index" title="网站地图 [x]" rel="nofollow" accesskey="x" class="menuitem index"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M3 3h6v4H3V3m12 7h6v4h-6v-4m0 7h6v4h-6v-4m-2-4H7v5h6v2H5V9h2v2h6v2z"/></svg><span>网站地图</span></a></li>
+                        <li class="divider" role="separator"></li>
+            
+        
+            <li class="dropdown-header">
+                <span class="iconify"  data-icon="mdi:file-document-outline"></span> 页面工具            </li>
+
+            <li class="action"><a href="/doku.php?id=developmentboard:nrf52840&amp;do=revisions" title="修订记录 [o]" rel="nofollow" accesskey="o" class="menuitem revs"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M11 7v5.11l4.71 2.79.79-1.28-4-2.37V7m0-5C8.97 2 5.91 3.92 4.27 6.77L2 4.5V11h6.5L5.75 8.25C6.96 5.73 9.5 4 12.5 4a7.5 7.5 0 0 1 7.5 7.5 7.5 7.5 0 0 1-7.5 7.5c-3.27 0-6.03-2.09-7.06-5h-2.1c1.1 4.03 4.77 7 9.16 7 5.24 0 9.5-4.25 9.5-9.5A9.5 9.5 0 0 0 12.5 2z"/></svg><span>修订记录</span></a></li><li class="action"><a href="/doku.php?id=developmentboard:nrf52840&amp;do=backlink" title="反向链接" rel="nofollow" class="menuitem backlink"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M10.59 13.41c.41.39.41 1.03 0 1.42-.39.39-1.03.39-1.42 0a5.003 5.003 0 0 1 0-7.07l3.54-3.54a5.003 5.003 0 0 1 7.07 0 5.003 5.003 0 0 1 0 7.07l-1.49 1.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.982 2.982 0 0 0 0-4.24 2.982 2.982 0 0 0-4.24 0l-3.53 3.53a2.982 2.982 0 0 0 0 4.24m2.82-4.24c.39-.39 1.03-.39 1.42 0a5.003 5.003 0 0 1 0 7.07l-3.54 3.54a5.003 5.003 0 0 1-7.07 0 5.003 5.003 0 0 1 0-7.07l1.49-1.49c-.01.82.12 1.64.4 2.43l-.47.47a2.982 2.982 0 0 0 0 4.24 2.982 2.982 0 0 0 4.24 0l3.53-3.53a2.982 2.982 0 0 0 0-4.24.973.973 0 0 1 0-1.42z"/></svg><span>反向链接</span></a></li><li class="action"><a href="#dokuwiki__top" title="回到顶部 [t]" rel="nofollow" accesskey="t" class="menuitem top"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"/></svg><span>回到顶部</span></a></li>
+            
+                </ul>
+    </li>
+
+    
+</ul>
+<!-- /tools-menu -->
+
+                <ul class="nav navbar-nav">
+
+                    
+                                        <li>
+                        <span class="dw__actions dw-action-icon">
+                        <a href="/doku.php?id=developmentboard:nrf52840&amp;do=register" title="注册" rel="nofollow" class="menuitem register btn btn-success navbar-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 14c-2.67 0-8 1.33-8 4v2h16v-2c0-2.67-5.33-4-8-4m-9-4V7H4v3H1v2h3v3h2v-3h3v-2m6 2a4 4 0 0 0 4-4 4 4 0 0 0-4-4 4 4 0 0 0-4 4 4 4 0 0 0 4 4z"/></svg><span class=""> 注册</span></a><a href="/doku.php?id=developmentboard:nrf52840&amp;do=login&amp;sectok=" title="登录" rel="nofollow" class="menuitem login btn btn-default navbar-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M10 17.25V14H3v-4h7V6.75L15.25 12 10 17.25M8 2h9a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-4h2v4h9V4H8v4H6V4a2 2 0 0 1 2-2z"/></svg><span class=""> 登录</span></a>                        </span>
+                    </li>
+                    
+                </ul>
+
+                
+                
+            </div>
+
+        </div>
+    </div>
+</nav>
+<!-- navbar -->
+    </header>
+
+    <a name="dokuwiki__top" id="dokuwiki__top"></a>
+
+    <main role="main" class="dw-container pb-5 dokuwiki container-fluid mx-5">
+
+        <div id="dokuwiki__pageheader">
+
+            
+            <!-- breadcrumbs -->
+<nav id="dw__breadcrumbs" class="small">
+
+    <hr/>
+
+    
+        <div class="dw__breadcrumbs hidden-print">
+        <ol class="breadcrumb"><li>您的足迹</li><li class="active"><a href="/doku.php?id=developmentboard:nrf52840"  title="developmentboard:nrf52840">nrf52840</a></li></ol>    </div>
+    
+    <hr/>
+
+</nav>
+<!-- /breadcrumbs -->
+
+            <p class="text-right">
+                            </p>
+
+            <div id="dw__msgarea" class="small">
+                            </div>
+
+        </div>
+
+        <div class="row">
+
+            <!-- sidebar -->
+<aside id="dokuwiki__aside" class="dw__sidebar col-sm-3 col-md-2 hidden-print">
+    <div class="dw-sidebar-content">
+        <div class="dw-sidebar-title hidden-lg hidden-md hidden-sm" data-toggle="collapse" data-target="#dokuwiki__aside .dw-sidebar-body">
+            <span class="iconify"  data-icon="mdi:view-list"></span> 侧边栏        </div>
+        <div class="dw-sidebar-body collapse in small">
+            <ul class="nav  nav-pills nav-stacked">
+<li class="level1"> <strong><a href="/doku.php?id=sidebar&amp;idx=developmentboard" class="wikilink1" title="sidebar" >developmentboard</a></strong>
+</li>
+<li class="level1 active"> <a href="/doku.php?id=developmentboard:nrf52840" class="wikilink1" title="developmentboard:nrf52840" data-wiki-curid="true">nrf52840</a>
+</li>
+<li class="level1"> <a href="/doku.php?id=developmentboard:esp32-c3mini" class="wikilink1" title="developmentboard:esp32-c3mini" >esp32-c3mini</a>
+</li>
+<li class="level1"> <a href="/doku.php?id=developmentboard:esp32-s3-leaf" class="wikilink1" title="developmentboard:esp32-s3-leaf" >ESP32-S3-Leaf</a>
+</li>
+<li class="level1"> <a href="/doku.php?id=developmentboard:ch32v307db" class="wikilink1" title="developmentboard:ch32v307db" >CH32V307db</a>
+</li>
+<li class="level1"> <strong><a href="/doku.php?id=sidebar&amp;idx=esp_module" class="wikilink1" title="sidebar" >esp_module</a></strong>
+</li>
+</ul>        </div>
+    </div>
+</aside>
+<!-- /sidebar -->
+
+            <article id="dokuwiki__content" class="col-sm-9 col-md-10 " itemscope itemtype="http://schema.org/Article" itemref="dw__license">
+
+                
+<!-- page-tools -->
+<nav id="dw__pagetools" class="hidden-print">
+    <div class="tools panel panel-default">
+        <ul class="nav nav-stacked nav-pills text-muted">
+            <li class="action"><a href="/doku.php?id=developmentboard:nrf52840&amp;do=revisions" title="修订记录 [o]" rel="nofollow" accesskey="o" class="menuitem revs"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M11 7v5.11l4.71 2.79.79-1.28-4-2.37V7m0-5C8.97 2 5.91 3.92 4.27 6.77L2 4.5V11h6.5L5.75 8.25C6.96 5.73 9.5 4 12.5 4a7.5 7.5 0 0 1 7.5 7.5 7.5 7.5 0 0 1-7.5 7.5c-3.27 0-6.03-2.09-7.06-5h-2.1c1.1 4.03 4.77 7 9.16 7 5.24 0 9.5-4.25 9.5-9.5A9.5 9.5 0 0 0 12.5 2z"/></svg><span>修订记录</span></a></li><li class="action"><a href="/doku.php?id=developmentboard:nrf52840&amp;do=backlink" title="反向链接" rel="nofollow" class="menuitem backlink"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M10.59 13.41c.41.39.41 1.03 0 1.42-.39.39-1.03.39-1.42 0a5.003 5.003 0 0 1 0-7.07l3.54-3.54a5.003 5.003 0 0 1 7.07 0 5.003 5.003 0 0 1 0 7.07l-1.49 1.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.982 2.982 0 0 0 0-4.24 2.982 2.982 0 0 0-4.24 0l-3.53 3.53a2.982 2.982 0 0 0 0 4.24m2.82-4.24c.39-.39 1.03-.39 1.42 0a5.003 5.003 0 0 1 0 7.07l-3.54 3.54a5.003 5.003 0 0 1-7.07 0 5.003 5.003 0 0 1 0-7.07l1.49-1.49c-.01.82.12 1.64.4 2.43l-.47.47a2.982 2.982 0 0 0 0 4.24 2.982 2.982 0 0 0 4.24 0l3.53-3.53a2.982 2.982 0 0 0 0-4.24.973.973 0 0 1 0-1.42z"/></svg><span>反向链接</span></a></li><li class="action"><a href="#dokuwiki__top" title="回到顶部 [t]" rel="nofollow" accesskey="t" class="menuitem top"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"/></svg><span>回到顶部</span></a></li>        </ul>
+    </div>
+</nav>
+<!-- /page-tools -->
+
+                <div class="panel panel-default px-3 py-2" itemprop="articleBody">
+                    <div class="page panel-body">
+
+                        <!-- page-icons -->
+<div class="dw-page-icons pull-right hidden-print">
+    <ul class="list-inline">
+    <li class="shareon dropdown"><a href="#" title="Share via" rel="nofollow" class="menuitem dropdown-toggle shareon" data-toggle="dropdown" data-remote="/doku.php?id=developmentboard:nrf52840" data-target="#" aria-haspopup="true" aria-expanded="true"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="mdi-share-variant" width="24" height="24" viewBox="0 0 24 24"><path d="M18,16.08C17.24,16.08 16.56,16.38 16.04,16.85L8.91,12.7C8.96,12.47 9,12.24 9,12C9,11.76 8.96,11.53 8.91,11.3L15.96,7.19C16.5,7.69 17.21,8 18,8C19.66,8 21,6.66 21,5C21,3.34 19.66,2 18,2C16.34,2 15,3.34 15,5C15,5.24 15.04,5.47 15.09,5.7L8.04,9.81C7.5,9.31 6.79,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.79,15 7.5,14.69 8.04,14.19L15.16,18.34C15.11,18.55 15.08,18.77 15.08,19C15.08,20.61 16.39,21.91 18,21.91C19.61,21.91 20.92,20.61 20.92,19C20.92,17.39 19.61,16.08 18,16.08Z" /></svg><span>Share via</span></a><ul class="dropdown-menu"><li class="dropdown-header"><span class="iconify"  data-icon="mdi:share-variant"></span> Share via...</li><li><a href="#" class="share share-twitter" title="Share via Twitter"><span class="iconify"  data-icon="mdi:twitter"></span> Twitter</a></li><li><a href="#" class="share share-linkedin" title="Share via LinkedIn"><span class="iconify"  data-icon="mdi:linkedin"></span> LinkedIn</a></li><li><a href="#" class="share share-facebook" title="Share via Facebook"><span class="iconify"  data-icon="mdi:facebook"></span> Facebook</a></li><li><a href="#" class="share share-pinterest" title="Share via Pinterest"><span class="iconify"  data-icon="mdi:pinterest"></span> Pinterest</a></li><li><a href="#" class="share share-telegram" title="Share via Telegram"><span class="iconify"  data-icon="mdi:telegram"></span> Telegram</a></li><li><a href="#" class="share share-whatsapp" title="Share via WhatsApp"><span class="iconify"  data-icon="mdi:whatsapp"></span> WhatsApp</a></li><li><a href="#" class="share share-yammer" title="Share via Yammer"><span class="iconify"  data-icon="mdi:yammer"></span> Yammer</a></li><li><a href="#" class="share share-reddit" title="Share via Reddit"><span class="iconify"  data-icon="mdi:reddit"></span> Reddit</a></li><li><a href="#" class="share share-microsoft-teams" title="Share via Teams"><span class="iconify"  data-icon="mdi:microsoft-teams"></span> Teams</a></li></ul></li><li class="feed"><a href="https://wiki.icbbuy.com/feed.php?ns=developmentboard" title="最近更改" rel="nofollow" class="menuitem feed"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="mdi-rss" width="24" height="24" viewBox="0 0 24 24"><path d="M6.18,15.64C7.38,15.64 8.36,16.62 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82C4,16.62 4.98,15.64 6.18,15.64M4,4.44C12.59,4.44 19.56,11.41 19.56,20H16.73C16.73,12.97 11.03,7.27 4,7.27V4.44M4,10.1C9.47,10.1 13.9,14.53 13.9,20H11.07C11.07,16.1 7.9,12.93 4,12.93V10.1Z" /></svg><span>最近更改</span></a></li><li class="sendmail"><a href="#" title="Send via e-Mail" rel="nofollow" class="menuitem sendmail"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="mdi-email-plus" width="24" height="24" viewBox="0 0 24 24"><path d="M3,4C1.89,4 1,4.89 1,6V18C1,19.1 1.9,20 3,20H14.09C14.03,19.67 14,19.34 14,19C14,15.69 16.69,13 20,13C20.34,13 20.67,13.03 21,13.09V6C21,4.89 20.1,4 19,4H3M3,6L11,11L19,6V8L11,13L3,8V6M19,15V18H16V20H19V23H21V20H24V18H21V15H19Z" /></svg><span>Send via e-Mail</span></a></li><li class="printpage"><a href="#" title="打印" rel="nofollow" class="menuitem printpage"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="mdi-printer" width="24" height="24" viewBox="0 0 24 24"><path d="M18,3H6V7H18M19,12C18.45,12 18,11.55 18,11C18,10.45 18.45,10 19,10C19.55,10 20,10.45 20,11C20,11.55 19.55,12 19,12M16,19H8V14H16M19,8H5C3.34,8 2,9.34 2,11V17H6V21H18V17H22V11C22,9.34 20.66,8 19,8Z" /></svg><span>打印</span></a></li><li class="permalink"><a href="https://wiki.icbbuy.com/doku.php?id=developmentboard:nrf52840&amp;rev=1710828088" title="Permalink" rel="nofollow" class="menuitem permalink" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="mdi-link" width="24" height="24" viewBox="0 0 24 24"><path d="M3.9,12C3.9,10.29 5.29,8.9 7,8.9H11V7H7C4.24,7 2,9.24 2,12C2,14.76 4.24,17 7,17H11V15.1H7C5.29,15.1 3.9,13.71 3.9,12M8,13H16V11H8V13M17,7H13V8.9H17C18.71,8.9 20.1,10.29 20.1,12C20.1,13.71 18.71,15.1 17,15.1H13V17H17C19.76,17 22,14.76 22,12C22,9.24 19.76,7 17,7Z" /></svg><span>Permalink</span></a></li>    </ul>
+</div>
+
+<span class="clearfix"></span>
+
+<!-- /page-icons -->
+
+<div class="help modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body px-5"></div>
+        </div>
+    </div>
+</div>
+
+
+<div class="dw-content-page "><!-- content --><div class="dw-content"><div class="plugin_fastwiki_marker" style="display:none"></div>
+<p>
+<strong>Special note:</strong>
+</p>
+
+<p>
+<em class="u"> <span style='font-family: inherit; font-size:inherit; color: inherit;  background-color: #ffff00 '>The default factory built-in program is Blink-All-IO (all IO ports automatically flip over in 1S). If you need to enter Nice! Nano V2 Bootloader Please short-circuit RST to GND twice within 0.5S. Just press the RST button twice on the keyboard board within 0.5 seconds.</span>  </em>
+</p>
+
+<p>
+<strong>Introduction</strong>
+</p>
+
+<p>
+SuperMini NRF52840 is a Pro Micro alternative development board that is compatible with Nice! Nano. Its pins are the same as ProMicro, which means it can be used with almost any ProMicro keyboard. The NRF5280 development board has a 3.7V lithium battery interface and a software switch that can cut off the power of the LED. When turned off, the standby power consumption can reach 1mA.
+</p>
+
+<p>
+nRF52840 is a high-performance, low-power wireless SoC chip launched by Norwegian Nordic Semiconductor. It supports multiple wireless protocols, including Bluetooth 5, Thread, Zigbee, ANT, and 2.4GHz. The nRF52840 chip uses an ARM Cortex-M4F processor, clocked at 64MHz, with built-in 1MB of flash memory and 256KB of RAM. It also has a variety of peripherals, including ADC, PWM, SPI, I2C, UART, USB and GPIO, etc. In addition, nRF52840 also supports a variety of security functions, such as AES encryption, SHA-256 hashing and True Random Number Generator (TRNG).
+</p>
+
+<p>
+<strong>Hardware description</strong>
+</p>
+
+<p>
+<a href="/lib/exe/detail.php?id=developmentboard%3Anrf52840&amp;media=developmentboard:s523f241efa674831ba4796424c4a8f3a6.jpg" class="media" title="developmentboard:s523f241efa674831ba4796424c4a8f3a6.jpg"><img src="/lib/exe/fetch.php?w=400&amp;tok=d3d694&amp;media=developmentboard:s523f241efa674831ba4796424c4a8f3a6.jpg" class="media img-responsive" loading="lazy" title="s523f241efa674831ba4796424c4a8f3a6.jpg" alt="s523f241efa674831ba4796424c4a8f3a6.jpg" width="400" /></a>
+</p>
+
+<p>
+Product Parameters Powerful wireless capabilities: Bluetooth 5.0, onboard antennaPowerful CPU: nRF52840 chip uses ARM Cortex-M4F processor, clocked at 64MHz, built-in 1MB flash memory and 256KB RAMBattery charging chip: supports lithium battery charging and dischargingPower consumption: standby power consumption can reach 1mA
+</p>
+
+<p>
+<strong>Pin Diagram</strong>
+</p>
+
+<p>
+<a href="/lib/exe/detail.php?id=developmentboard%3Anrf52840&amp;media=developmentboard:sedb0664b4eb04640a66e07424a1dc718d.jpg" class="media" title="developmentboard:sedb0664b4eb04640a66e07424a1dc718d.jpg"><img src="/lib/exe/fetch.php?w=400&amp;tok=9112ea&amp;media=developmentboard:sedb0664b4eb04640a66e07424a1dc718d.jpg" class="media img-responsive" loading="lazy" title="sedb0664b4eb04640a66e07424a1dc718d.jpg" alt="sedb0664b4eb04640a66e07424a1dc718d.jpg" width="400" /></a>
+</p>
+
+<p>
+<strong>Dimensions</strong>
+</p>
+
+<p>
+<a href="/lib/exe/detail.php?id=developmentboard%3Anrf52840&amp;media=undefined:nrf52840_%E5%89%AF%E6%9C%AC.jpg" class="media" title="undefined:nrf52840_副本.jpg"><img src="/lib/exe/fetch.php?w=400&amp;tok=e81964&amp;media=undefined:nrf52840_%E5%89%AF%E6%9C%AC.jpg" class="media img-responsive" loading="lazy" title="nrf52840_副本.jpg" alt="nrf52840_副本.jpg" width="400" /></a>
+</p>
+
+<p>
+<strong>Power Supply</strong>
+</p>
+
+<p>
+SuperMini NRF52840 supports charging and discharging of 3.7V lithium battery. The charging rate is 100mA during charging, so a 2000mAh battery takes 20 hours to be fully charged.
+</p>
+
+<p>
+Recharging Current warnWhen BOOST is connected, the charging current increases from 100ma to 300ma, and it can only be connected when the capacitor capacity is greater than 500mAh (to avoid explosion💥).
+</p>
+
+<p>
+<a href="/lib/exe/detail.php?id=developmentboard%3Anrf52840&amp;media=developmentboard:sbbaa29971df14b9b80299c78420107fes_%E5%89%AF%E6%9C%AC.jpg" class="media" title="developmentboard:sbbaa29971df14b9b80299c78420107fes_副本.jpg"><img src="/lib/exe/fetch.php?w=400&amp;tok=d2ca1b&amp;media=developmentboard:sbbaa29971df14b9b80299c78420107fes_%E5%89%AF%E6%9C%AC.jpg" class="media img-responsive" loading="lazy" title="sbbaa29971df14b9b80299c78420107fes_副本.jpg" alt="sbbaa29971df14b9b80299c78420107fes_副本.jpg" width="400" /></a>
+</p>
+
+<p>
+<strong>External Battery</strong>
+</p>
+
+<p>
+If you need an external battery, you only need to connect the + stage of the battery to B+ and the negative stage to B-. The external lithium battery only supports 3.7V and the charging rate is 100mA (a 2000mAh battery takes 20 hours to be fully charged).NoticeWhen welding, please be careful not to short-circuit the positive and negative poles, which may burn the battery and equipment.
+</p>
+
+<p>
+<a href="/lib/exe/detail.php?id=developmentboard%3Anrf52840&amp;media=developmentboard:nrf.jpg" class="media" title="developmentboard:nrf.jpg"><img src="/lib/exe/fetch.php?w=400&amp;tok=3168d8&amp;media=developmentboard:nrf.jpg" class="media img-responsive" loading="lazy" title="nrf.jpg" alt="nrf.jpg" width="400" /></a>
+</p>
+
+<p>
+<strong>External VCC control</strong>
+</p>
+
+<p>
+hintWhen P0.13 is set to low, the power supply to the 3.3V, VCC pin will be turned off. This is useful for reducing components that use power when idle (e.g. RGB, LEDs).
+</p>
+
+<p>
+<strong>Bootloader</strong>
+</p>
+
+<p>
+If you want to enter Bootloder, please short RST to GND twice within 0.5S. Enter Bootloder, connect to the computer via USB, and a storage device called Nice! Nano will be displayed. At this point you can drag in the .uf2 file to burn the program.
+</p>
+
+<p>
+QS-NRF52840 V1.2-PCB FootPrint
+</p>
+
+<p>
+<a href="/lib/exe/fetch.php?media=developmentboard:qs-nrf52840_v1.2-pcb_footprint.zip" class="media mediafile mf_zip" title="developmentboard:qs-nrf52840_v1.2-pcb_footprint.zip (568.6 KB)">qs-nrf52840_v1.2-pcb_footprint.zip</a>
+</p>
+
+<p>
+<strong>BUY</strong>
+</p>
+
+<p>
+<strong>Aliexpress：</strong> <a href="https://www.aliexpress.us/item/1005006035267231.html?gatewayAdapt=glo2usa" class="urlextern" title="https://www.aliexpress.us/item/1005006035267231.html?gatewayAdapt=glo2usa" rel="ugc nofollow">https://www.aliexpress.us/item/1005006035267231.html?gatewayAdapt=glo2usa</a>
+</p>
+
+<p>
+<strong>TINDIE：</strong>
+</p>
+<div class="comment_wrapper" id="comment_wrapper">
+  <h2 class=" page-header pb-3 mb-4 mt-0"><a name="discussion__section" id="discussion__section">
+    评论
+  </a></h2>
+  <div class="level2 hfeed">
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_60631d27c84b752c7613847c8c389049" id="comment_60631d27c84b752c7613847c8c389049"></a>
+        <span class="vcard author"><span class="fn">W</span></span>, <abbr class="published" title="2024-03-19T00:57:19Z">2024/03/19 00:57</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+能否在你们的 wiki 上提供 PCB 基底面？
+</p>
+
+<p>
+我知道大部分基底面都与 nice!nano 或 ProMicro 相同，但不包括 3 个额外的引脚 p1.01、p1.02、p1.02。我需要尺寸和距离，以便在 PCB 上为这些 GPIO 引脚开孔。
+</p>
+
+<p>
+用 Deepl 翻译
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="60631d27c84b752c7613847c8c389049"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="comment_replies" style="margin-left: 20px;">
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_e750c97eeaab2992fd781c453b2d4536" id="comment_e750c97eeaab2992fd781c453b2d4536"></a>
+        <span class="vcard author"><span class="fn">admin</span></span>, <abbr class="published" title="2024-03-19T14:41:48Z">2024/03/19 14:41</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+已经更新了
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="e750c97eeaab2992fd781c453b2d4536"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_571c30cba7985a536b8c7428b6fcf057" id="comment_571c30cba7985a536b8c7428b6fcf057"></a>
+        <span class="vcard author"><span class="fn">W</span></span>, <abbr class="published" title="2024-03-19T00:58:55Z">2024/03/19 00:58</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+PCB 印迹“
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="571c30cba7985a536b8c7428b6fcf057"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_147e33339acc7459ec2d1e6bdbf06f87" id="comment_147e33339acc7459ec2d1e6bdbf06f87"></a>
+        <span class="vcard author"><span class="fn">bluedrink9</span></span>, <abbr class="published" title="2024-04-07T07:41:55Z">2024/04/07 07:41</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+I have converted the PCB files to a KiCAD footprint here: <a href="https://github.com/BlueDrink9/supermini-nrf52840-kicad" class="urlextern" title="https://github.com/BlueDrink9/supermini-nrf52840-kicad" rel="ugc nofollow">https://github.com/BlueDrink9/supermini-nrf52840-kicad</a>
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="147e33339acc7459ec2d1e6bdbf06f87"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_1dc0c657a550180b2e49495bfee5e11e" id="comment_1dc0c657a550180b2e49495bfee5e11e"></a>
+        <span class="vcard author"><span class="fn">JB</span></span>, <abbr class="published" title="2024-04-09T16:55:29Z">2024/04/09 16:55</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Would it be possible to provide a 3D model of this PCB? I believe it would greatly benefit the product development process, particularly in designing the product&#039;s case, or designing a keyboard based on this board, and conducting integration testing. Additionally, exporting a 3D model from Altium is a straightforward process.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="1dc0c657a550180b2e49495bfee5e11e"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_5a5eedaf309cdd5a666c512e933c7ec7" id="comment_5a5eedaf309cdd5a666c512e933c7ec7"></a>
+        <span class="vcard author"><span class="fn">HANSOO KIM</span></span>, <abbr class="published" title="2024-06-26T07:56:46Z">2024/06/26 07:56</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Anyone tried with arduino sketch ? I failed couple of NREF52840 board, it won&#039;t boot again anymore. 
+</p>
+
+<p>
+once i connected USB-C, it appears COM port correctly and burn to programs. it is look death. just blink blue led only. 
+</p>
+
+<p>
+BOARD : Adafruit feather nRF52840 Express
+SoftDevice : S140.6.1.1
+Port : “COM7”
+Programmer : “Bootloader DFU for bluefruit nRF52”
+Code : Default empty code
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="5a5eedaf309cdd5a666c512e933c7ec7"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="comment_replies" style="margin-left: 20px;">
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_f9aa4562cb391674856ae20c9be60222" id="comment_f9aa4562cb391674856ae20c9be60222"></a>
+        <span class="vcard author"><span class="fn">majso</span></span>, <abbr class="published" title="2025-03-08T08:20:12Z">2025/03/08 08:20</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+You have to short RST pint to GND twice and it should switch to programming mode
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="f9aa4562cb391674856ae20c9be60222"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_84b287875900400a9e908a50889cf370" id="comment_84b287875900400a9e908a50889cf370"></a>
+        <span class="vcard author"><span class="fn">abde</span></span>, <abbr class="published" title="2024-08-10T12:35:49Z">2024/08/10 12:35</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+hello,
+i would like ask you aboutr the I2C pins for this board, i culdnt identify them 
+thank you so much 
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="84b287875900400a9e908a50889cf370"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_34a6daa9352d8e395f141bae8b821688" id="comment_34a6daa9352d8e395f141bae8b821688"></a>
+        <span class="vcard author"><span class="fn">Bigfang</span></span>, <abbr class="published" title="2024-08-17T04:34:02Z">2024/08/17 04:34</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Where is the board opensourced at?
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="34a6daa9352d8e395f141bae8b821688"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_802652e896563801eb90892887318716" id="comment_802652e896563801eb90892887318716"></a>
+        <span class="vcard author"><span class="fn"> Bryce</span></span>, <abbr class="published" title="2024-08-30T18:20:01Z">2024/08/30 18:20</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Hello, I have created a reference model for this development board. It can be found here: <a href="https://www.printables.com/model/990134-supermini-pro-micro-nrf52840-reference-model" class="urlextern" title="https://www.printables.com/model/990134-supermini-pro-micro-nrf52840-reference-model" rel="ugc nofollow">https://www.printables.com/model/990134-supermini-pro-micro-nrf52840-reference-model</a>
+</p>
+
+<p>
+I hope it helps you in your development endeavors. 
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="802652e896563801eb90892887318716"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_2f91977e37385c8305178410ab6c3a37" id="comment_2f91977e37385c8305178410ab6c3a37"></a>
+        <span class="vcard author"><span class="fn">Caio</span></span>, <abbr class="published" title="2024-09-24T21:43:37Z">2024/09/24 21:43</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+I will need to use the NFC feature of NRF52840. So, how will I plug the NFC antenna on this board? Please confirm to me that I will need to solder an NFC antenna to pins P0.09 and P0.10
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="2f91977e37385c8305178410ab6c3a37"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_22ed5369da336131fc780120c83ee9d2" id="comment_22ed5369da336131fc780120c83ee9d2"></a>
+        <span class="vcard author"><span class="fn">Basel Saleh</span></span>, <abbr class="published" title="2024-09-25T05:00:13Z">2024/09/25 05:00</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Is there any way to disable leds or lower current consumption on startup? Right now when I wake from deep sleep it pulls 7mA for half a second
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="22ed5369da336131fc780120c83ee9d2"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="comment_replies" style="margin-left: 20px;">
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_0c287b669fc636ee0e299233c75178fc" id="comment_0c287b669fc636ee0e299233c75178fc"></a>
+        <span class="vcard author"><span class="fn">Eric Miner</span></span>, <abbr class="published" title="2025-01-01T06:50:04Z">2025/01/01 06:50</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Did you solve this? I have the same question?
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="0c287b669fc636ee0e299233c75178fc"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_07cd2cb3b94d261e18928c9b281879e6" id="comment_07cd2cb3b94d261e18928c9b281879e6"></a>
+        <span class="vcard author"><span class="fn">Sašo Domadenik</span></span>, <abbr class="published" title="2025-01-13T21:02:53Z">2025/01/13 21:02</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+The schematic is published at <a href="https://chat.nologo.tech/d/80" class="urlextern" title="https://chat.nologo.tech/d/80" rel="ugc nofollow">https://chat.nologo.tech/d/80</a> I reuploaded it to <a href="https://imgur.com/gallery/nrf52840-supermini-promicro-schematic-q1T3BJY" class="urlextern" title="https://imgur.com/gallery/nrf52840-supermini-promicro-schematic-q1T3BJY" rel="ugc nofollow">https://imgur.com/gallery/nrf52840-supermini-promicro-schematic-q1T3BJY</a>
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="07cd2cb3b94d261e18928c9b281879e6"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_4ffc039308274c45434014dba40387bb" id="comment_4ffc039308274c45434014dba40387bb"></a>
+        <span class="vcard author"><span class="fn">Dominik Dufner</span></span>, <abbr class="published" title="2025-01-16T20:17:17Z">2025/01/16 20:17</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Has anyone been able to read the battery voltage? It looks like it should be possible on P0.04 based on the schematics. 
+Using Zephyr I was able to read a voltage from a different source on a different AIN pin. Appreciate help.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="4ffc039308274c45434014dba40387bb"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="comment_replies" style="margin-left: 20px;">
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_300cca96dd69ff136bf558291b3950a0" id="comment_300cca96dd69ff136bf558291b3950a0"></a>
+        <span class="vcard author"><span class="fn">Sašo Domadenik</span></span>, <abbr class="published" title="2025-01-22T17:49:42Z">2025/01/22 17:49</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+According to the schematic, the voltage divider for the battery voltage is NC so the resistors are not installed. I&#039;m not 100% but I think these are the two empty 0201 footprints between the two SOT23 ICs
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="300cca96dd69ff136bf558291b3950a0"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="comment_replies" style="margin-left: 20px;">
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_d1a6f3defd1821774d7be674036d60df" id="comment_d1a6f3defd1821774d7be674036d60df"></a>
+        <span class="vcard author"><span class="fn">Sašo Domadenik</span></span>, <abbr class="published" title="2025-06-26T18:41:25Z">2025/06/26 18:41</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Ok so after doing some measaurements it seems that the schematic is wrong. Even after installing the two 0201 resistors, you can&#039;t measure voltage on P0.04 because the divider is actually connected to P0.24
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="d1a6f3defd1821774d7be674036d60df"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_b7603a9106d3254969b7e31afe71e351" id="comment_b7603a9106d3254969b7e31afe71e351"></a>
+        <span class="vcard author"><span class="fn">Bettygom</span></span>, <abbr class="published" title="2025-01-28T18:05:46Z">2025/01/28 18:05</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+How might individuals with Asperger Syndrome or autism contribute unique insights to the design, development, and application of ESP32-S3-Leaf and NRF52840 development boards? Considering their attention to detail, logical thinking, and unique problem-solving abilities, what possible innovations could stem from their perspectives in the context of these development boards?
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="b7603a9106d3254969b7e31afe71e351"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_dd9d9c22d0a3012b8b06a5b15ed13b5b" id="comment_dd9d9c22d0a3012b8b06a5b15ed13b5b"></a>
+        <span class="vcard author"><span class="fn">Billypleax</span></span>, <abbr class="published" title="2025-03-18T01:23:47Z">2025/03/18 01:23</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Хорошим вариантом для SEO-специалистов является база профилей для хрумера &lt;a href=<a href="https://www.olx.ua/d/uk/obyavlenie/progon-hrumerom-dr-50-po-ahrefs-uvelichu-reyting-domena-IDXnHrG.html" class="urlextern" title="https://www.olx.ua/d/uk/obyavlenie/progon-hrumerom-dr-50-po-ahrefs-uvelichu-reyting-domena-IDXnHrG.html" rel="ugc nofollow">https://www.olx.ua/d/uk/obyavlenie/progon-hrumerom-dr-50-po-ahrefs-uvelichu-reyting-domena-IDXnHrG.html</a>&gt;<a href="https://www.olx.ua/d/uk/obyavlenie/progon-hrumerom-dr-50-po-ahrefs-uvelichu-reyting-domena-IDXnHrG.html" class="urlextern" title="https://www.olx.ua/d/uk/obyavlenie/progon-hrumerom-dr-50-po-ahrefs-uvelichu-reyting-domena-IDXnHrG.html" rel="ugc nofollow">https://www.olx.ua/d/uk/obyavlenie/progon-hrumerom-dr-50-po-ahrefs-uvelichu-reyting-domena-IDXnHrG.html</a>&lt;/a&gt;, содержащая активные ресурсы.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="dd9d9c22d0a3012b8b06a5b15ed13b5b"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_eab6553bb03604d2e760570b09db8460" id="comment_eab6553bb03604d2e760570b09db8460"></a>
+        <span class="vcard author"><span class="fn">Wesleyfok</span></span>, <abbr class="published" title="2025-03-29T20:14:24Z">2025/03/29 20:14</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Pokud plánujete stavbu nebo rekonstrukci domu, ideálním řešením může být právě &lt;a href=<a href="https://betonova-stresni-krytina.com/" class="urlextern" title="https://betonova-stresni-krytina.com/" rel="ugc nofollow">https://betonova-stresni-krytina.com/</a>&gt;betonová střešní krytina roofer.cz&lt;/a&gt;. Díky své odolnosti a estetickému vzhledu je vhodná pro různé typy střech.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="eab6553bb03604d2e760570b09db8460"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_cb84202b3d79a26900612b1ccfa6ae26" id="comment_cb84202b3d79a26900612b1ccfa6ae26"></a>
+        <span class="vcard author"><span class="fn">Danieldag</span></span>, <abbr class="published" title="2025-04-07T11:33:39Z">2025/04/07 11:33</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Visit &lt;a href=<a href="https://eskortebi.link/" class="urlextern" title="https://eskortebi.link/" rel="ugc nofollow">https://eskortebi.link/</a>&gt;eskortebi.link&lt;/a&gt; to explore GeorgiaвЂ™s top escort services. Safe, simple, and stylish вЂ“ all in one place.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="cb84202b3d79a26900612b1ccfa6ae26"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_3e902c732ddfc0ec113db93c3cd0297b" id="comment_3e902c732ddfc0ec113db93c3cd0297b"></a>
+        <span class="vcard author"><span class="fn">Calvin</span></span>, <abbr class="published" title="2025-04-09T15:31:38Z">2025/04/09 15:31</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Здравия Желаю,
+Коллеги.
+</p>
+
+<p>
+Сейчас я бы хотел поведать малость про 
+купить внешние ссылки.
+Я думаю Вы в поискее сейчас 
+про купить ссылки по!
+</p>
+
+<p>
+Поэтому эта оптимально актуальная информация про где купить ссылки будет для сейчас наиболее будет полезной.
+</p>
+
+<p>
+Если ты искал про купить ссылки 
+на сайт а также про где купить 
+ссылки, возможно и про купить ссылки по?
+</p>
+
+<p>
+На нашем сайте больше про купить сквозные ссылки, 
+</p>
+
+<p>
+Качественные ссылки! Качественные обратные ссылки 
+проверенные опытом! 
+</p>
+
+<p>
+НАШ SEO WEBSITE - купить ссылки даркнет: 
+<a href="http://seosecretservice.top/" class="urlextern" title="http://seosecretservice.top/" rel="ugc nofollow">http://seosecretservice.top/</a> - 2025 купить обратные ссылки
+</p>
+
+<p>
+Только, если Вы реально искали информацию про купить сквозные 
+ссылки, а также про купить ссылки в, 
+ты вы найдете самую свежую и актуальную информацию про купить ссылки на или возможно хотите купить ссылки.
+</p>
+
+<p>
+Вы найдете много предложений для купить ссылки pr x - а именно про купить ссылки тор и про купить ссылки 
+на.
+Входите с нами в контакт на нашем сайте и вы наверняка найдете популярную и самую 
+актуальную информацию от экспертов по 
+поводу следующих тем касающихся нижеперечисленных ключевых слов, а именно:
+</p>
+
+<p>
+1. купить ссылки даркнет;
+</p>
+
+<p>
+2. купить сквозные ссылки
+3. Про купить ссылки по;
+4. купить ссылки на;
+5. купить ссылки для сео
+</p>
+
+<p>
+Наши Теги: купить ссылки сео, купить ссылки по,
+где купить ссылки, купить ссылки украина, купить ссылки тор.
+</p>
+
+<p>
+Доброго Вам Дня!
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="3e902c732ddfc0ec113db93c3cd0297b"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_3bc057c8ada278c51cfcf19ac1de3c70" id="comment_3bc057c8ada278c51cfcf19ac1de3c70"></a>
+        <span class="vcard author"><span class="fn">купить ссылки по</span></span>, <abbr class="published" title="2025-04-09T15:31:39Z">2025/04/09 15:31</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Здравия Желаю,
+Коллеги.
+</p>
+
+<p>
+Сейчас я бы хотел поведать малость 
+про купить внешние ссылки.
+Я думаю Вы в поискее сейчас про купить ссылки по!
+</p>
+
+<p>
+Поэтому эта оптимально актуальная информация про где купить 
+ссылки будет для сейчас наиболее будет полезной.
+</p>
+
+<p>
+Если ты искал про купить ссылки 
+на сайт а также про где купить 
+ссылки, возможно и про купить 
+ссылки по?
+</p>
+
+<p>
+На нашем сайте больше 
+про купить сквозные ссылки, 
+</p>
+
+<p>
+Качественные ссылки! Качественные обратные ссылки проверенные опытом!
+</p>
+
+<p>
+НАШ SEO WEBSITE - купить ссылки даркнет:
+<a href="http://seosecretservice.top/" class="urlextern" title="http://seosecretservice.top/" rel="ugc nofollow">http://seosecretservice.top/</a> - 2025 купить обратные ссылки
+</p>
+
+<p>
+Только, если Вы реально искали информацию про купить сквозные ссылки, а также 
+про купить ссылки в, ты вы найдете самую свежую и актуальную информацию про купить ссылки на или возможно хотите купить ссылки.
+</p>
+
+<p>
+Вы найдете много предложений для купить ссылки pr x - а именно про 
+купить ссылки тор и про купить ссылки на.
+</p>
+
+<p>
+Входите с нами в контакт на нашем сайте и вы наверняка найдете популярную 
+и самую актуальную информацию от экспертов 
+по поводу следующих тем касающихся нижеперечисленных 
+ключевых слов, а именно:
+</p>
+
+<p>
+1. купить ссылки даркнет;
+2. купить сквозные ссылки
+3. Про купить ссылки по;
+4. купить ссылки на;
+5. купить ссылки для сео
+</p>
+
+<p>
+Наши Теги: купить ссылки сео, купить ссылки по, где купить ссылки, купить ссылки украина, купить ссылки тор.
+</p>
+
+<p>
+Доброго Вам Дня!
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="3bc057c8ada278c51cfcf19ac1de3c70"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_ac41acb3ac844674861d09120b2c5003" id="comment_ac41acb3ac844674861d09120b2c5003"></a>
+        <span class="vcard author"><span class="fn">Donaldbak</span></span>, <abbr class="published" title="2025-04-17T14:50:51Z">2025/04/17 14:50</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+У холодну пору року або для міських прогулянок незамінними стають стильні черевики &lt;a href=<a href="https://ukrbeautystyle.com.ua/category/Chereviki" class="urlextern" title="https://ukrbeautystyle.com.ua/category/Chereviki" rel="ugc nofollow">https://ukrbeautystyle.com.ua/category/Chereviki</a>&gt;ukrbeautystyle.com.ua&lt;/a&gt;. Вони поєднують практичність із сучасними тенденціями моди.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="ac41acb3ac844674861d09120b2c5003"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_6e58202a6bd840f4b0b47a36a7c30b86" id="comment_6e58202a6bd840f4b0b47a36a7c30b86"></a>
+        <span class="vcard author"><span class="fn">JamesElurb</span></span>, <abbr class="published" title="2025-04-27T08:36:30Z">2025/04/27 08:36</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Чистота в домі починається з порогу, тому варто звернути увагу на практичні &lt;a href=<a href="https://ukrbeautystyle.com.ua/category/KilimkiDlja-vzuttja" class="urlextern" title="https://ukrbeautystyle.com.ua/category/KilimkiDlja-vzuttja" rel="ugc nofollow">https://ukrbeautystyle.com.ua/category/KilimkiDlja-vzuttja</a>&gt;килимки для взуття ukrbeautystyle.com.ua&lt;/a&gt;. Вони затримують бруд та вологу, зберігаючи чистоту в оселі.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="6e58202a6bd840f4b0b47a36a7c30b86"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_8126bf1194afa1b24dc5bd43edbadc8a" id="comment_8126bf1194afa1b24dc5bd43edbadc8a"></a>
+        <span class="vcard author"><span class="fn">JosephZex</span></span>, <abbr class="published" title="2025-04-29T10:19:53Z">2025/04/29 10:19</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+На семінарі запитали: “комплаєнс що це &lt;a href=<a href="https://www.komplaens-audit.top/internal-audit/" class="urlextern" title="https://www.komplaens-audit.top/internal-audit/" rel="ugc nofollow">https://www.komplaens-audit.top/internal-audit/</a>&gt;komplaens-audit.top&lt;/a&gt;?” Відповіді були дуже різні, але головне — це дотримання правил і стандартів у компанії.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="8126bf1194afa1b24dc5bd43edbadc8a"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_9add2f73c2a7b118da6e9d171b9b4606" id="comment_9add2f73c2a7b118da6e9d171b9b4606"></a>
+        <span class="vcard author"><span class="fn">Francisemeld</span></span>, <abbr class="published" title="2025-04-29T15:43:37Z">2025/04/29 15:43</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Найкращий варіант для регулярних поїздок – це рейсовий автобус до Польщі з України &lt;a href=<a href="https://www.infobus.top/ru/purchase-bus-tickets-poland-lutsk/" class="urlextern" title="https://www.infobus.top/ru/purchase-bus-tickets-poland-lutsk/" rel="ugc nofollow">https://www.infobus.top/ru/purchase-bus-tickets-poland-lutsk/</a>&gt;<a href="http://www.infobus.top" class="urlextern" title="http://www.infobus.top" rel="ugc nofollow">www.infobus.top</a>&lt;/a&gt;, тому що стабільний графік і завжди є вільні місця.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="9add2f73c2a7b118da6e9d171b9b4606"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_67efb34d971e4179b827924169057e40" id="comment_67efb34d971e4179b827924169057e40"></a>
+        <span class="vcard author"><span class="fn">JosephZex</span></span>, <abbr class="published" title="2025-04-30T15:21:21Z">2025/04/30 15:21</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Вперше почув про поняття “форензик аудит &lt;a href=<a href="https://www.komplaens-audit.top/ru/internal-audit/poslugi-v-galuzi-vnutrishnogo-auditu-upravlinnya-rizikami-ta-komplayens.html" class="urlextern" title="https://www.komplaens-audit.top/ru/internal-audit/poslugi-v-galuzi-vnutrishnogo-auditu-upravlinnya-rizikami-ta-komplayens.html" rel="ugc nofollow">https://www.komplaens-audit.top/ru/internal-audit/poslugi-v-galuzi-vnutrishnogo-auditu-upravlinnya-rizikami-ta-komplayens.html</a>&gt;komplaens-audit.top&lt;/a&gt;” під час семінару. Виявляється, він широко застосовується при розслідуванні фінансових злочинів.
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="67efb34d971e4179b827924169057e40"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_ac68c69e6dc93a15e0debb84d185887c" id="comment_ac68c69e6dc93a15e0debb84d185887c"></a>
+        <span class="vcard author"><span class="fn">dom</span></span>, <abbr class="published" title="2025-09-22T19:13:31Z">2025/09/22 19:13</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Дом отдыха в Литве. Lithuania курорты европейского союза.
+Расположен санаторий в сосновом, еловом парке с красивыми березками.
+<a href="http://stealer.coolpage.biz/flatpress/" class="urlextern" title="http://stealer.coolpage.biz/flatpress/" rel="ugc nofollow">http://stealer.coolpage.biz/flatpress/</a>
+</p>
+
+<p>
+<a href="http://prussia.atspace.cc/" class="urlextern" title="http://prussia.atspace.cc/" rel="ugc nofollow">http://prussia.atspace.cc/</a>
+Prussia House of Hohenzollern
+<a href="http://lifervpldestroy.atspace.co.uk/index.htm" class="urlextern" title="http://lifervpldestroy.atspace.co.uk/index.htm" rel="ugc nofollow">http://lifervpldestroy.atspace.co.uk/index.htm</a>
+<a href="http://monarchy.freevar.com/" class="urlextern" title="http://monarchy.freevar.com/" rel="ugc nofollow">http://monarchy.freevar.com/</a>
+<a href="https://psychiatrysait.narod.ru/" class="urlextern" title="https://psychiatrysait.narod.ru/" rel="ugc nofollow">https://psychiatrysait.narod.ru/</a>
+<a href="http://rvplosvencim.atwebpages.com/" class="urlextern" title="http://rvplosvencim.atwebpages.com/" rel="ugc nofollow">http://rvplosvencim.atwebpages.com/</a>
+</p>
+
+<p>
+Respublikine Vilniaus Psichiatrijos Ligonine
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="ac68c69e6dc93a15e0debb84d185887c"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_c54714b204a12ee33098ebfc7b3b4ad2" id="comment_c54714b204a12ee33098ebfc7b3b4ad2"></a>
+        <span class="vcard author"><span class="fn">Armando</span></span>, <abbr class="published" title="2025-10-26T07:03:12Z">2025/10/26 07:03</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Привет,
+Друзья.
+</p>
+
+<p>
+Сегодня я бы хотел рассказать больше про купить ссылки pr x.
+</p>
+
+<p>
+Я думаю Вы искали всегда про купить ссылки на 
+сайт!
+</p>
+
+<p>
+Поэтому эта наиболее актуальная информация про купить сквозные ссылки 
+будет для вас сто процентов будет полезной.
+</p>
+
+<p>
+Если в поиске про купить обратные 
+ссылки а также про купить ссылки сео, возможно и 
+про купить ссылки на сайт?
+</p>
+
+<p>
+На нашем сайте больше про купить ссылки для 
+сео, 
+</p>
+
+<p>
+Сто процентные ссылки! Качественные обратные ссылки проверенные опытом!
+</p>
+
+<p>
+НАШ SEO WEBSITE - купить ссылки по: <a href="https://tumblr.com/seoquantum" class="urlextern" title="https://tumblr.com/seoquantum" rel="ugc nofollow">https://tumblr.com/seoquantum</a> - 2025 купить 
+ссылки по
+</p>
+
+<p>
+Только, если Вы реально искали информацию про купить ссылки для продвижения, а также про купить ссылки seo,
+ты вы найдете самую свежую и 
+актуальную информацию про купить ссылки пушкина или возможно хотите купить ссылки.
+</p>
+
+<p>
+Вы найдете много предложений для купить ссылки на - а именно про купить ссылки для 
+продвижения и про купить 
+обратные ссылки.
+Входите с нами в контакт на нашем сайте и вы наверняка найдете популярную и самую актуальную 
+информацию от экспертов по поводу следующих тем касающихся 
+нижеперечисленных ключевых слов, а именно:
+</p>
+
+<p>
+1. купить ссылки для раскрутки сайта;
+</p>
+
+<p>
+2. купить ссылки по
+3. Про купить ссылки pr x;
+4. купить внешние ссылки;
+5. купить сквозные ссылки
+</p>
+
+<p>
+Наши Теги: купить обратные ссылки, купить ссылки по,
+где купить ссылки, купить ссылки тор, купить ссылки 
+seo.
+</p>
+
+<p>
+Доброго Вам Дня!
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="c54714b204a12ee33098ebfc7b3b4ad2"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_a6e91a24d3a9cf99e86e5065e45c7d31" id="comment_a6e91a24d3a9cf99e86e5065e45c7d31"></a>
+        <span class="vcard author"><span class="fn">купить ссылки на сайт</span></span>, <abbr class="published" title="2025-10-26T07:03:14Z">2025/10/26 07:03</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Привет,
+Друзья.
+</p>
+
+<p>
+Сегодня я бы хотел рассказать больше про купить ссылки pr x.
+</p>
+
+<p>
+Я думаю Вы искали всегда про купить ссылки на сайт!
+</p>
+
+<p>
+Поэтому эта наиболее актуальная информация про 
+купить сквозные ссылки 
+будет для вас сто процентов будет полезной.
+</p>
+
+<p>
+Если в поиске про купить обратные ссылки а также про купить ссылки сео, возможно и про купить 
+ссылки на сайт?
+</p>
+
+<p>
+На нашем сайте больше про купить 
+ссылки для сео, 
+</p>
+
+<p>
+Сто процентные ссылки! Качественные обратные ссылки 
+проверенные опытом! 
+</p>
+
+<p>
+НАШ SEO WEBSITE - купить ссылки по: <a href="https://tumblr.com/seoquantum" class="urlextern" title="https://tumblr.com/seoquantum" rel="ugc nofollow">https://tumblr.com/seoquantum</a> - 2025 купить ссылки по
+</p>
+
+<p>
+Только, если Вы реально искали информацию про купить ссылки 
+для продвижения, а также про 
+купить ссылки seo, ты вы найдете самую свежую и актуальную 
+информацию про купить ссылки пушкина или возможно хотите купить ссылки.
+</p>
+
+<p>
+Вы найдете много предложений для купить ссылки на - а 
+именно про купить ссылки для продвижения и про 
+купить обратные ссылки.
+Входите с нами в контакт на нашем сайте и вы наверняка найдете популярную и самую актуальную информацию от 
+экспертов по поводу следующих тем касающихся нижеперечисленных ключевых слов, а именно:
+</p>
+
+<p>
+1. купить ссылки для раскрутки сайта;
+</p>
+
+<p>
+2. купить ссылки по
+3. Про купить ссылки pr x;
+4. купить внешние ссылки;
+5. купить сквозные ссылки
+</p>
+
+<p>
+Наши Теги: купить обратные ссылки, купить ссылки по, где купить ссылки, купить ссылки тор,
+купить ссылки seo.
+</p>
+
+<p>
+Доброго Вам Дня!
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="a6e91a24d3a9cf99e86e5065e45c7d31"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_a906cd8a3e3e9f1903a3337a4a82e5e2" id="comment_a906cd8a3e3e9f1903a3337a4a82e5e2"></a>
+        <span class="vcard author"><span class="fn">Patsy Seidel</span></span>, <abbr class="published" title="2025-11-04T19:14:16Z">2025/11/04 19:14</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Hi there, 
+</p>
+
+<p>
+If Icbbuy Com needs help getting up to $500K in funding, I’d love to help. This is exactly what we do.
+</p>
+
+<p>
+Every week we help businesses like Icbbuy Com get approved for $25K–$500K in funding - even if they&#039;ve been denied before or are unsure if they’ll qualify.
+</p>
+
+<p>
+The best part? We make the process simple and quick.
+</p>
+
+<p>
+If you&#039;re:
+Looking to grow your business,
+Consolidate or reconcile debt,
+Invest in research and development,
+Upgrade equipment or buy new assets…
+</p>
+
+<p>
+Then let’s talk.
+</p>
+
+<p>
+We’ve helped thousands of clients and have a 4.8-star rating on TrustPilot with hundreds of verified reviews.
+</p>
+
+<p>
+Just hit reply to this email and tell me:
+</p>
+
+<p>
+That you&#039;re interested, or
+A time next week that works for a quick call.
+</p>
+
+<p>
+No pressure - just helpful advice and expert guidance to see what’s possible for your situation.
+</p>
+
+<p>
+Looking forward to hearing from you,
+Patsy
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="a906cd8a3e3e9f1903a3337a4a82e5e2"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_920536ecdfb59bc57af26dfd0d4e08cc" id="comment_920536ecdfb59bc57af26dfd0d4e08cc"></a>
+        <span class="vcard author"><span class="fn">Tamika</span></span>, <abbr class="published" title="2025-11-07T10:52:37Z">2025/11/07 10:52</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About best time to hike
+</p>
+
+<p>
+Hi Guys,
+Only if you really think about Leura?! We have more detailed information about Katoomba
+</p>
+
+<p>
+tours of the Blue Mountains are far from an ordinary day out — they’re a full-on adventure.
+</p>
+
+<p>
+When I first started leading groups up the route west from Sydney, I realised we 
+were in for something special: misty valleys, towering rock formations, and those iconic eucalyptus trees 
+that give the mountains their blue haze. Every adventure through the Blue Mountains 
+still feels like a new discovery, and if you’re ready to 
+experience it, here’s how to get the most out of it.
+</p>
+
+<p>
+Just a short drive from the city, the UNESCO-listed Blue Mountains region covers over one million hectares of wild landscapes,
+gorges and mountain plateaus. This World Heritage-listed wonderland is 
+recognised for its unique environment and Indigenous roots.
+</p>
+
+<p>
+The towns of Katoomba, Leura, Wentworth Falls and Blackheath anchor most 
+Blue Mountains tours. Whether you book a guided trip from Sydney, every route offers a different 
+perspective: from Echo Point’s panoramic view of the Three Sisters to lush trails deep in Jamison Valley.
+</p>
+
+<p>
+Please visit our site about attractions please click <a href="https://chachamortors.com/bbs/board.php?bo_table=free&amp;wr_id=6463975" class="urlextern" title="https://chachamortors.com/bbs/board.php?bo_table=free&amp;wr_id=6463975" rel="ugc nofollow">https://chachamortors.com/bbs/board.php?bo_table=free&amp;wr_id=6463975</a> for Sign up for a free consultation now!
+</p>
+
+<p>
+Tags: Katoomba, accommodations, Katoomba Falls, Hunter Valley wine tours,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="920536ecdfb59bc57af26dfd0d4e08cc"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_cb0049a996928676feb2395d8188f192" id="comment_cb0049a996928676feb2395d8188f192"></a>
+        <span class="vcard author"><span class="fn">Katoomba</span></span>, <abbr class="published" title="2025-11-07T10:52:39Z">2025/11/07 10:52</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About best time to hike
+</p>
+
+<p>
+Hi Guys,
+Only if you really think about Leura?! We have more detailed information about Katoomba
+</p>
+
+<p>
+tours of the Blue Mountains are far from an ordinary day out — they’re a 
+full-on adventure. When I first started leading groups up the route west from Sydney, I realised we were in for something special:
+misty valleys, towering rock formations, and those iconic eucalyptus 
+trees that give the mountains their blue haze.
+Every adventure through the Blue Mountains still feels like a new discovery,
+and if you’re ready to experience it, here’s how to get the most out of it.
+</p>
+
+<p>
+Just a short drive from the city, the UNESCO-listed Blue Mountains region covers over one million hectares 
+of wild landscapes, gorges and mountain plateaus.
+This World Heritage-listed wonderland is recognised for its unique environment and Indigenous roots.
+</p>
+
+<p>
+The towns of Katoomba, Leura, Wentworth Falls and Blackheath anchor most Blue Mountains tours.
+Whether you book a guided trip from Sydney, every route offers a different perspective: from Echo Point’s panoramic view of the Three Sisters to lush trails deep in Jamison Valley.
+</p>
+
+<p>
+Please visit our site about attractions please click <a href="https://chachamortors.com/bbs/board.php?bo_table=free&amp;wr_id=6463975" class="urlextern" title="https://chachamortors.com/bbs/board.php?bo_table=free&amp;wr_id=6463975" rel="ugc nofollow">https://chachamortors.com/bbs/board.php?bo_table=free&amp;wr_id=6463975</a> for Sign up 
+for a free consultation now!
+</p>
+
+<p>
+Tags: Katoomba, accommodations, Katoomba Falls, Hunter Valley wine tours,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="cb0049a996928676feb2395d8188f192"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_25718c8bb255712a42d17352fa1e4bef" id="comment_25718c8bb255712a42d17352fa1e4bef"></a>
+        <span class="vcard author"><span class="fn">Emerson</span></span>, <abbr class="published" title="2026-01-11T14:52:15Z">2026/01/11 14:52</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About Professional eyebrow tattoo Melbourne
+</p>
+
+<p>
+Good Day Girls,
+Only if you really think about Ombre and powder brow tattoo at Face Figurati?!
+We have detailed information about Signature brow tattoo by 
+Olha Po
+Melburnians ask me to perform brow microblading more than anything else 
+— and I guess there’s a good reason for that. 
+</p>
+
+<p>
+A lot of locals are just fed up with filling in their brows every morning — only to see them disappear as soon as they head out or exercise.
+</p>
+
+<p>
+And honestly, who can blame them? It’s a frustrating hassle.
+</p>
+
+<p>
+I’m Olha Po, and after nearly a decade of tattooing 
+brows on all sorts of different people, I’ve understood just why people are wanting something that 
+appears natural, offers longevity, and reduces hassle.
+</p>
+
+<p>
+But serving clients here is unique — they’re energetic,
+confident, and focused on precision. So designing eyebrows that not only endure the city’s 
+climate but still look soft and natural is both an art 
+and a science. 
+</p>
+
+<p>
+This article is going to show you how eyebrow microblading actually functions,
+who it’s best for, what happens during the healing process, 
+what you can expect from the results, and a bit about what happens behind the scenes at Cosmetic Tattoo 
+Studio Melbourne. 
+</p>
+
+<p>
+Think of it as a friendly chat — minus the latte and the small talk you’d typically get 
+if you just walked through the door.
+</p>
+
+<p>
+Please visit our website about Ombre and powder brow tattoo at Face Figurati please click 
+<a href="http://ytks.net/" class="urlextern" title="http://ytks.net/" rel="ugc nofollow">http://ytks.net/</a> for Sign up for a free consultation now!
+</p>
+
+<p>
+Our&#039;s Tags: Cosmetic brow tattoo at Face Figurati Studio, Ombre and powder 
+brow tattoo at Face Figurati, Eyebrow tattoo Melbourne 
+at Face Figurati, Sculpted brows with eyebrow tattooing, Eyebrow tattooing services in Melbourne,
+Cosmetic brow tattoo at Face Figurati Studio
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="25718c8bb255712a42d17352fa1e4bef"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_e34f51e5aa7aac76de13ffbaf28d9115" id="comment_e34f51e5aa7aac76de13ffbaf28d9115"></a>
+        <span class="vcard author"><span class="fn">Signature brow tattoo by Olha Po</span></span>, <abbr class="published" title="2026-01-11T14:52:17Z">2026/01/11 14:52</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About Professional eyebrow tattoo Melbourne
+</p>
+
+<p>
+Good Day Girls,
+Only if you really think about Ombre and powder brow tattoo at Face Figurati?!
+We have detailed information about Signature brow tattoo by Olha Po
+Melburnians ask me to perform brow microblading more than anything else — and I guess there’s a good reason for that.
+</p>
+
+<p>
+A lot of locals are just fed up with filling in their brows every 
+morning — only to see them disappear as soon as they head out or exercise.
+And honestly, who can blame them? It’s a 
+frustrating hassle. 
+</p>
+
+<p>
+I’m Olha Po, and after nearly a decade of tattooing brows on all sorts of different people, I’ve 
+understood just why people are wanting something that appears natural, offers longevity, 
+and reduces hassle. 
+</p>
+
+<p>
+But serving clients here is unique — they’re energetic, confident, and 
+focused on precision. So designing eyebrows that not only 
+endure the city’s climate but still look soft and natural is both an art and a science.
+</p>
+
+<p>
+This article is going to show you how eyebrow microblading actually functions, 
+who it’s best for, what happens during the healing process, what you can expect from 
+the results, and a bit about what happens behind the 
+scenes at Cosmetic Tattoo Studio Melbourne. 
+</p>
+
+<p>
+Think of it as a friendly chat — minus the latte and the small talk you’d typically get if you just walked through the door.
+</p>
+
+<p>
+Please visit our website about Ombre and powder brow tattoo at Face Figurati please 
+click <a href="http://ytks.net/" class="urlextern" title="http://ytks.net/" rel="ugc nofollow">http://ytks.net/</a> for Sign up for a free consultation now!
+</p>
+
+<p>
+Our&#039;s Tags: Cosmetic brow tattoo at Face Figurati Studio, Ombre and powder 
+brow tattoo at Face Figurati, Eyebrow tattoo Melbourne at 
+Face Figurati, Sculpted brows with eyebrow tattooing, Eyebrow tattooing 
+services in Melbourne, Cosmetic brow tattoo at Face Figurati Studio
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="e34f51e5aa7aac76de13ffbaf28d9115"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_b9f8f5d5e84c3f7ef7d4db9caf1daca3" id="comment_b9f8f5d5e84c3f7ef7d4db9caf1daca3"></a>
+        <span class="vcard author"><span class="fn">Roxanne</span></span>, <abbr class="published" title="2026-01-24T08:07:29Z">2026/01/24 08:07</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+<a href="https://www.nigwa.com/category/sunglasses" class="urlextern" title="https://www.nigwa.com/category/sunglasses" rel="ugc nofollow">https://www.nigwa.com/category/sunglasses</a>
+</p>
+
+<p>
+sunglasses
+</p>
+
+<p>
+sunglasses
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="b9f8f5d5e84c3f7ef7d4db9caf1daca3"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_f94cb62e376f25909ad1ae6d87a47173" id="comment_f94cb62e376f25909ad1ae6d87a47173"></a>
+        <span class="vcard author"><span class="fn">sunglasses</span></span>, <abbr class="published" title="2026-01-24T08:07:31Z">2026/01/24 08:07</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+<a href="https://www.nigwa.com/category/sunglasses" class="urlextern" title="https://www.nigwa.com/category/sunglasses" rel="ugc nofollow">https://www.nigwa.com/category/sunglasses</a>
+</p>
+
+<p>
+sunglasses
+</p>
+
+<p>
+sunglasses
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="f94cb62e376f25909ad1ae6d87a47173"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_ddecf2a65d7caf84e55121aabf066501" id="comment_ddecf2a65d7caf84e55121aabf066501"></a>
+        <span class="vcard author"><span class="fn">Isidro</span></span>, <abbr class="published" title="2026-01-25T14:47:36Z">2026/01/25 14:47</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+«Авиатор» — это увлекательная краш-игра, где игроки ставят на увеличение коэффициента, связанного с полетом самолета авиатор казино регистрация.
+Ваша задача — вовремя вывести деньги, прежде чем самолет 
+«разобьется».
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="ddecf2a65d7caf84e55121aabf066501"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_6b5bd40f4e569342c8615e9a5b9aca7d" id="comment_6b5bd40f4e569342c8615e9a5b9aca7d"></a>
+        <span class="vcard author"><span class="fn">авиатор казино регистрация</span></span>, <abbr class="published" title="2026-01-25T14:47:39Z">2026/01/25 14:47</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+«Авиатор» — это увлекательная краш-игра, 
+где игроки ставят на увеличение коэффициента, связанного с полетом 
+самолета авиатор казино регистрация.
+Ваша задача — вовремя вывести деньги, прежде чем самолет «разобьется».
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="6b5bd40f4e569342c8615e9a5b9aca7d"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_df064a7b01bd2e98dae9e3a0bd14c615" id="comment_df064a7b01bd2e98dae9e3a0bd14c615"></a>
+        <span class="vcard author"><span class="fn">Nice motorcycle keyless and self-cancelling turn signal project www.smartmoto.asia</span></span>, <abbr class="published" title="2026-03-07T05:34:02Z">2026/03/07 05:34</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Nice motorcycle keyless and self-cancelling turn signal project with trip computer <a href="https://www.smartmoto.asia" class="urlextern" title="https://www.smartmoto.asia" rel="ugc nofollow">https://www.smartmoto.asia</a>
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="df064a7b01bd2e98dae9e3a0bd14c615"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_3e0e5bc100f861e17b4e6876d8a2779d" id="comment_3e0e5bc100f861e17b4e6876d8a2779d"></a>
+        <span class="vcard author"><span class="fn">Lavada</span></span>, <abbr class="published" title="2026-03-22T09:06:32Z">2026/03/22 09:06</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About Katherine tours from Darwin
+</p>
+
+<p>
+Hi Guys,
+Only if you really think about melbourne snow tour?!
+We have detailed information about exmouth tour
+</p>
+
+<p>
+Your no-nonsense guide to Great Ocean Road tours starts in a place most Aussies think they already know 
+— and trust me, after guiding here for years, it’s rougher 
+and more dramatic than the tourist snaps show.
+</p>
+
+<p>
+One trip I did years back with Wildlife Tours still sticks with me, leaving Melbourne 
+with a busload of excited travellers, even though 
+the weather report promised a shocker. It’s blue skies 
+in Torquay, chaos by Apollo Bay, which is exactly why people 
+love it — it’s the real deal.
+</p>
+
+<p>
+You’ll soon see that no two Great Ocean Road tours ever 
+look alike. I’ve had days where the Twelve Apostles looked as flat as 
+a pancake under grey skies, and others where the cliffs looked like they were carved yesterday.
+If you want a trip that’s got wild edges, tight corners and real 
+coastal drama, then come along — I’ve driven this road enough to know every hidden gem.
+</p>
+
+<p>
+Please visit our site about crocodile tours please click <a href="https://albanyautochicago.com/a-culinary-journey-through-the-grampians/" class="urlextern" title="https://albanyautochicago.com/a-culinary-journey-through-the-grampians/" rel="ugc nofollow">https://albanyautochicago.com/a-culinary-journey-through-the-grampians/</a> for Sign up for a 
+free consultation now!
+</p>
+
+<p>
+Our&#039;s Tags: Phillip Island, Great Ocean Road 
+tour from Melbourne, Katherine Gorge tour, melbourne snow tour, Great Ocean Road trips, 2 
+day Uluru tour
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="3e0e5bc100f861e17b4e6876d8a2779d"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_a1cbe2478b3a4590c8c3ec0c7ca32540" id="comment_a1cbe2478b3a4590c8c3ec0c7ca32540"></a>
+        <span class="vcard author"><span class="fn">exmouth tour</span></span>, <abbr class="published" title="2026-03-22T09:06:34Z">2026/03/22 09:06</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About Katherine tours from Darwin
+</p>
+
+<p>
+Hi Guys,
+Only if you really think about melbourne snow tour?!
+We have detailed information about exmouth tour
+</p>
+
+<p>
+Your no-nonsense guide to Great Ocean Road tours starts in a place 
+most Aussies think they already know — and trust me, after guiding here for years, it’s 
+rougher and more dramatic than the tourist snaps show.
+One trip I did years back with Wildlife Tours still sticks with me, leaving Melbourne with a busload of excited 
+travellers, even though the weather report promised a shocker.
+It’s blue skies in Torquay, chaos by Apollo Bay,
+which is exactly why people love it — 
+it’s the real deal.
+</p>
+
+<p>
+You’ll soon see that no two Great Ocean Road tours ever look alike.
+I’ve had days where the Twelve Apostles looked as flat as a pancake under grey skies, 
+and others where the cliffs looked like they were carved yesterday.
+If you want a trip that’s got wild edges, tight corners and 
+real coastal drama, then come along — I’ve driven this road enough to know every hidden gem.
+</p>
+
+<p>
+Please visit our site about crocodile tours please click <a href="https://albanyautochicago.com/a-culinary-journey-through-the-grampians/" class="urlextern" title="https://albanyautochicago.com/a-culinary-journey-through-the-grampians/" rel="ugc nofollow">https://albanyautochicago.com/a-culinary-journey-through-the-grampians/</a> for Sign up for a free 
+consultation now!
+</p>
+
+<p>
+Our&#039;s Tags: Phillip Island, Great Ocean Road tour from Melbourne,
+Katherine Gorge tour, melbourne snow tour, 
+Great Ocean Road trips, 2 day Uluru tour
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="a1cbe2478b3a4590c8c3ec0c7ca32540"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_33ab7fefb3ab8c810096ae612857e682" id="comment_33ab7fefb3ab8c810096ae612857e682"></a>
+        <span class="vcard author"><span class="fn">Alycia</span></span>, <abbr class="published" title="2026-03-22T21:17:03Z">2026/03/22 21:17</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About Signature brow tattoo by Olha Po
+</p>
+
+<p>
+Good Day Guys,
+Only if you really think about Brow tattoo artist Olha Po?!
+We have detailed information about Brow tattoo artist Olha Po
+When you enter the world of eyebrow tattooing Brisbane, you should know 
+you’re in the right place — and that’s exactly how we approach things at Cosmetic Tattoo Studio Brisbane.
+</p>
+
+<p>
+It’s as though we’re hosting friends rather than a busy tattoo studio.
+</p>
+
+<p>
+As professionals with extensive experience under our belts, between us we’ve worked in Europe &amp; Australia and experienced all the fads.
+We can safely say the best brows are never the 
+ones that look forced — they just fit.
+</p>
+
+<p>
+Hi there, I’m the co-founder, and my team mate and I collaborate to 
+design arches that appear effortless if you were starting your day as 
+they would if we’d spent an hour perfecting them. 
+</p>
+
+<p>
+They look soft, believable — the kind of eyebrows that make you go,
+“That’s my look — but better!” 
+</p>
+
+<p>
+If you’re wondering about how our cosmetic brow tattooing process works, how the recovery 
+happens, who we think will suit cosmetic tattooing, and what takes 
+place during your session at our place in Brisbane, well, you’ve landed 
+in the right place. 
+</p>
+
+<p>
+So let’s go through all the details you need to know 
+before you call us.
+</p>
+
+<p>
+our website about Professional eyebrow tattoo Melbourne please 
+click <a href="http://macocoi.com" class="urlextern" title="http://macocoi.com" rel="ugc nofollow">http://macocoi.com</a> for Sign up for a free consultation now!
+</p>
+
+<p>
+Our&#039;s Tags: Eyebrow tattoo touch-up services Melbourne,
+Eyebrow tattooing services in Melbourne, Sculpted brows with eyebrow tattooing,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="33ab7fefb3ab8c810096ae612857e682"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_7710119a43c85f934ccfe45013415407" id="comment_7710119a43c85f934ccfe45013415407"></a>
+        <span class="vcard author"><span class="fn">Brow tattoo artist Olha Po</span></span>, <abbr class="published" title="2026-03-22T21:17:05Z">2026/03/22 21:17</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About Signature brow tattoo by Olha Po
+</p>
+
+<p>
+Good Day Guys,
+Only if you really think about Brow tattoo artist Olha Po?!
+We have detailed information about Brow tattoo artist 
+Olha Po
+When you enter the world of eyebrow tattooing Brisbane, you should know you’re 
+in the right place — and that’s exactly how we approach things at Cosmetic Tattoo Studio 
+Brisbane. 
+</p>
+
+<p>
+It’s as though we’re hosting friends rather than a busy tattoo 
+studio. 
+</p>
+
+<p>
+As professionals with extensive experience under our belts, between us we’ve worked 
+in Europe &amp; Australia and experienced all the fads. We can safely 
+say the best brows are never the ones that look forced 
+— they just fit. 
+</p>
+
+<p>
+Hi there, I’m the co-founder, and my team mate and 
+I collaborate to design arches that appear effortless if you 
+were starting your day as they would if we’d spent an hour perfecting them.
+</p>
+
+<p>
+They look soft, believable — the kind of eyebrows that make you go, “That’s my look — but better!” 
+</p>
+
+<p>
+If you’re wondering about how our cosmetic brow tattooing process works,
+how the recovery happens, who we think will suit 
+cosmetic tattooing, and what takes place during your session at our place in Brisbane, well, you’ve landed in the 
+right place. 
+</p>
+
+<p>
+So let’s go through all the details you need to know before you call 
+us.
+</p>
+
+<p>
+our website about Professional eyebrow tattoo Melbourne please click <a href="http://macocoi.com" class="urlextern" title="http://macocoi.com" rel="ugc nofollow">http://macocoi.com</a> for Sign up for a free consultation now!
+</p>
+
+<p>
+Our&#039;s Tags: Eyebrow tattoo touch-up services Melbourne, Eyebrow 
+tattooing services in Melbourne, Sculpted brows with eyebrow tattooing,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="7710119a43c85f934ccfe45013415407"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_6ac306ec1e863dca9d95ca078e5069cb" id="comment_6ac306ec1e863dca9d95ca078e5069cb"></a>
+        <span class="vcard author"><span class="fn">Pansy</span></span>, <abbr class="published" title="2026-03-23T06:42:40Z">2026/03/23 06:42</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Добрый День,
+Коллеги.
+</p>
+
+<p>
+В данный момент я бы хотел оповестить немного 
+про сайт трипскан
+Я думаю Вы искали именно про tripscan?!
+</p>
+
+<p>
+Значит эта оптимально актуальная информация про трипскан будет 
+для вас наиболее полезной.
+Мы предлагаем больше полезностей про tripscan
+</p>
+
+<p>
+На нашем сайте больше про сайт трипскан, также про трипскан
+</p>
+
+<p>
+Ссылка на сайт <a href="http://guestbook.os-ms.de/" class="urlextern" title="http://guestbook.os-ms.de/" rel="ugc nofollow">http://guestbook.os-ms.de/</a> или 
+смотри про трипскан
+</p>
+
+<p>
+Только, если Вы реально искали информацию про трипскан вход,
+</p>
+
+<p>
+найдете самую свежую и актуальную 
+информацию про трип скан
+</p>
+
+<p>
+Добро пожаловать к нам 
+на сайт про трипскан
+</p>
+
+<p>
+Удачи Вам.
+</p>
+
+<p>
+Наши Теги: сайт трипскан, трипскан,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="6ac306ec1e863dca9d95ca078e5069cb"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_67ab53bbc16043f329ed284e91de326e" id="comment_67ab53bbc16043f329ed284e91de326e"></a>
+        <span class="vcard author"><span class="fn">сайт трипскан</span></span>, <abbr class="published" title="2026-03-23T06:42:42Z">2026/03/23 06:42</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Добрый День,
+Коллеги.
+</p>
+
+<p>
+В данный момент я бы хотел оповестить немного про сайт трипскан
+Я думаю Вы искали именно про 
+tripscan?! 
+</p>
+
+<p>
+Значит эта оптимально актуальная информация про трипскан будет для вас наиболее полезной.
+</p>
+
+<p>
+Мы предлагаем больше полезностей про tripscan
+</p>
+
+<p>
+На нашем сайте больше про сайт 
+трипскан, также про трипскан
+</p>
+
+<p>
+Ссылка на сайт <a href="http://guestbook.os-ms.de/" class="urlextern" title="http://guestbook.os-ms.de/" rel="ugc nofollow">http://guestbook.os-ms.de/</a> или 
+смотри про трипскан
+</p>
+
+<p>
+Только, если Вы реально искали информацию про 
+трипскан вход, 
+найдете самую свежую и актуальную информацию про трип скан
+</p>
+
+<p>
+Добро пожаловать к нам на сайт про трипскан
+</p>
+
+<p>
+Удачи Вам.
+</p>
+
+<p>
+Наши Теги: сайт трипскан, трипскан,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="67ab53bbc16043f329ed284e91de326e"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_891019be5a64740bb403d987f92c4060" id="comment_891019be5a64740bb403d987f92c4060"></a>
+        <span class="vcard author"><span class="fn">Katja</span></span>, <abbr class="published" title="2026-03-23T16:31:15Z">2026/03/23 16:31</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About lip line tattoo
+</p>
+
+<p>
+Hello Guys,
+Only if you really think about semi permanent lip liner?!
+</p>
+
+<p>
+We have more detailed information about semi permanent lip liner
+</p>
+
+<p>
+Lip liner tattoo is one of those treatments that instantly gets people curious.
+</p>
+
+<p>
+At Cosmetic Tattoo Studio Brisbane Face Figurati, clients often ask: 
+“Is it the same as lip blush?” The answer is simple — when it’s 
+done right, a lip liner tattoo enhances your natural lip contour without that old-school lip pencil vibe.
+</p>
+
+<p>
+Our certified cosmetic tattoo artist Uliana Kasperska has mastered the technique from Europe to Brisbane’s humid climate, understanding 
+exactly which pigments last.
+</p>
+
+<p>
+Why People Choose a Defined Lip Border
+Every face tells its own story — and lips age 
+in ways we don’t always expect. The vermillion border, that fine outline around the lips, naturally fades with time, making lips look less defined.
+Instead of overlining daily, a tattoo lip liner restores a crisp,
+balanced edge so lipstick applies neatly and bare lips still look refined.
+</p>
+
+<p>
+Many of our Brisbane clients book after noticing their Cupid’s bow softening.
+With the right pigment choice and skilled hand, lip line tattooing offers natural 
+definition that lasts.
+Please visit our website about lip liner cosmetic tattoo 
+please click <a href="https://n4vn33t.com/what-are-the-pros-and-cons-of-lip-tattoos/" class="urlextern" title="https://n4vn33t.com/what-are-the-pros-and-cons-of-lip-tattoos/" rel="ugc nofollow">https://n4vn33t.com/what-are-the-pros-and-cons-of-lip-tattoos/</a> for a free consultation now
+</p>
+
+<p>
+Tags: Lip lining tattoo, semi permanent lip liner, lip liner tattooing, semi permanent lip liner, lip liner tattooing, lip liner 
+cosmetic tattoo,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="891019be5a64740bb403d987f92c4060"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_c63df6fe8a4fd0f8003cada6cc8fe5ed" id="comment_c63df6fe8a4fd0f8003cada6cc8fe5ed"></a>
+        <span class="vcard author"><span class="fn">semi permanent lip liner</span></span>, <abbr class="published" title="2026-03-23T16:31:17Z">2026/03/23 16:31</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+About lip line tattoo
+</p>
+
+<p>
+Hello Guys,
+Only if you really think about semi permanent lip liner?!
+</p>
+
+<p>
+We have more detailed information about semi permanent lip liner
+</p>
+
+<p>
+Lip liner tattoo is one of those treatments that instantly gets people curious.
+At Cosmetic Tattoo Studio Brisbane Face Figurati, clients often ask: “Is it the same as lip blush?” The answer is simple — when it’s done right, a 
+lip liner tattoo enhances your natural lip contour without that old-school lip pencil 
+vibe.
+</p>
+
+<p>
+Our certified cosmetic tattoo artist Uliana Kasperska has 
+mastered the technique from Europe to Brisbane’s humid 
+climate, understanding exactly which pigments last.
+</p>
+
+<p>
+Why People Choose a Defined Lip Border
+Every face tells its own story — and lips age in ways we don’t always expect.
+The vermillion border, that fine outline around the lips,
+naturally fades with time, making lips look less defined.
+Instead of overlining daily, a tattoo lip liner restores a crisp, 
+balanced edge so lipstick applies neatly and bare lips still look refined.
+</p>
+
+<p>
+Many of our Brisbane clients book after noticing 
+their Cupid’s bow softening. With the right pigment choice and skilled hand, lip line tattooing offers natural definition that lasts.
+</p>
+
+<p>
+Please visit our website about lip liner cosmetic tattoo please click 
+<a href="https://n4vn33t.com/what-are-the-pros-and-cons-of-lip-tattoos/" class="urlextern" title="https://n4vn33t.com/what-are-the-pros-and-cons-of-lip-tattoos/" rel="ugc nofollow">https://n4vn33t.com/what-are-the-pros-and-cons-of-lip-tattoos/</a> for a free consultation now
+</p>
+
+<p>
+Tags: Lip lining tattoo, semi permanent lip liner, lip liner tattooing,
+semi permanent lip liner, lip liner tattooing, lip 
+liner cosmetic tattoo,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="c63df6fe8a4fd0f8003cada6cc8fe5ed"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_7ea7f1962a88d1bde5a7a3d4b46e02ac" id="comment_7ea7f1962a88d1bde5a7a3d4b46e02ac"></a>
+        <span class="vcard author"><span class="fn">Kathy</span></span>, <abbr class="published" title="2026-03-24T13:01:04Z">2026/03/24 13:01</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Добрый День,
+Друзья.
+</p>
+
+<p>
+Сегодня я бы хотел рассказать малость про трипскан вход
+Я думаю Вы искали именно про трип 
+скан?! 
+</p>
+
+<p>
+Значит эта больше актуальная информация про трипскан будет для вас наиболее полезной.
+</p>
+
+<p>
+Мы предлагаем больше полезностей про трипскан вход
+</p>
+
+<p>
+На нашем сайте больше про трипскан,
+также про tripscan
+</p>
+
+<p>
+Ссылка на сайт <a href="https://tripsc68.cc" class="urlextern" title="https://tripsc68.cc" rel="ugc nofollow">https://tripsc68.cc</a> или 
+смотри про tripscan
+</p>
+
+<p>
+Только, если Вы реально искали информацию про трип скан, 
+найдете самую свежую и актуальную информацию про трипскан вход
+</p>
+
+<p>
+Добро пожаловать к нам на сайт про трипскан вход
+</p>
+
+<p>
+Удачи Вам.
+</p>
+
+<p>
+Наши Теги: трипскан вход, трипскан вход,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="7ea7f1962a88d1bde5a7a3d4b46e02ac"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_1d51a72a25d3a8fc211f484c3b9326eb" id="comment_1d51a72a25d3a8fc211f484c3b9326eb"></a>
+        <span class="vcard author"><span class="fn">трипскан вход</span></span>, <abbr class="published" title="2026-03-24T13:01:06Z">2026/03/24 13:01</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Добрый День,
+Друзья.
+</p>
+
+<p>
+Сегодня я бы хотел рассказать малость про трипскан вход
+Я думаю Вы искали именно про трип скан?!
+</p>
+
+<p>
+Значит эта больше актуальная информация про трипскан будет для вас наиболее полезной.
+</p>
+
+<p>
+Мы предлагаем больше полезностей про трипскан вход
+</p>
+
+<p>
+На нашем сайте больше про трипскан, также про 
+tripscan
+</p>
+
+<p>
+Ссылка на сайт <a href="https://tripsc68.cc" class="urlextern" title="https://tripsc68.cc" rel="ugc nofollow">https://tripsc68.cc</a> или смотри 
+про tripscan
+</p>
+
+<p>
+Только, если Вы реально искали информацию про трип скан, 
+найдете самую свежую и актуальную информацию про трипскан вход
+</p>
+
+<p>
+Добро пожаловать к нам на 
+сайт про трипскан вход
+</p>
+
+<p>
+Удачи Вам.
+</p>
+
+<p>
+Наши Теги: трипскан вход, трипскан вход,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="1d51a72a25d3a8fc211f484c3b9326eb"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_3544ba02db24a556b4deffc23738f206" id="comment_3544ba02db24a556b4deffc23738f206"></a>
+        <span class="vcard author"><span class="fn">Nona</span></span>, <abbr class="published" title="2026-03-25T12:05:48Z">2026/03/25 12:05</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+<a href="https://love-hindi.com/best-friendship-shayri/" class="urlextern" title="https://love-hindi.com/best-friendship-shayri/" rel="ugc nofollow">https://love-hindi.com/best-friendship-shayri/</a>
+Hello! I&#039;m at work browsing your blog from my new iphone!
+Just wanted to say I love reading through your blog and look forward to all your posts!
+Carry on the fantastic work!
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="3544ba02db24a556b4deffc23738f206"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_239c61b8ff8ba4e165e8e05ac1e27066" id="comment_239c61b8ff8ba4e165e8e05ac1e27066"></a>
+        <span class="vcard author"><span class="fn">shayari-in-romantic-3</span></span>, <abbr class="published" title="2026-03-25T12:05:49Z">2026/03/25 12:05</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+<a href="https://love-hindi.com/best-friendship-shayri/" class="urlextern" title="https://love-hindi.com/best-friendship-shayri/" rel="ugc nofollow">https://love-hindi.com/best-friendship-shayri/</a>
+Hello! I&#039;m at work browsing your blog from my new iphone!
+Just wanted to say I love reading through your blog and look forward 
+to all your posts! Carry on the fantastic work!
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="239c61b8ff8ba4e165e8e05ac1e27066"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_0e4aaa8a5b0f4ac234e80f2d1bb7b64b" id="comment_0e4aaa8a5b0f4ac234e80f2d1bb7b64b"></a>
+        <span class="vcard author"><span class="fn">Galen</span></span>, <abbr class="published" title="2026-03-31T05:47:57Z">2026/03/31 05:47</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Good Day Guys,
+Only if you really think about Melbourne?!
+</p>
+
+<p>
+We have more detailed information about wedding
+</p>
+
+<p>
+Planning a wedding in Melbourne pulls you right in, &amp; I find myself remembering all the wedding 
+ceremonies I&#039;ve wandered through — beachside vows on the sand to stylish 
+city receptions. When you&#039;re actually standing there on the 
+cusp of that truly unforgettable moment, suddenly all these tiny details ( the venue, 
+your accommodation, even that all-important cup of coffee before the ceremony 
+) start to feel surprisingly heavy. And if you&#039;re thinking of having 
+a bayside bash, the name Brighton Savoy is bound to come up pretty quickly — it&#039;s a classic go-to among couples wanting that Port Phillip Bay magic without 
+all the hassle.
+</p>
+
+<p>
+Melbourne brings a certain edge to weddings that you just don&#039;t find everywhere — a crazy mix of urban charm, 
+coastline &amp; culinary magic that&#039;s just as suited to a laid-back coastal 
+ceremony as it is to some stylish inner-city reception. You&#039;re 
+spoiled for choice, which is both the best &amp; worst part of it all.
+</p>
+
+<p>
+The thing about a Melbourne wedding is that it doesn&#039;t need 
+to be some elaborate event with bells &amp; whistles — at the end of the day, you&#039;re 
+tying your life to another person — everything else is just icing on the cake.
+Focus on the heart of it — good people, beautiful places &amp; the freedom to 
+celebrate your relationship however you choose.
+</p>
+
+<p>
+Every single option shapes the entire day — the logistics, your accommodation, even the photos — each one layers in to create the sort of day you&#039;ll remember for the rest of 
+your life.
+</p>
+
+<p>
+Please visit our internet portal about accommodation please click <a href="https://godstudio.co.in/?g=437420215" class="urlextern" title="https://godstudio.co.in/?g=437420215" rel="ugc nofollow">https://godstudio.co.in/?g=437420215</a> for Sign up for a free consultation now!
+</p>
+
+<p>
+Tags: Melbourne accommodation, accommodation, Melbourne wedding, Melbourne accommodation,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="0e4aaa8a5b0f4ac234e80f2d1bb7b64b"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+    <div class="hentry">
+      <div class="comment_head">
+        <a name="comment_a2aacb69b233b79c6d89909ccac6ce47" id="comment_a2aacb69b233b79c6d89909ccac6ce47"></a>
+        <span class="vcard author"><span class="fn">wedding</span></span>, <abbr class="published" title="2026-03-31T05:47:59Z">2026/03/31 05:47</abbr>
+      </div>
+      <div class="comment_body entry-content">
+
+<p>
+Good Day Guys,
+Only if you really think about Melbourne?!
+We have more detailed information about wedding
+</p>
+
+<p>
+Planning a wedding in Melbourne pulls you right in, &amp; I find myself 
+remembering all the wedding ceremonies I&#039;ve wandered through — beachside 
+vows on the sand to stylish city receptions.
+When you&#039;re actually standing there on the cusp of that truly unforgettable moment,
+suddenly all these tiny details ( the venue, your accommodation, even that all-important 
+cup of coffee before the ceremony ) start to feel surprisingly heavy.
+</p>
+
+<p>
+And if you&#039;re thinking of having a bayside bash, the name Brighton Savoy is bound to come up pretty 
+quickly — it&#039;s a classic go-to among couples wanting that Port Phillip Bay magic without all the hassle.
+</p>
+
+<p>
+Melbourne brings a certain edge to weddings that you just don&#039;t find everywhere — a 
+crazy mix of urban charm, coastline &amp; culinary 
+magic that&#039;s just as suited to a laid-back coastal ceremony as 
+it is to some stylish inner-city reception. You&#039;re spoiled for choice, which 
+is both the best &amp; worst part of it all.
+</p>
+
+<p>
+The thing about a Melbourne wedding is that it doesn&#039;t need to be some elaborate event 
+with bells &amp; whistles — at the end of the day, you&#039;re tying 
+your life to another person — everything else is just icing 
+on the cake. Focus on the heart of it — good people, beautiful places 
+&amp; the freedom to celebrate your relationship however you choose.
+</p>
+
+<p>
+Every single option shapes the entire day — the logistics,
+your accommodation, even the photos — each one layers in to create the sort of 
+day you&#039;ll remember for the rest of your life.
+</p>
+
+<p>
+Please visit our internet portal about accommodation please 
+click <a href="https://godstudio.co.in/?g=437420215" class="urlextern" title="https://godstudio.co.in/?g=437420215" rel="ugc nofollow">https://godstudio.co.in/?g=437420215</a> for Sign up 
+for a free consultation now!
+</p>
+
+<p>
+Tags: Melbourne accommodation, accommodation, Melbourne wedding, Melbourne accommodation,
+</p>
+
+      </div>
+      <div class="comment_buttons">
+        <form class="button discussion__reply form-inline" method="get" action="/doku.php#discussion__comment_form">
+            <div class="no">
+                <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                <input type="hidden" name="do" value="show"/>
+                <input type="hidden" name="comment" value="reply"/>
+                <input type="hidden" name="cid" value="a2aacb69b233b79c6d89909ccac6ce47"/>
+                <input type="submit" value="回复" class="button btn btn btn-default" title="回复"/>
+            </div>
+        </form>
+              </div>
+    </div>
+
+        <div class="comment_form">
+            <form id="discussion__comment_form" method="post" action="/doku.php"
+                  accept-charset="utf-8" class=" form-inline">
+                <div class="no">
+                    <input type="hidden" name="id" value="developmentboard:nrf52840"/>
+                    <input type="hidden" name="do" value="show"/>
+                    <input type="hidden" name="comment" value="add"/>
+                                            <input type="hidden" name="reply" value=""/>
+                                                    <input type="hidden" name="user" value=""/>
+                            <div class="comment_name">
+                                <label class="block control-label" for="discussion__comment_name">
+                                    <span>全名:</span>
+                                    <input type="text"
+                                           class="edit form-control"
+                                           name="name" id="discussion__comment_name" size="50" tabindex="1"
+                                           value=""/>
+                                </label>
+                            </div>
+                            <div class="comment_mail">
+                                <label class="block control-label" for="discussion__comment_mail">
+                                    <span>E-Mail:</span>
+                                    <input type="text"
+                                           class="edit form-control"
+                                           name="mail" id="discussion__comment_mail" size="50" tabindex="2"
+                                           value=""/>
+                                </label>
+                            </div>
+                                                <div class="comment_text">
+                        请输入您的评论. 可以使用维基语法:
+                        <!-- Fix for disable the toolbar when wikisyntaxok is set to false. See discussion's script.jss -->
+                                                <div id="discussion__comment_toolbar" class="toolbar group">
+                                                        </div>
+                            <textarea
+                                class="edit form-control"
+                                name="text" cols="80" rows="10" id="discussion__comment_text" tabindex="5"></textarea>
+                        </div>
+
+                        
+                        <input class="button comment_submit btn btn btn-default" id="discussion__btn_submit" type="submit" name="submit"
+                               accesskey="s" value="保存"
+                               title="保存 [S]" tabindex="7"/>
+                                                    <label class="nowrap control-label" for="discussion__comment_subscribe">
+                                <input type="checkbox" id="discussion__comment_subscribe" name="subscribe"
+                                       tabindex="6" class=" checkbox-inline"/>
+                                <span>订阅评论</span>
+                            </label>
+                                                <input class="button comment_preview_button btn btn btn-default" id="discussion__btn_preview" type="button"
+                               name="preview" accesskey="p" value="预览"
+                               title="预览 [P]"/>
+                        
+                        <div class="clearer"></div>
+                        <div id="discussion__comment_preview">&nbsp;</div>
+                    </div>
+            </form>
+        </div>
+          </div>
+</div>
+
+    <script type="text/javascript">
+    //<![CDATA[ 
+
+    function createRequestValue() {
+        try{
+        var inputNode=document.createElement('input');
+        inputNode.setAttribute('type','hidden');
+        inputNode.setAttribute('value','yes');
+        inputNode.setAttribute('name','dwedit_preview');
+        inputNode.setAttribute('id','dwedit_preview');
+        var dwform = GetE("dw__editform");
+        dwform.appendChild(inputNode);
+        }catch(e) { alert(e); }
+    }
+//]]> 
+ </script>
+</div><!-- /content --></div>
+                    </div>
+                </div>
+
+                <div class="small text-right">
+
+                                        <span class="docInfo">
+                        <ul class="list-inline"><li><span class="iconify text-muted"  data-icon="mdi:file-document-outline"></span> <span title="developmentboard/nrf52840.txt">developmentboard/nrf52840.txt</span></li><li><span class="iconify text-muted"  data-icon="mdi:calendar"></span> 最后更改: <span title="2024/03/19 06:01">2024/03/19 06:01</span></li><li class="text-muted">由 <bdi>admin</bdi></li></ul>                    </span>
+                    
+                    
+                </div>
+
+            </article>
+
+            
+        </div>
+
+    </main>
+
+    <footer id="dw__footer" class="dw-container py-5 dokuwiki container-fluid">
+        <!-- footer -->
+<div class="dw-container small container-fluid mx-5">
+
+    
+    <div class="footer-dw-title">
+                    </div>
+
+    <div class="footer-license row">
+        <hr/>
+        <div id="dw__license" class="col-sm-6">
+                        <p>
+                <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" title="CC Attribution-Share Alike 4.0 International" target="" itemscope itemtype="http://schema.org/CreativeWork" itemprop="license" rel="license" class="license"><img src="/lib/tpl/bootstrap3/images/license/cc.png" width="24" height="24" alt="cc" /> <img src="/lib/tpl/bootstrap3/images/license/by.png" width="24" height="24" alt="by" /> <img src="/lib/tpl/bootstrap3/images/license/sa.png" width="24" height="24" alt="sa" /> </a>            </p>
+            <p class="small">
+                除额外注明的地方外，本维基上的内容按下列许可协议发布：<br/><a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" title="CC Attribution-Share Alike 4.0 International" target="" itemscope itemtype="http://schema.org/CreativeWork" itemprop="license" rel="license" class="license">CC Attribution-Share Alike 4.0 International</a>            </p>
+                    </div>
+
+        <div class="col-sm-6">
+                    </div>
+
+    </div>
+
+</div>
+<!-- /footer -->
+    </footer>
+
+    <a href="#dokuwiki__top" class="back-to-top hidden-print btn btn-default" title="跳至内容" accesskey="t">
+        <span class="iconify"  data-icon="mdi:chevron-up"></span>    </a>
+
+    <div id="screen__mode">        <span class="visible-xs-block"></span>
+        <span class="visible-sm-block"></span>
+        <span class="visible-md-block"></span>
+        <span class="visible-lg-block"></span>
+    </div>
+
+    <img src="/lib/exe/taskrunner.php?id=developmentboard%3Anrf52840&amp;1775879224" width="2" height="1" alt="" />
+</div>
+
+</body>
+</html>

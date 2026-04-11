@@ -87,6 +87,20 @@ Current note:
   are now included in `nix develop`
 - the current `nRF52840` dongle getting-started flow is documented in
   [`docs/NRF52840_DONGLE_GETTING_STARTED.md`](/home/mrumoy/sandbox/embedded/HelixDrift/docs/NRF52840_DONGLE_GETTING_STARTED.md)
+- for J-Link-based bring-up, use the repo-local sequential build+flash helper
+  to avoid artifact races:
+
+```bash
+tools/nrf/build_and_flash_jlink.sh nrf52dk_bringup 1050335103 NRF52832_XXAA 2
+tools/nrf/build_and_flash_jlink.sh nrf52840propico_bringup 123456 NRF52840_XXAA 0
+```
+
+Reset note:
+- `RSetType 0` (`NORMAL`) may use `SYSRESETREQ`, not a hardware reset pin
+- `RSetType 2` (`RESETPIN`) should be preferred when the probe and board wiring
+  support it and cold-boot-equivalent behavior matters
+- bare-metal bring-up timing should not rely on `DWT_CYCCNT`; use SysTick-based
+  delays instead
 
 ## Phase 1: Boot And Binary Sanity
 
