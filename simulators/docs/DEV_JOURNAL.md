@@ -2662,6 +2662,40 @@ anchor ordering is stable at all.
 `tools/nrf/propico_esb_split_host_smoke.sh litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift 123456 123456 NRF52840_XXAA 3000`  
 `tools/nrf/propico_esb_split_host_smoke.sh litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift 123456 123456 NRF52840_XXAA 15000`
 
+### Feature: M7 Split-Host ProPico Anchor Skew Tracking
+
+**Intent:**  
+Push the two-ProPico sync lane one step further by measuring not just anchor
+ordering, but also how the node's local anchor cadence differs from the
+master's anchor cadence over time.
+
+**Changes made:**
+
+1. Extended the ESB status block with:
+   - `last_anchor_master_delta_us`
+   - `last_anchor_local_delta_us`
+   - `last_anchor_skew_us`
+   - `anchor_skew_min_us`
+   - `anchor_skew_max_us`
+2. Fixed a real metric bug by separating the node TX timestamp from the
+   anchor-receive timestamp; previously the TX path overwrote the anchor-local
+   timestamp and could collapse the local anchor delta to zero during longer
+   soaks.
+3. Tightened the split-host smoke again so it now asserts:
+   - positive master/local inter-anchor deltas
+   - exact skew consistency: `local_delta - master_delta == skew`
+   - current skew stays within the observed skew min/max window
+4. Re-ran the longer `15 s` split-host soak after the timestamp fix.
+
+**Result:**  
+The split-host `nRF52840` RF lane now proves ordered anchors, bounded offset,
+and first inter-anchor skew tracking on real hardware. The next RF work can
+focus on dropout/rejoin and third-device interference instead of basic timing
+observability.
+
+**Verification:**  
+`tools/nrf/propico_esb_split_host_smoke.sh litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift 123456 123456 NRF52840_XXAA 15000`
+
 ### Feature: M7 DK UART OTA Transport
 
 **Intent:**  

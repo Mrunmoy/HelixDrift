@@ -351,3 +351,9 @@
   - the node also tracks anchor-sequence continuity and offset min/max
   - both 3-second and 15-second split-host soaks currently show zero anchor
     sequence gaps
+  - the node now tracks inter-anchor master/local deltas and skew
+  - the current 15-second soak shows:
+    - `master_delta = 100000 us`
+    - `local_delta = 100000 us`
+    - `current skew = 0 us`
+    - bounded skew window (`-300000 us .. 2000 us`)

@@ -41,6 +41,11 @@ struct HelixEsbStatus {
 	uint32_t anchor_sequence_gaps;
 	int32_t offset_min_us;
 	int32_t offset_max_us;
+	int32_t last_anchor_master_delta_us;
+	int32_t last_anchor_local_delta_us;
+	int32_t last_anchor_skew_us;
+	int32_t anchor_skew_min_us;
+	int32_t anchor_skew_max_us;
 };
 
 volatile struct HelixEsbStatus g_helixEsbStatus;
@@ -79,6 +84,7 @@ static uint8_t next_anchor_sequence;
 #if defined(CONFIG_HELIX_ESB_ROLE_NODE)
 static bool have_anchor_sequence;
 static uint8_t expected_anchor_sequence;
+static bool have_anchor_timestamps;
 #endif
 
 static void status_store_anchor_bytes(const uint8_t *data, size_t len)
@@ -151,6 +157,22 @@ static void status_record_offset(int32_t offset_us)
 	}
 }
 
+static void status_record_anchor_skew(int32_t skew_us)
+{
+	if (g_helixEsbStatus.anchors_received <= 1U) {
+		g_helixEsbStatus.anchor_skew_min_us = skew_us;
+		g_helixEsbStatus.anchor_skew_max_us = skew_us;
+		return;
+	}
+
+	if (skew_us < g_helixEsbStatus.anchor_skew_min_us) {
+		g_helixEsbStatus.anchor_skew_min_us = skew_us;
+	}
+	if (skew_us > g_helixEsbStatus.anchor_skew_max_us) {
+		g_helixEsbStatus.anchor_skew_max_us = skew_us;
+	}
+}
+
 static void event_handler(struct esb_evt const *event)
 {
 	switch (event->evt_id) {
@@ -198,6 +220,8 @@ static void event_handler(struct esb_evt const *event)
 				uint32_t master_timestamp_us = 0;
 				uint8_t anchor_sequence = rx_payload.data[2];
 				int32_t offset_us;
+				uint32_t previous_master_timestamp_us = g_helixEsbStatus.last_master_timestamp_us;
+				uint32_t previous_local_timestamp_us = g_helixEsbStatus.last_local_timestamp_us;
 				memcpy(&master_timestamp_us, &rx_payload.data[4], sizeof(master_timestamp_us));
 				status_store_anchor_bytes(rx_payload.data, rx_payload.length);
 				g_helixEsbStatus.ack_payloads++;
@@ -214,6 +238,18 @@ static void event_handler(struct esb_evt const *event)
 					(int32_t)(g_helixEsbStatus.last_local_timestamp_us - master_timestamp_us);
 				g_helixEsbStatus.estimated_offset_us = offset_us;
 				status_record_offset(offset_us);
+				if (have_anchor_timestamps) {
+					g_helixEsbStatus.last_anchor_master_delta_us =
+						(int32_t)(master_timestamp_us - previous_master_timestamp_us);
+					g_helixEsbStatus.last_anchor_local_delta_us =
+						(int32_t)(g_helixEsbStatus.last_local_timestamp_us -
+							  previous_local_timestamp_us);
+					g_helixEsbStatus.last_anchor_skew_us =
+						g_helixEsbStatus.last_anchor_local_delta_us -
+						g_helixEsbStatus.last_anchor_master_delta_us;
+					status_record_anchor_skew(g_helixEsbStatus.last_anchor_skew_us);
+				}
+				have_anchor_timestamps = true;
 			}
 #endif
 		}
@@ -300,9 +336,8 @@ static void maybe_send_packet(void)
 	tx_payload.data[1] = (uint8_t)CONFIG_HELIX_ESB_NODE_ID;
 	tx_payload.data[2] = (uint8_t)(g_helixEsbStatus.tx_attempts & 0xFF);
 	tx_payload.data[3] = (uint8_t)(g_helixEsbStatus.heartbeat & 0xFF);
-	g_helixEsbStatus.last_local_timestamp_us = now_us();
-	memcpy(&tx_payload.data[4], &g_helixEsbStatus.last_local_timestamp_us,
-	       sizeof(g_helixEsbStatus.last_local_timestamp_us));
+	uint32_t tx_local_timestamp_us = now_us();
+	memcpy(&tx_payload.data[4], &tx_local_timestamp_us, sizeof(tx_local_timestamp_us));
 	memcpy(&tx_payload.data[8], &g_helixEsbStatus.estimated_offset_us,
 	       sizeof(g_helixEsbStatus.estimated_offset_us));
 
@@ -329,6 +364,8 @@ int main(void)
 	g_helixEsbStatus.phase = HELIX_PHASE_BOOT;
 	g_helixEsbStatus.offset_min_us = INT32_MAX;
 	g_helixEsbStatus.offset_max_us = INT32_MIN;
+	g_helixEsbStatus.anchor_skew_min_us = INT32_MAX;
+	g_helixEsbStatus.anchor_skew_max_us = INT32_MIN;
 
 	if (gpio_is_ready_dt(&led)) {
 		err = gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
