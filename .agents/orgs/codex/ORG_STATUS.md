@@ -348,3 +348,6 @@
   - the node receives and records those anchor bytes and timestamps
   - the split-host smoke now proves non-zero anchor timestamps and a non-zero
     signed offset estimate on real hardware
+  - the node also tracks anchor-sequence continuity and offset min/max
+  - both 3-second and 15-second split-host soaks currently show zero anchor
+    sequence gaps

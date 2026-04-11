@@ -38,6 +38,9 @@ struct HelixEsbStatus {
 	uint32_t last_local_timestamp_us;
 	uint32_t last_anchor_raw_word0;
 	uint32_t last_anchor_raw_word1;
+	uint32_t anchor_sequence_gaps;
+	int32_t offset_min_us;
+	int32_t offset_max_us;
 };
 
 volatile struct HelixEsbStatus g_helixEsbStatus;
@@ -73,6 +76,10 @@ static struct esb_payload tx_payload;
 #endif
 static atomic_t tx_ready = ATOMIC_INIT(1);
 static uint8_t next_anchor_sequence;
+#if defined(CONFIG_HELIX_ESB_ROLE_NODE)
+static bool have_anchor_sequence;
+static uint8_t expected_anchor_sequence;
+#endif
 
 static void status_store_anchor_bytes(const uint8_t *data, size_t len)
 {
@@ -128,6 +135,22 @@ static void status_set_error(int err)
 	g_helixEsbStatus.last_error = (uint32_t)(err < 0 ? -err : err);
 }
 
+static void status_record_offset(int32_t offset_us)
+{
+	if (g_helixEsbStatus.anchors_received == 0U) {
+		g_helixEsbStatus.offset_min_us = offset_us;
+		g_helixEsbStatus.offset_max_us = offset_us;
+		return;
+	}
+
+	if (offset_us < g_helixEsbStatus.offset_min_us) {
+		g_helixEsbStatus.offset_min_us = offset_us;
+	}
+	if (offset_us > g_helixEsbStatus.offset_max_us) {
+		g_helixEsbStatus.offset_max_us = offset_us;
+	}
+}
+
 static void event_handler(struct esb_evt const *event)
 {
 	switch (event->evt_id) {
@@ -173,15 +196,24 @@ static void event_handler(struct esb_evt const *event)
 #else
 			if (rx_payload.length >= 8U && rx_payload.data[0] == HELIX_PACKET_ANCHOR) {
 				uint32_t master_timestamp_us = 0;
+				uint8_t anchor_sequence = rx_payload.data[2];
+				int32_t offset_us;
 				memcpy(&master_timestamp_us, &rx_payload.data[4], sizeof(master_timestamp_us));
 				status_store_anchor_bytes(rx_payload.data, rx_payload.length);
 				g_helixEsbStatus.ack_payloads++;
+				if (have_anchor_sequence && anchor_sequence != expected_anchor_sequence) {
+					g_helixEsbStatus.anchor_sequence_gaps++;
+				}
+				have_anchor_sequence = true;
+				expected_anchor_sequence = (uint8_t)(anchor_sequence + 1U);
 				g_helixEsbStatus.anchors_received++;
-				g_helixEsbStatus.last_anchor_sequence = rx_payload.data[2];
+				g_helixEsbStatus.last_anchor_sequence = anchor_sequence;
 				g_helixEsbStatus.last_master_timestamp_us = master_timestamp_us;
 				g_helixEsbStatus.last_local_timestamp_us = now_us();
-				g_helixEsbStatus.estimated_offset_us =
+				offset_us =
 					(int32_t)(g_helixEsbStatus.last_local_timestamp_us - master_timestamp_us);
+				g_helixEsbStatus.estimated_offset_us = offset_us;
+				status_record_offset(offset_us);
 			}
 #endif
 		}
@@ -295,6 +327,8 @@ int main(void)
 		HELIX_ROLE_NODE;
 #endif
 	g_helixEsbStatus.phase = HELIX_PHASE_BOOT;
+	g_helixEsbStatus.offset_min_us = INT32_MAX;
+	g_helixEsbStatus.offset_max_us = INT32_MIN;
 
 	if (gpio_is_ready_dt(&led)) {
 		err = gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);

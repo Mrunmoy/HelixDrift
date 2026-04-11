@@ -2629,6 +2629,39 @@ instead of still questioning whether the basic ack/anchor path exists.
 `./build.py --nrf-only`  
 `tools/nrf/propico_esb_split_host_smoke.sh litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift 123456 123456 NRF52840_XXAA 3000`
 
+### Feature: M7 Split-Host ProPico Sync Continuity
+
+**Intent:**  
+Move the split-host ProPico sync lane from “anchors exist” to a first quality
+baseline by proving ordered anchor delivery and bounded offset behavior over
+both short and longer runs.
+
+**Changes made:**
+
+1. Extended the ESB status block with:
+   - `anchor_sequence_gaps`
+   - `offset_min_us`
+   - `offset_max_us`
+2. Added node-side tracking for expected anchor sequence numbers so out-of-order
+   or skipped anchors are counted explicitly.
+3. Updated the split-host smoke to read the larger status block and assert:
+   - zero anchor sequence gaps
+   - non-zero signed offset estimate
+   - current offset lies inside the observed min/max window
+4. Re-ran the split-host smoke in both:
+   - short `3 s` mode
+   - longer `15 s` soak mode
+
+**Result:**  
+The two-ProPico RF lane now proves not just sync payload arrival, but also
+ordered anchor continuity over a longer run. The next RF work can focus on
+jitter characterization and recovery behavior rather than still asking whether
+anchor ordering is stable at all.
+
+**Verification:**  
+`tools/nrf/propico_esb_split_host_smoke.sh litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift 123456 123456 NRF52840_XXAA 3000`  
+`tools/nrf/propico_esb_split_host_smoke.sh litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift 123456 123456 NRF52840_XXAA 15000`
+
 ### Feature: M7 DK UART OTA Transport
 
 **Intent:**  
