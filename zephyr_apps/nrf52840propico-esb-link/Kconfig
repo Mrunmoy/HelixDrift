@@ -1,0 +1,39 @@
+mainmenu "Helix ProPico ESB Link"
+
+source "Kconfig.zephyr"
+
+menu "Helix ESB Link"
+
+choice HELIX_ESB_ROLE
+	prompt "Helix ESB link role"
+	default HELIX_ESB_ROLE_MASTER
+
+config HELIX_ESB_ROLE_MASTER
+	bool "Master / PRX"
+
+config HELIX_ESB_ROLE_NODE
+	bool "Node / PTX"
+
+endchoice
+
+config HELIX_ESB_NODE_ID
+	int "Node ID"
+	range 1 255
+	default 1
+
+config HELIX_ESB_PIPE
+	int "ESB pipe"
+	range 0 7
+	default 0
+
+config HELIX_ESB_RF_CHANNEL
+	int "ESB RF channel"
+	range 0 100
+	default 2
+
+config HELIX_ESB_SEND_PERIOD_MS
+	int "Node send period in milliseconds"
+	range 10 5000
+	default 100
+
+endmenu

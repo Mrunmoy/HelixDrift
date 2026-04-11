@@ -445,7 +445,8 @@ are healthy.
 
 ### First RF Experiments
 
-- [ ] packet transmit / receive smoke test
+- [x] packet transmit / receive smoke test on two split-host `nRF52840`
+      ProPicos using the repo-local Zephyr ESB link app
 - [ ] repeated anchor broadcast at fixed cadence
 - [ ] measure drop rate in a normal room
 - [ ] compare real latency/jitter behavior against M4 simulation assumptions

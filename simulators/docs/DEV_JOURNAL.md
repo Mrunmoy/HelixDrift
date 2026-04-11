@@ -1,5 +1,65 @@
 # Simulator Development Journal
 
+## 2026-04-11 - Split-Host ProPico ESB RF Smoke
+
+### Feature: First Real Two-Node `nRF52840` Packet Exchange
+
+#### Intent
+
+Use the newly proven split-host ProPico setup to validate the first real
+board-to-board RF packet exchange on `nRF52840`, without waiting for the
+remaining dongle OTA closure.
+
+#### What Was Added
+
+- Added a Zephyr/NCS ESB smoke app for ProPico:
+  [`zephyr_apps/nrf52840propico-esb-link`](/home/mrumoy/sandbox/embedded/HelixDrift/zephyr_apps/nrf52840propico-esb-link)
+- Added repo-local helpers for this lane:
+  - [`tools/nrf/build_propico_esb_link.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/build_propico_esb_link.sh)
+  - [`tools/nrf/flash_hex_jlink.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/flash_hex_jlink.sh)
+  - [`tools/nrf/remote_flash_hex_jlink.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/remote_flash_hex_jlink.sh)
+  - [`tools/nrf/read_symbol_words_jlink.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/read_symbol_words_jlink.sh)
+
+#### What Was Proven
+
+- The ProPico boards must use the Zephyr `promicro_nrf52840/nrf52840/uf2`
+  board variant for reliable app execution because the resident UF2 bootloader
+  changes the effective layout.
+- The first local ProPico now runs the ESB master image and exposes a live
+  status block with:
+  - magic `0x48455342`
+  - role `1` (master)
+  - phase `4` (running)
+- The second ProPico on `hpserver1` now runs the ESB node image and exposes a
+  live status block with:
+  - magic `0x48455342`
+  - role `2` (node)
+  - phase `4` (running)
+- The initial RF failure was caused by a real app bug, not a board or radio
+  failure:
+  - the master image initialized ESB but never called `esb_start_rx()`
+  - symptom: node `TX_FAILED` on every attempt, master `rx_packets = 0`
+- After fixing the master bring-up to enter PRX mode explicitly, the two-node
+  link now works over the air:
+  - local master observed:
+    - `last_event = RX`
+    - `rx_packets = 24`
+    - `last_rx_node = 2`
+    - `last_rx_len = 4`
+  - remote node observed:
+    - `tx_attempts = 28`
+    - `tx_success = 28`
+    - `tx_failed = 0`
+    - `rx_packets = 28`
+    - `last_rx_node = 1`
+    - `last_rx_len = 4`
+
+#### Outcome
+
+The branch now has the first real two-node `nRF52840` RF proof on hardware.
+The next RF work can build on this baseline instead of returning to board or
+probe bring-up.
+
 ## 2026-04-11 - Split-Host nRF52840 Bring-Up Workflow
 
 ### Feature: Two-Target Development Without Unique J-Link-OB Identities

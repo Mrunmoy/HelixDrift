@@ -156,6 +156,9 @@
     this workstation and `hpserver1` can each own one `nRF52840` ProPico and
     one clone `J-Link-OB`, with repo mirroring used to avoid duplicate-probe
     identity collisions
+  - first real two-node `nRF52840` RF smoke is now proven on ProPico hardware:
+    a local Zephyr ESB master and a remote Zephyr ESB node exchange packets
+    over the air, with SWD status showing node TX success and master RX
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -199,6 +202,9 @@
 - Task: Use the newly proven split-host ProPico setup as the default hardware
   base for the next real RF transport and sync experiments once the current
   OTA closure work yields diminishing returns
+- Task: Extend the new ProPico ESB smoke from first packet exchange into
+  deterministic node/master sync experiments and measured packet-loss/jitter
+  observations on the split-host hardware setup
 - Task: Treat the 52840 BLE OTA blocker as footer/pending-mark correctness,
   not a generic BLE bring-up problem; the DK path is already closed and the
   52840 path is narrowed to commit/promotion closure
