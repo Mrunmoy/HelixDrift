@@ -1,0 +1,36 @@
+/*
+ * ProPico nRF52840 OTA app overlay.
+ *
+ * The board DTS redirects zephyr,console to USB CDC ACM.  The OTA app
+ * uses the physical UART (P0.09 TX / P0.10 RX) for console output
+ * through an external USB-to-TTL adapter, so redirect console back to
+ * uart0 and disable the peripherals the OTA app does not need.
+ */
+
+/ {
+	chosen {
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+	};
+};
+
+&i2c0 {
+	status = "disabled";
+};
+
+&i2c1 {
+	status = "disabled";
+};
+
+&spi2 {
+	status = "disabled";
+};
+
+&pwm0 {
+	status = "disabled";
+};
+
+/* Disable the USB device stack entirely — the OTA app uses BLE, not USB. */
+&usbd {
+	status = "disabled";
+};
