@@ -1,0 +1,14 @@
+diff --git a/boot/zephyr/nrf_cleanup.c b/boot/zephyr/nrf_cleanup.c
+index c1e5a17..529f7ef 100644
+--- a/boot/zephyr/nrf_cleanup.c
++++ b/boot/zephyr/nrf_cleanup.c
+@@ -156,7 +156,8 @@ void nrf_cleanup_peripheral(void)
+         nrfy_uarte_pins_disconnect(current);
+ 
+         for (int j = 0; j < 4; j++) {
+-            if (pin[j] != NRF_UARTE_PSEL_DISCONNECTED) {
++            if ((pin[j] != NRF_UARTE_PSEL_DISCONNECTED) &&
++                nrfy_gpio_pin_present_check(pin[j])) {
+                 nrfy_gpio_cfg_default(pin[j]);
+             }
+         }
