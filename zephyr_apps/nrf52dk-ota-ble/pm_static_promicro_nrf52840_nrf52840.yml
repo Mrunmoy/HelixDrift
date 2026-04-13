@@ -1,30 +1,24 @@
-nrf5_mbr:
-  address: 0x0
-  end_address: 0x1000
-  region: flash_primary
-  size: 0x1000
-
 mcuboot:
-  address: 0x1000
-  end_address: 0xd000
+  address: 0x0
+  end_address: 0xc000
   region: flash_primary
   size: 0xc000
 
 mcuboot_pad:
-  address: 0xd000
-  end_address: 0xd200
+  address: 0xc000
+  end_address: 0xc200
   region: flash_primary
   size: 0x200
 
 app:
-  address: 0xd200
-  end_address: 0x86000
+  address: 0xc200
+  end_address: 0x85000
   region: flash_primary
   size: 0x78e00
 
 mcuboot_primary:
-  address: 0xd000
-  end_address: 0x86000
+  address: 0xc000
+  end_address: 0x85000
   orig_span: &id001
     - mcuboot_pad
     - app
@@ -33,8 +27,8 @@ mcuboot_primary:
   span: *id001
 
 mcuboot_primary_app:
-  address: 0xd200
-  end_address: 0x86000
+  address: 0xc200
+  end_address: 0x85000
   orig_span: &id002
     - app
   region: flash_primary
@@ -42,13 +36,13 @@ mcuboot_primary_app:
   span: *id002
 
 mcuboot_secondary:
-  address: 0x86000
-  end_address: 0xff000
+  address: 0x85000
+  end_address: 0xfe000
   region: flash_primary
   size: 0x79000
 
 settings_storage:
-  address: 0xff000
+  address: 0xfe000
   end_address: 0x100000
   region: flash_primary
-  size: 0x1000
+  size: 0x2000
