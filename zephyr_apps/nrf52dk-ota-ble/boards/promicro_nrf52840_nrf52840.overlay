@@ -18,11 +18,9 @@
 	};
 };
 
-/* Disable the CDC ACM UART child before disabling the UDC parent. */
-&zephyr_udc0 {
-	board_cdc_acm_uart: board_cdc_acm_uart {
-		status = "disabled";
-	};
+/* Disable the CDC ACM UART node before disabling the UDC parent. */
+&board_cdc_acm_uart {
+	status = "disabled";
 };
 
 &usbd {
