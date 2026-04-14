@@ -13,6 +13,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/reboot.h>
 
+
 namespace {
 
 #define BT_UUID_HELIX_OTA_SERVICE_VAL \
@@ -215,6 +216,13 @@ void heartbeat() {
 } // namespace
 
 int main() {
+#ifdef CONFIG_SOC_NRF52840
+    /* Workaround: the Zephyr nRF UARTE legacy shim leaves PSEL.TXD
+     * disconnected after init.  Force-connect it so printk output
+     * reaches the physical UART pin (P0.09 on ProPico). */
+    *reinterpret_cast<volatile uint32_t*>(0x40002508u) = 9u;
+#endif
+
     if (g_otaDebug.magic != 0x484F5441u) {
         g_otaDebug = {};
         g_otaDebug.magic = 0x484F5441u;
