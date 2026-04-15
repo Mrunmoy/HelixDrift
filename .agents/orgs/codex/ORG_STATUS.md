@@ -159,6 +159,51 @@
   - first real two-node `nRF52840` RF smoke is now proven on ProPico hardware:
     a local Zephyr ESB master and a remote Zephyr ESB node exchange packets
     over the air, with SWD status showing node TX success and master RX
+  - split-host ProPico RF dropout/rejoin is now proven on real hardware:
+    the node can suppress a configured TX burst, the master records
+    frame-sequence gaps and recovery through the SWD status block, and the
+    split-host smoke now auto-detects the real local J-Link serial while
+    retrying local/remote status sampling
+  - split-host ProPico live RF characterization is now proven:
+    repeated SWD samples can be taken while the two boards resume between
+    captures, forward RF progress is asserted after each interval, and the
+    smoke now emits both a repo-local CSV artifact and a summary artifact with
+    derived loss/jitter rates for skew/recovery analysis
+  - the first M8 central transport slice is now partially proven on real
+    hardware:
+    a repo-native `nrf52840-mocap-bridge` app now makes the dongle enumerate
+    over native USB as `Helix Mocap Central`, and a local ProPico `node=1`
+    can stream synthetic mocap frames through the dongle to `/dev/ttyACM3`
+  - the full first two-node M8.1 proof is now also real:
+    both ProPicos reach the dongle over RF, the dongle reports `tracked=2`
+    on its USB CDC stream, and the hardened repo-local smoke now measures
+    roughly `49.67 Hz` for both `node=1` and `node=2`, `99.33 Hz`
+    combined, with zero observed gaps in the latest channel-`40` run and
+    cross-node `sync_us` deltas around `10 ms` median and `12 ms` at `p90`
+  - first two-node `100 Hz` characterization is now also real:
+    both nodes sustain about `98.5 Hz`, the dongle forwards roughly
+    `197 Hz` aggregate over native USB CDC, the stronger current `60s`
+    artifact stayed gap-free across both streams, and cross-node `sync_us`
+    deltas tightened to about `6 ms` median and `9 ms` at `p90`
+  - the current two-node characterization flow is now scripted end to end:
+    repo-local helpers can build, flash, and capture CSV/summary artifacts for
+    the dongle USB lane without relying on ad hoc shell snippets
+  - the same flow now has a repo-local multi-rate sweep lane:
+    one command can step through multiple send periods and emit a combined CSV,
+    with dongle USB CDC port renumbering handled automatically during capture
+  - native-USB UF2 ProPico expansion is now narrowed:
+    the extra boards do leave UF2 bootloader mode and at least one flashed
+    board executes repo firmware strongly enough to show the expected LED
+    cadence under camera measurement, but the UF2-flashed node still does not
+    re-enumerate as a runtime USB device or reach the dongle RF stream yet
+  - the mocap bridge now has a dedicated node USB-debug overlay plus
+    camera-readable node LED RF-state cadence, so the next UF2-board session
+    can distinguish app execution, TX success, and anchor reception without
+    relying on clone `J-Link-OB` access
+- next planned RF milestone is no longer another isolated two-node smoke:
+  the branch plan now includes an explicit multi-node aggregation workstream
+  using `2` ProPicos as synthetic mocap transmitters and the `nRF52840`
+  dongle as the central PC-connected receiver
 - Writable scopes currently claimed:
   - `simulators/sensors/`
   - `simulators/fixtures/`
@@ -202,9 +247,16 @@
 - Task: Use the newly proven split-host ProPico setup as the default hardware
   base for the next real RF transport and sync experiments once the current
   OTA closure work yields diminishing returns
-- Task: Extend the new ProPico ESB smoke from first packet exchange into
-  deterministic node/master sync experiments and measured packet-loss/jitter
-  observations on the split-host hardware setup
+- Task: Investigate and reduce the higher observed `node=2` gap count in the
+  new two-node dongle USB lane, then extend the smoke into a more formal
+  timing/loss characterization pass and interference-style observations on the
+  split-host hardware setup
+  - update: the first successful mitigation is now in place; channel `40`
+    eliminated the previously observed node-`2` gaps in the latest two-node
+    run, and the first `100 Hz` two-node run is also clean, so the next RF
+    step should shift to longer-run/high-rate characterization and then
+    additional-node scaling rather than staying on the original channel-`2`
+    baseline
 - Task: Treat the 52840 BLE OTA blocker as footer/pending-mark correctness,
   not a generic BLE bring-up problem; the DK path is already closed and the
   52840 path is narrowed to commit/promotion closure

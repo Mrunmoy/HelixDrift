@@ -107,6 +107,16 @@ Current M7 bring-up progress:
 - [x] first real two-node `nRF52840` RF smoke is now proven on two ProPicos:
       a local Zephyr ESB master and a remote Zephyr ESB node exchange packets
       over the air, with SWD status proving node TX success and master RX
+- [x] split-host ProPico RF dropout/rejoin is now proven on real hardware:
+      the Zephyr ESB node can suppress a configured burst of transmissions,
+      the master records frame-sequence gaps and recovery, and the split-host
+      smoke now auto-detects the local J-Link serial and retries SWD status
+      sampling so the hardware proof is reproducible from this repo
+- [x] split-host ProPico RF characterization now has a reproducible live-sample
+      lane: the smoke can run repeated SWD snapshots, verify post-resume RF
+      forward progress, emit a CSV artifact for interval-by-interval skew and
+      recovery analysis, and emit a summary artifact with derived
+      tx-failure/frame-gap/anchor-gap rates plus offset/skew ranges
 - [ ] `nrf52840` BLE OTA is narrowed but not closed:
       `Helix840-v1` now boots and advertises on the real dongle, `BEGIN`
       succeeds once the uploader allows enough time for the full-slot erase,
@@ -121,6 +131,147 @@ Current M7 bring-up progress:
 - [ ] once the first `nrf52840` dongle proves `Helix840-v1 -> Helix840-v2`
       over BLE cleanly, repeat the same flow on the second 52840 target and
       then lock the 52840 BLE OTA lane with updated README/how-to docs
+- [ ] OTA BLE advertising still needs per-board unique names for fleet
+      operation:
+      derive a short stable suffix from each board's BLE identity/MAC address,
+      append it to the configured product/version prefix without exceeding
+      legacy advertising name limits, and update the uploader workflow to
+      target individual boards reliably when multiple `HelixPico-*` devices
+      are advertising at the same time
+
+## Planned Focus: M8 Multi-Node RF Aggregation
+
+Goal: move from two-board RF smoke into the first end-to-end architecture slice
+that matches the actual product:
+
+- multiple body-worn mocap nodes
+- one central receiver node connected to the PC
+- per-node timing/rate/loss accounting at the central node and host
+- a transport contract that can later scale toward `9-10` nodes
+
+The existing two-ProPico RF smoke/characterize lane remains part of the plan
+as the regression foundation for all later RF work. M8 builds on that lane; it
+does not replace it.
+
+Current intended first hardware layout:
+
+- `2` ProPicos act as synthetic mocap transmitters
+- `1` `nRF52840` dongle acts as the central PC-connected receiver
+- the central node forwards received packets to a host application over
+  USB/serial
+
+### M8.1 Central Transport Slice
+
+- [x] define a minimal fixed-size synthetic mocap packet carrying:
+      `node_id`, `sequence`, node-local or sync-relative timestamp, and a small
+      fake pose payload
+- [x] implement `2` ProPico transmitters that emit periodic synthetic mocap
+      packets with per-node identity
+- [x] implement a dongle central-receiver app that accepts packets from both
+      transmitters and keeps per-node receive state
+- [x] define a simple dongle-to-PC framing format for central-to-host delivery
+- [x] prove end-to-end `node -> central -> PC` delivery on real hardware
+      current state: both ProPicos now reach the dongle and the native USB CDC
+      host stream preserves per-node identity on `/dev/ttyACM3`
+
+Acceptance:
+- the PC can continuously observe distinct packet streams from both ProPicos
+- per-node IDs and sequences are preserved end to end
+- the central node reports per-node packet counts and gap state
+  - current hardware proof:
+    - `tools/nrf/mocap_bridge_two_node_smoke.sh ...`
+    - observed `tracked=2`
+    - hardened smoke with `30s` coordinated-reset settle now passes
+    - channel `40` is now the preferred/default RF lane after direct
+      comparison against the original channel-`2` baseline
+    - observed rates:
+      - `node=1`: `49.67 Hz`
+      - `node=2`: `49.67 Hz`
+      - combined: `99.33 Hz`
+    - observed gap density over the smoke window:
+      - `node=1`: `0.00 / 1000`
+      - `node=2`: `0.00 / 1000`
+    - observed cross-node synced-timestamp alignment:
+      - median delta: `10 ms`
+      - `p90`: `12 ms`
+      - `p99`: `13 ms`
+      - max: `14 ms`
+
+### M8.2 Timing And Sync Contract
+
+- [ ] extend the central node to emit periodic RF sync anchors
+- [ ] let nodes estimate central-time offset from those anchors
+- [ ] include sync-relative or corrected timestamps in node payloads
+- [ ] log both node-origin timestamp and central receive timestamp on the host
+- [ ] measure whether multi-node packets can be aligned coherently enough for
+      later mocap fusion
+
+Acceptance:
+- host logs show stable per-node timing deltas and explicit gap detection
+- packet ordering and timing are bounded well enough to compare nodes against a
+  common central time base
+
+### M8.3 Scaling Characterization
+
+- [x] characterize `2` transmitters at `50 Hz` per node
+- [x] characterize `2` transmitters at `100 Hz` per node
+- [ ] add additional nodes as hardware becomes available and repeat the same
+      rate/loss/jitter measurements
+  current blocker: extra native-USB UF2 ProPicos do leave bootloader mode and
+  at least one flashed board is now proven alive by camera-measured LED
+  cadence, but the UF2-flashed runtime still is not reaching the dongle RF
+  stream or re-enumerating on USB, so the next hardware step is narrowing that
+  native-USB node runtime path
+- [ ] measure aggregate throughput, fairness, packet loss, and timing jitter as
+      node count increases toward the intended `9-10` node target
+
+Acceptance:
+- repo-local characterization artifacts capture per-node rate, loss, and timing
+  behavior at each tested node count
+- the branch has evidence for whether the current RF design is viable for
+  `9-10` nodes and at what per-node update rate
+  - current two-node hardware evidence:
+    - `50 Hz` / node on channel `40`:
+      - `RATE node=1 hz=49.67 gap_per_1k=0.00`
+      - `RATE node=2 hz=49.67 gap_per_1k=0.00`
+      - `RATE combined_hz=99.33`
+      - `SYNC_DELTA_US min=6000 median=10000 p90=12000 p99=13000 max=14000`
+    - `100 Hz` / node on channel `40`:
+      - `RATE node=1 hz=98.48 gap_per_1k=0.00`
+      - `RATE node=2 hz=98.48 gap_per_1k=0.00`
+      - `RATE combined_hz=196.97`
+      - `SYNC_DELTA_US min=0 median=6000 p90=9000 p99=10000 max=10000`
+      - artifact:
+        `artifacts/rf/mocap_bridge_two_node_100hz_60s.{csv,summary}`
+    - repo-local sweep helper:
+      - `tools/nrf/mocap_bridge_rate_sweep.sh ...`
+      - emits combined CSV rows across multiple send periods for the current
+        `2 node + dongle central` layout
+
+### M8.4 OTA Operations Path
+
+- [ ] install the OTA bootloader path on all mocap-node boards once enough
+      boards exist to make SWD/J-Link management impractical
+- [ ] use OTA as the default update path for node-firmware iteration, keeping
+      SWD primarily for recovery/debug
+- [ ] prove the central/mocap-node RF lane still functions after OTA-based
+      rollout
+
+Acceptance:
+- duplicate-serial clone `J-Link-OB` constraints no longer block normal
+  multi-node firmware iteration
+
+### M8.5 Real Payload Transition
+
+- [ ] replace synthetic pose payloads with real sensor-derived motion payloads
+- [ ] preserve the transport and timestamp contract where possible so synthetic
+      and real payload lanes remain comparable
+- [ ] use the proven central/host path as the input for later visualization and
+      pose application work
+
+Acceptance:
+- the same central/host ingestion path works for real mocap payloads, not just
+  synthetic traffic
 
 ### Wave A — Immediate (Codex / Fusion)
 
@@ -168,7 +319,8 @@ notes in `docs/SPRINT6_WAVE_A_RESCOPE.md` and
 | M3: Node Runtime | ~100% | Harness runtime closure landed: health, recovery, anchors, cadence switching |
 | M4: RF/Sync | ~80% | Basic sync, convergence, and blackout recovery are landed; transport core is ready for later hardware sanity checks |
 | M5-M6: Calibration + Multi-node | ~100% | Simulation-side calibration, disturbance characterization, and three-node body-chain proofs are landed; long-run mild-impairment drift is documented as a current limitation |
-| M7: Platform Port (nRF52) | ~99% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, MCUboot slot promotion, repo-local BLE reference workflow, real HelixDrift BLE OTA, wrong-target OTA rejection, BLE OTA failure-path handling on the DK, first repo-native nRF52840 dongle bring-up, first repo-native ProPico bring-up, split-host two-target flashing, first real two-node ProPico ESB packet exchange, first hardware anchor/sync payload verification, first hardware continuity/range soak with zero anchor sequence gaps, and first hardware inter-anchor skew tracking are proven; attached-sensor bring-up remains open, and the remaining 52840-specific OTA closure is narrowed to the dongle pending/commit boot path |
+| M7: Platform Port (nRF52) | ~99% | DK flashing, bare-metal boot, LED drive, serial/VCOM, raw NVMC, OTA backend, UART OTA transport, MCUboot slot promotion, repo-local BLE reference workflow, real HelixDrift BLE OTA, wrong-target OTA rejection, BLE OTA failure-path handling on the DK, first repo-native nRF52840 dongle bring-up, first repo-native ProPico bring-up, split-host two-target flashing, first real two-node ProPico ESB packet exchange, first hardware anchor/sync payload verification, first hardware continuity/range soak with zero anchor sequence gaps, first hardware inter-anchor skew tracking, first real split-host ProPico dropout/rejoin proof, and a repeatable split-host live characterization/CSV lane are proven; attached-sensor bring-up remains open, and the remaining 52840-specific OTA closure is narrowed to the dongle pending/commit boot path |
+| M8: Multi-Node RF Aggregation | ~45% | synthetic mocap packet contract, repo-native dongle central USB egress, real two-node `node -> dongle -> PC` forwarding, and scripted `50/100 Hz` characterization are now proven; the next blocker is the native-USB UF2 ProPico runtime path needed to scale past two nodes |
 
 ## Reference Documents
 

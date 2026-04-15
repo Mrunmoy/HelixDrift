@@ -7,28 +7,29 @@ if ! command -v west >/dev/null 2>&1; then
   exec nix develop --command bash -lc "$(printf '%q ' "$0" "$@")"
 fi
 
-ROLE="${1:-master}"
-BOARD="${2:-promicro_nrf52840/nrf52840/uf2}"
+ROLE="${1:-central}"
+BOARD="${2:-nrf52840dongle/nrf52840/bare}"
 NODE_ID="${3:-1}"
 EXTRA_ARGS=("${@:4}")
+EXTRA_CONF_APPEND="${HELIX_MOCAP_EXTRA_CONF_FILE:-}"
 
 case "${ROLE}" in
-  master)
-    EXTRA_CONF="master.conf"
+  central)
+    EXTRA_CONF="central.conf"
     ;;
   node)
     EXTRA_CONF="node.conf"
     ;;
   *)
-    echo "usage: $0 <master|node> [board] [node_id]" >&2
+    echo "usage: $0 <central|node> [board] [node_id]" >&2
     exit 2
     ;;
 esac
 
 NCS_VERSION="${NCS_VERSION:-v3.2.4}"
 WORKSPACE_DIR="${NCS_WORKSPACE_DIR:-${REPO_ROOT}/.deps/ncs/${NCS_VERSION}}"
-APP_DIR="${REPO_ROOT}/zephyr_apps/nrf52840propico-esb-link"
-BUILD_DIR_NAME="build-helix-${BOARD//\//-}-esb-${ROLE}-node${NODE_ID}"
+APP_DIR="${REPO_ROOT}/zephyr_apps/nrf52840-mocap-bridge"
+BUILD_DIR_NAME="build-helix-${BOARD//\//-}-mocap-${ROLE}-node${NODE_ID}"
 BOARD_OVERLAY="${APP_DIR}/boards/${BOARD//\//_}.overlay"
 
 "${REPO_ROOT}/tools/dev/bootstrap_ncs_workspace.sh" "${NCS_VERSION}" "${WORKSPACE_DIR}"
@@ -39,10 +40,15 @@ GNUARMEMB_TOOLCHAIN_PATH="$(dirname "$(dirname "$(command -v arm-none-eabi-gcc)"
 
 (
   cd "${WORKSPACE_DIR}"
-  BUILD_ARGS=(
-    -DEXTRA_CONF_FILE="${APP_DIR}/${EXTRA_CONF}"
-    -DCONFIG_HELIX_ESB_NODE_ID="${NODE_ID}"
-  )
+  EXTRA_CONF_FILE="${APP_DIR}/${EXTRA_CONF}"
+  if [[ -n "${EXTRA_CONF_APPEND}" ]]; then
+    EXTRA_CONF_FILE="${EXTRA_CONF_FILE};${APP_DIR}/${EXTRA_CONF_APPEND}"
+  fi
+
+  BUILD_ARGS=(-DEXTRA_CONF_FILE="${EXTRA_CONF_FILE}")
+  if [[ "${ROLE}" == "node" ]]; then
+    BUILD_ARGS+=("-DCONFIG_HELIX_MOCAP_NODE_ID=${NODE_ID}")
+  fi
   if [[ -f "${BOARD_OVERLAY}" ]]; then
     BUILD_ARGS+=("-DDTC_OVERLAY_FILE=${BOARD_OVERLAY}")
   fi

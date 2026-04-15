@@ -101,7 +101,21 @@ bool ZephyrOtaFlashBackend::flushBuffered() {
         return true;
     }
 
-    if (flash_area_write(slot1_, bufferBaseOffset_, buffer_, bufferedBytes_) != 0) {
+    const uint32_t align = flash_area_align(slot1_);
+    size_t writeLen = bufferedBytes_;
+    if (align > 1u) {
+        const size_t remainder = writeLen % align;
+        if (remainder != 0u) {
+            const size_t paddedLen = writeLen + (align - remainder);
+            if (paddedLen > sizeof(buffer_)) {
+                return false;
+            }
+            memset(buffer_ + writeLen, 0xFF, paddedLen - writeLen);
+            writeLen = paddedLen;
+        }
+    }
+
+    if (flash_area_write(slot1_, bufferBaseOffset_, buffer_, writeLen) != 0) {
         return false;
     }
 

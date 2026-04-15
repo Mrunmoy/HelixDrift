@@ -14,6 +14,7 @@ WORKSPACE_DIR="${NCS_WORKSPACE_DIR:-${REPO_ROOT}/.deps/ncs/${NCS_VERSION}}"
 APP_DIR="${REPO_ROOT}/zephyr_apps/nrf52dk-ota-ble"
 BUILD_BOARD_SLUG="${BOARD//\//-}"
 BUILD_DIR_NAME="build-helix-${BUILD_BOARD_SLUG}-ota-ble-${VARIANT}"
+MCUBOOT_PATCH="${REPO_ROOT}/patches/0001-mcuboot-nrf-cleanup-gpio-present-check.patch"
 
 case "${BOARD}" in
   nrf52dk/nrf52832)
@@ -43,6 +44,14 @@ case "${VARIANT}" in
 esac
 
 "${REPO_ROOT}/tools/dev/bootstrap_ncs_workspace.sh" "${NCS_VERSION}" "${WORKSPACE_DIR}"
+
+if [[ "${BOARD}" == "promicro_nrf52840/nrf52840" ]]; then
+  MCUBOOT_REPO="${WORKSPACE_DIR}/bootloader/mcuboot"
+  MCUBOOT_TARGET_FILE="${MCUBOOT_REPO}/boot/zephyr/nrf_cleanup.c"
+  if ! grep -q "nrfy_gpio_pin_present_check" "${MCUBOOT_TARGET_FILE}"; then
+    git -C "${MCUBOOT_REPO}" apply "${MCUBOOT_PATCH}"
+  fi
+fi
 
 export ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb
 export GNUARMEMB_TOOLCHAIN_PATH

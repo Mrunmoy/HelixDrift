@@ -184,7 +184,7 @@ BT_CONN_CB_DEFINE(connCallbacks) = {
     .disconnected = disconnected,
 };
 
-const struct bt_data g_ad[] = {
+struct bt_data g_ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
     BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1),
 };
@@ -216,6 +216,7 @@ void heartbeat() {
 } // namespace
 
 int main() {
+#if defined(CONFIG_BOARD_PROMICRO_NRF52840_NRF52840)
     /* NCS v3.2.4 nRF UARTE legacy shim bug: pinctrl_apply_state(DEFAULT) runs
      * in uarte_pm_resume but the PSEL.TXD register stays 0xFFFFFFFF (disconnected).
      * The new UARTE2 driver (CONFIG_UART_NRFX_UARTE_LEGACY_SHIM=n) fixes this but
@@ -224,6 +225,7 @@ int main() {
     if (*pselTxd == 0xFFFFFFFFu) {
         *pselTxd = 9u; /* P0.09 — ProPico UART TX */
     }
+#endif
 
     if (g_otaDebug.magic != 0x484F5441u) {
         g_otaDebug = {};
@@ -250,6 +252,27 @@ int main() {
     if (err) {
         printk("ble: enable failed %d\n", err);
         return err;
+    }
+
+    /* Build a per-board unique name: "<base>-XXYY" from FICR DEVICEADDR */
+    {
+        const auto ficr0 = *reinterpret_cast<const volatile uint32_t*>(0x100000A4u);
+        static const char hex[] = "0123456789ABCDEF";
+        char name[28];
+        const size_t n = strlen(CONFIG_BT_DEVICE_NAME);
+        memcpy(name, CONFIG_BT_DEVICE_NAME, n);
+        name[n]     = '-';
+        name[n + 1] = hex[(ficr0 >>  4) & 0xF];
+        name[n + 2] = hex[ ficr0        & 0xF];
+        name[n + 3] = hex[(ficr0 >> 12) & 0xF];
+        name[n + 4] = hex[(ficr0 >>  8) & 0xF];
+        name[n + 5] = '\0';
+        bt_set_name(name);
+        /* Update advertising data to use the Zephyr-managed name buffer */
+        const char* btName = bt_get_name();
+        g_ad[1].data = reinterpret_cast<const uint8_t*>(btName);
+        g_ad[1].data_len = static_cast<uint8_t>(strlen(btName));
+        printk("ble: name %s\n", btName);
     }
 
     startAdvertising();

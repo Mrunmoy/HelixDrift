@@ -1,0 +1,1 @@
+send_period_ms,rate_hz_node1,rate_hz_node2,rate_hz_combined,gap_per_1k_node1,gap_per_1k_node2,sync_delta_median_us,sync_delta_p90_us,sync_delta_p99_us,sync_delta_max_us,summary_file

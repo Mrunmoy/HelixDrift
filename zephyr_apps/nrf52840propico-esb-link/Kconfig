@@ -36,4 +36,45 @@ config HELIX_ESB_SEND_PERIOD_MS
 	range 10 5000
 	default 100
 
+config HELIX_ESB_SESSION_TAG
+	int "Session tag carried in anchor byte 3"
+	range 0 255
+	default 66
+	help
+	  Small per-run tag used to distinguish the current master from stale or
+	  ambient ESB traffic on the same address/channel.
+
+config HELIX_ESB_MASTER_BLACKOUT_START_SEQUENCE
+	int "Master anchor blackout start sequence"
+	range 0 255
+	default 0
+	help
+	  When non-zero together with a non-zero blackout length, the master
+	  suppresses anchor ACKs starting at this sequence number. This is used
+	  to exercise node-side anchor loss and recovery behavior on hardware.
+
+config HELIX_ESB_MASTER_BLACKOUT_LENGTH
+	int "Master anchor blackout length"
+	range 0 255
+	default 0
+	help
+	  Number of consecutive anchor ACK sequence numbers to suppress on the
+	  master side. Zero disables the blackout behavior entirely.
+
+config HELIX_ESB_NODE_TX_BLACKOUT_START_SEQUENCE
+	int "Node TX blackout start sequence"
+	range 0 255
+	default 0
+	help
+	  When non-zero together with a non-zero blackout length, the node
+	  suppresses frame transmission starting at this sequence number.
+
+config HELIX_ESB_NODE_TX_BLACKOUT_LENGTH
+	int "Node TX blackout length"
+	range 0 255
+	default 0
+	help
+	  Number of consecutive node frame sequence numbers to suppress. This is
+	  used to exercise master-side dropout and rejoin behavior on hardware.
+
 endmenu

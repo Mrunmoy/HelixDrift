@@ -1,5 +1,412 @@
 # Simulator Development Journal
 
+## 2026-04-12 - M8 Central Transport Slice
+
+### Feature: Native-USB UF2 Node Bring-Up Narrowed
+
+#### Intent
+
+Scale the current `2 node + dongle central` lane to `4` nodes by using two
+additional ProPicos over their factory UF2/native-USB path instead of clone
+`J-Link-OB` flashers.
+
+#### What Was Added
+
+- Added a UF2 flash helper:
+  [`tools/nrf/flash_uf2_volume.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/flash_uf2_volume.sh)
+- Added a first `4`-node smoke harness:
+  [`tools/nrf/mocap_bridge_four_node_smoke.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/mocap_bridge_four_node_smoke.sh)
+- Added a native-USB-observable node build overlay:
+  [`zephyr_apps/nrf52840-mocap-bridge/node_usb_debug.conf`](/home/mrumoy/sandbox/embedded/HelixDrift/zephyr_apps/nrf52840-mocap-bridge/node_usb_debug.conf)
+- Extended the USB descriptors in
+  [`src/usbd_init.c`](/home/mrumoy/sandbox/embedded/HelixDrift/zephyr_apps/nrf52840-mocap-bridge/src/usbd_init.c)
+  so node builds can identify as `Helix Mocap Node` instead of reusing the
+  central product string
+- Extended the node LED behavior in
+  [`src/main.c`](/home/mrumoy/sandbox/embedded/HelixDrift/zephyr_apps/nrf52840-mocap-bridge/src/main.c)
+  so the LED cadence can now encode node RF state for camera-based debugging:
+  - fast blink: app alive, no confirmed TX success yet
+  - medium blink: TX succeeding, no sync anchors yet
+  - slow blink: sync anchors received
+
+#### What Was Proven
+
+- The two extra native-USB ProPicos enumerate correctly in UF2 bootloader mode
+  as `nice!nano` mass-storage + serial devices
+- Copying a built node UF2 image causes the board to leave bootloader mode:
+  - the UF2 volume disappears
+  - the bootloader `ttyACM` disappears
+- A camera capture of the visible board LED after flashing a `250 ms`
+  send-period node image measured about `1.96 Hz`, which matches the node
+  app's new slow LED cadence and proves the UF2-flashed board is executing repo
+  firmware after leaving bootloader
+
+#### Current Blocker
+
+- The native-USB UF2 node is alive after flashing, but it still does not:
+  - re-enumerate over native USB as a runtime serial device
+  - appear on the dongle RF stream as `node=3` or `node=4`
+- This means the UF2 bring-up problem is no longer "did the board boot?"
+  It is now narrowed to "why is the flashed native-USB node not reaching RF or
+  runtime USB visibility?"
+
+#### Outcome
+
+The four-node expansion is not closed yet, but the failure is much narrower
+than before. The next hardware touch should start by putting one native-USB
+board back into UF2 mode, flashing the USB-debug node build, and using the
+camera-visible LED cadence plus any returned USB enumeration to determine
+whether the node is reaching:
+
+- app execution
+- TX success
+- anchor reception
+- full RF participation at the dongle
+
+### Feature: First Real `node -> dongle -> PC` Mocap Transport Proof
+
+#### Intent
+
+Move beyond two-board RF smoke and prove the first real product-shaped
+transport slice:
+
+- ProPico synthetic mocap node
+- `nRF52840` dongle central receiver
+- native USB CDC output from the dongle to the PC
+
+#### What Was Added
+
+- Added a new Zephyr app:
+  [`zephyr_apps/nrf52840-mocap-bridge`](/home/mrumoy/sandbox/embedded/HelixDrift/zephyr_apps/nrf52840-mocap-bridge)
+  with two roles:
+  - `central`: PRX dongle receiver with native USB CDC output
+  - `node`: PTX ProPico synthetic mocap transmitter
+- Added repo-local USB CDC bring-up for the dongle central on top of Zephyr's
+  current USB device stack so the central now enumerates on the host as:
+  - vendor: `HelixDrift`
+  - product: `Helix Mocap Central`
+- Added a repo-local build helper:
+  [`tools/nrf/build_mocap_bridge.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/build_mocap_bridge.sh)
+- Added a minimal host reader:
+  [`tools/analysis/log_mocap_bridge.py`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/analysis/log_mocap_bridge.py)
+
+#### What Was Proven
+
+- The local dongle now enumerates over native USB as `/dev/ttyACM3` with:
+  - `ID_VENDOR=HelixDrift`
+  - `ID_MODEL=Helix_Mocap_Central`
+- The local ProPico was flashed with the new synthetic node role and the
+  dongle immediately began forwarding live frame lines over USB CDC:
+  - `FRAME node=1 seq=... node_us=... sync_us=... rx_us=... yaw_cd=...`
+- The central now emits:
+  - per-node ID
+  - sequence
+  - node-local timestamp
+  - node sync-relative timestamp
+  - central receive timestamp
+  - synthetic pose payload
+  - gap accounting
+- This is the first real hardware proof in the repo of:
+  - RF ingress from a body-node-style transmitter
+  - central aggregation on the dongle
+  - host-visible packet delivery over the dongle's native USB path
+- The follow-up two-node proof is now also real:
+  - local ProPico flashed as `node=1`
+  - remote ProPico on `hpserver1` flashed as `node=2`
+  - dongle USB stream reports `tracked=2`
+  - repo-local smoke helper:
+
+```bash
+tools/nrf/mocap_bridge_two_node_smoke.sh \
+  litu@hpserver1 \
+  /home/litu/sandbox/embedded/HelixDrift \
+  123456 NRF52840_XXAA 69656876 /dev/ttyACM3 10 2 1
+```
+
+  - observed result:
+    - initial ad hoc proof established both node IDs on the dongle stream
+    - `SUMMARY role=central ... tracked=2 ...`
+  - the repo-local smoke was then hardened around real three-device startup
+    behavior:
+    - added
+      [`tools/nrf/mocap_bridge_two_node_smoke.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/mocap_bridge_two_node_smoke.sh)
+    - uses a `30s` coordinated-reset settle before sampling
+    - reports:
+      - per-node frame counts
+      - per-node rate and gap density
+      - central `tracked` summary state
+      - cross-node `sync_us` delta statistics
+  - hardened smoke result:
+    - initial channel-`2` baseline:
+      - `COUNTS {2: 290, 1: 298}`
+      - `RATE node=1 hz=49.67 gap_per_1k=0.00`
+      - `RATE node=2 hz=48.33 gap_per_1k=27.59`
+      - `RATE combined_hz=98.00`
+      - `SYNC_DELTA_US min=0 median=12000 p90=17000 p99=23000 max=26000`
+      - `SUMMARY role=central rx=3515 anchors=3515 tracked=2 usb_lines=3515 ...`
+    - follow-up RF-channel comparison moved the mocap bridge from channel `2`
+      to channel `40`
+    - channel-`40` result:
+      - `COUNTS {2: 298, 1: 298}`
+      - `RATE node=1 hz=49.67 gap_per_1k=0.00`
+      - `RATE node=2 hz=49.67 gap_per_1k=0.00`
+      - `RATE combined_hz=99.33`
+      - `SYNC_DELTA_US min=6000 median=10000 p90=12000 p99=13000 max=14000`
+      - `SUMMARY role=central rx=3540 anchors=3540 tracked=2 usb_lines=3540 ...`
+
+#### Outcome
+
+`M8.1` is now a real, reproducible, repo-local hardware lane. Both ProPicos
+send synthetic mocap frames to the dongle, the PC observes both streams
+through the dongle's native USB CDC path, and the lane now reports first-pass
+timing alignment as well as per-node gap density. The next RF work should
+focus on scaling the same transport/sync contract beyond two nodes and raising
+the tested per-node cadence, with channel `40` now established as the better
+two-node default.
+
+### Feature: Two-Node `100 Hz` Characterization
+
+#### Intent
+
+Test whether the new central dongle path still holds once per-node cadence is
+doubled from the initial `50 Hz` proof to `100 Hz`.
+
+#### What Was Proven
+
+- Rebuilt both ProPico node roles with:
+  - `-DCONFIG_HELIX_MOCAP_SEND_PERIOD_MS=10`
+- Reused the same dongle central role on channel `40`
+- After a coordinated reset and the same `30s` settle window used by the
+  hardened smoke, the host-side sample reported:
+  - `COUNTS {2: 591, 1: 591}`
+  - `RATE node=1 hz=98.50 gap_per_1k=0.00`
+  - `RATE node=2 hz=98.50 gap_per_1k=0.00`
+  - `RATE combined_hz=197.00`
+  - `SYNC_DELTA_US min=0 median=6000 p90=9000 p99=10000 max=10000`
+  - `SUMMARY role=central rx=26634 anchors=26634 tracked=2 usb_lines=26634 ...`
+- Added a repo-local capture helper:
+  [`tools/analysis/capture_mocap_bridge_window.py`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/analysis/capture_mocap_bridge_window.py)
+  so longer USB-stream windows can be written to CSV plus a derived summary
+- Added a repo-local orchestration helper:
+  [`tools/nrf/mocap_bridge_characterize.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/mocap_bridge_characterize.sh)
+  so build, flash, and capture can be run as one step for the current
+  `2 node + dongle central` layout
+- Added a repo-local sweep helper:
+  [`tools/nrf/mocap_bridge_rate_sweep.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/mocap_bridge_rate_sweep.sh)
+  so multiple send periods can be exercised in sequence with one combined CSV
+  artifact
+- First `20s` characterization artifact at `100 Hz` / node:
+  - CSV:
+    [`artifacts/rf/mocap_bridge_two_node_100hz.csv`](/home/mrumoy/sandbox/embedded/HelixDrift/artifacts/rf/mocap_bridge_two_node_100hz.csv)
+  - summary:
+    [`artifacts/rf/mocap_bridge_two_node_100hz.summary`](/home/mrumoy/sandbox/embedded/HelixDrift/artifacts/rf/mocap_bridge_two_node_100hz.summary)
+  - observed result:
+    - `COUNTS {2: 1970, 1: 1969}`
+    - `RATE node=1 hz=98.45 gap_per_1k=0.51`
+    - `RATE node=2 hz=98.50 gap_per_1k=0.00`
+    - `RATE combined_hz=196.95`
+    - `SYNC_DELTA_US min=0 median=6000 p90=9000 p99=10000 max=12000`
+    - `SUMMARY role=central rx=61333 anchors=61333 tracked=2 usb_lines=61333 ...`
+
+#### Outcome
+
+The first `100 Hz` two-node run is clean on real hardware. For the current
+two-node layout, the `nRF52840` dongle central path is not yet the bottleneck:
+it still forwards both streams at nearly `200 Hz` aggregate, the short proof
+window stayed gap-free, and the first longer `20s` artifact showed only a
+single observed gap across both streams while keeping tighter cross-node
+synced-timestamp spread than the earlier `50 Hz` baseline.
+
+- Follow-up `60s` artifact on the same `100 Hz` setup:
+  - CSV:
+    [`artifacts/rf/mocap_bridge_two_node_100hz_60s.csv`](/home/mrumoy/sandbox/embedded/HelixDrift/artifacts/rf/mocap_bridge_two_node_100hz_60s.csv)
+  - summary:
+    [`artifacts/rf/mocap_bridge_two_node_100hz_60s.summary`](/home/mrumoy/sandbox/embedded/HelixDrift/artifacts/rf/mocap_bridge_two_node_100hz_60s.summary)
+  - observed result:
+    - `COUNTS {2: 5909, 1: 5909}`
+    - `RATE node=1 hz=98.48 gap_per_1k=0.00`
+    - `RATE node=2 hz=98.48 gap_per_1k=0.00`
+    - `RATE combined_hz=196.97`
+    - `SYNC_DELTA_US min=0 median=6000 p90=9000 p99=10000 max=10000`
+    - `SUMMARY role=central rx=84733 anchors=84733 tracked=2 usb_lines=84733 ...`
+
+This longer soak is the stronger current result and suggests the earlier
+single-gap `20s` artifact was transient rather than the steady-state pattern.
+
+- Wrapper validation run:
+  - command shape:
+
+```bash
+tools/nrf/mocap_bridge_characterize.sh \
+  litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift \
+  123456 NRF52840_XXAA 69656876 /dev/ttyACM3 6 2 1 10 \
+  artifacts/rf/mocap_bridge_wrapper_smoke_100hz
+```
+
+  - observed result:
+    - `RATE node=1 hz=98.50 gap_per_1k=0.00`
+    - `RATE node=2 hz=98.50 gap_per_1k=0.00`
+    - `RATE combined_hz=197.00`
+    - `SYNC_DELTA_US min=2000 median=5000 p90=7000 p99=7000 max=8000`
+
+- Sweep-helper validation run:
+  - command shape:
+
+```bash
+tools/nrf/mocap_bridge_rate_sweep.sh \
+  litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift \
+  123456 NRF52840_XXAA 69656876 /dev/ttyACM3 \
+  6 5 "20 10" artifacts/rf/rate_sweep_smoke
+```
+
+  - combined CSV:
+    [`artifacts/rf/rate_sweep_smoke/mocap_bridge_rate_sweep.csv`](/home/mrumoy/sandbox/embedded/HelixDrift/artifacts/rf/rate_sweep_smoke/mocap_bridge_rate_sweep.csv)
+  - observed rows:
+    - `20 ms`:
+      - `RATE node=1 hz=49.50 gap_per_1k=0.00`
+      - `RATE node=2 hz=49.67 gap_per_1k=0.00`
+      - `RATE combined_hz=99.17`
+    - `10 ms`:
+      - `RATE node=1 hz=98.33 gap_per_1k=1.69`
+      - `RATE node=2 hz=98.33 gap_per_1k=1.69`
+      - `RATE combined_hz=196.67`
+  - practical note:
+    - the helper now survives USB CDC port renumbering by resolving the dongle
+      serial port dynamically from the `Helix Mocap Central` USB identity
+
+## 2026-04-12 - Split-Host ProPico RF Dropout/Rejoin
+
+### Feature: First Real Frame-Loss Recovery Proof On Two `nRF52840` ProPicos
+
+#### Intent
+
+Push the split-host ProPico RF lane beyond steady-state anchor continuity by
+proving a deterministic loss/rejoin event on real hardware instead of relying
+only on simulation-side blackout coverage.
+
+#### What Was Added
+
+- Extended the Zephyr ESB smoke app status block so hardware SWD sampling now
+  carries:
+  - master-side frame-sequence gap, recovery, and missing-frame counters
+  - node-side suppressed-frame count
+  - anchor recovery, missing-anchor, and max inter-anchor delta fields
+- Added runtime controls in
+  [`zephyr_apps/nrf52840propico-esb-link/Kconfig`](/home/mrumoy/sandbox/embedded/HelixDrift/zephyr_apps/nrf52840propico-esb-link/Kconfig)
+  for:
+  - per-run session tags
+  - optional master anchor blackout windows
+  - optional node TX blackout windows
+- Updated the split-host smoke helper so it now:
+  - accepts extra Zephyr config overrides through
+    [`tools/nrf/build_propico_esb_link.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/build_propico_esb_link.sh)
+  - supports `baseline`, `blackout`, and `dropout` modes
+  - retries SWD status sampling
+  - auto-detects the real local J-Link serial when the clone-probe placeholder
+    serial is used on this workstation
+  - applies mode-specific assertions instead of forcing steady-state
+    anchor-quality checks onto dropout runs
+
+#### What Was Proven
+
+- A clean split-host baseline still passes with session-tag filtering enabled.
+- The real two-ProPico lane now proves deterministic node TX suppression and
+  master-side recovery on hardware:
+  - command used:
+
+```bash
+tools/nrf/propico_esb_split_host_smoke.sh \
+  litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift \
+  123456 123456 NRF52840_XXAA 4000 dropout 10 5 79 20 5
+```
+
+  - observed result:
+    - local master remained in role `1` / phase `4`
+    - local master recorded non-zero `frame_gaps`, `frame_recoveries`, and
+      `frame_missing`
+    - remote node remained in role `2` / phase `4`
+    - remote node reported `frames_suppressed=5`
+    - the smoke completed with
+      `split-host ProPico ESB smoke (dropout): PASS`
+- The local hardware lane had an extra practical issue unrelated to RF logic:
+  the workstation probe does not actually use serial `123456`, while the
+  remote clone probe still tolerates that placeholder. The smoke helper now
+  resolves the real local SEGGER serial automatically before flash/readback.
+
+#### Outcome
+
+The split-host `nRF52840` hardware lane now proves more than packet exchange,
+anchor delivery, and skew observability. It also proves a deterministic
+dropout/rejoin event on real hardware, with the node intentionally suppressing
+frames and the master detecting recovery through the SWD-readable status
+contract. The next RF work can build on this as a real impairment baseline
+instead of returning to basic recovery plumbing.
+
+### Feature: Split-Host Live RF Characterization
+
+#### Intent
+
+Add a practical hardware characterization lane on top of the proven split-host
+RF path so sustained forward progress, skew movement, and recovery deltas can
+be recorded over multiple live SWD samples instead of a single endpoint check.
+
+#### What Was Added
+
+- Extended
+  [`tools/nrf/propico_esb_split_host_smoke.sh`](/home/mrumoy/sandbox/embedded/HelixDrift/tools/nrf/propico_esb_split_host_smoke.sh)
+  with a new `characterize` mode.
+- The new mode:
+  - reuses the proven baseline wiring and session-tag filtering
+  - takes an initial synchronized snapshot after reset
+  - then performs repeated live SWD snapshots while the boards resume between
+    samples
+  - asserts interval-by-interval forward RF progress after each resume
+  - writes a CSV artifact containing cumulative counters plus per-sample deltas
+    for:
+    - local RX progress
+    - remote TX success progress
+    - remote anchor progress
+    - local frame-gap delta
+    - remote anchor-gap delta
+    - offset/skew and max inter-anchor delta observations
+  - now also writes a summary artifact with derived soak-level rates and
+    bounds:
+    - TX failure rate in ppm
+    - frame-gap rate in ppm
+    - anchor-gap rate in ppm
+    - offset range and skew range
+    - max observed inter-anchor master/local deltas
+
+#### What Was Proven
+
+- The live characterization lane now runs successfully on the real split-host
+  two-ProPico setup with:
+
+```bash
+HELIX_ESB_SOAK_SAMPLES=3 HELIX_ESB_SOAK_INTERVAL_MS=2000 \
+tools/nrf/propico_esb_split_host_smoke.sh \
+  litu@hpserver1 /home/litu/sandbox/embedded/HelixDrift \
+  123456 123456 NRF52840_XXAA 3000 characterize 10 5 79 10 5
+```
+
+- Observed result:
+  - initial status sample passed with active anchor flow on both boards
+  - all three characterization intervals showed positive resumed progress:
+    - `local_rx_delta` between `1146` and `1201`
+    - `remote_tx_success_delta` between `49` and `51`
+    - `remote_anchor_delta` between `49` and `51`
+  - CSV artifact written to:
+    [`artifacts/rf/propico_esb_characterize_session79.csv`](/home/mrumoy/sandbox/embedded/HelixDrift/artifacts/rf/propico_esb_characterize_session79.csv)
+
+#### Outcome
+
+The split-host hardware lane now has a reproducible characterization workflow
+in addition to the single-shot smoke and deterministic dropout proof. RF work
+can now use recorded interval data from real boards when investigating skew,
+sampling-induced recovery, and longer-run stability. The characterize mode now
+also emits a compact summary artifact so longer soaks can be compared by
+derived loss/jitter metrics instead of only by raw per-interval CSV rows.
+
 ## 2026-04-11 - Split-Host ProPico ESB RF Smoke
 
 ### Feature: First Real Two-Node `nRF52840` Packet Exchange

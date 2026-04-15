@@ -1,0 +1,7 @@
+COUNTS {1: 590, 2: 590}
+GAPS {1: 1, 2: 1}
+RATE node=1 hz=98.33 gap_per_1k=1.69
+RATE node=2 hz=98.33 gap_per_1k=1.69
+RATE combined_hz=196.67
+SUMMARY role=central rx=2118 anchors=2118 tracked=2 usb_lines=2118 err=0 hb=550
+SYNC_DELTA_US min=0 median=3000 p90=10000 p99=11000 max=26000

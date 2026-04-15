@@ -1,0 +1,3 @@
+send_period_ms,rate_hz_node1,rate_hz_node2,rate_hz_combined,gap_per_1k_node1,gap_per_1k_node2,sync_delta_median_us,sync_delta_p90_us,sync_delta_p99_us,sync_delta_max_us,summary_file
+20,49.50,49.67,99.17,0.00,0.00,10000,16000,17000,17000,artifacts/rf/rate_sweep_smoke/mocap_bridge_20ms.summary
+10,98.33,98.33,196.67,1.69,1.69,3000,10000,11000,26000,artifacts/rf/rate_sweep_smoke/mocap_bridge_10ms.summary

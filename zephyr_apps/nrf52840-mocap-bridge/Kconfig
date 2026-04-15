@@ -1,0 +1,79 @@
+mainmenu "Helix nRF52840 Mocap Bridge"
+
+source "Kconfig.zephyr"
+
+menu "Helix Mocap Bridge"
+
+choice HELIX_MOCAP_BRIDGE_ROLE
+	prompt "Bridge role"
+	default HELIX_MOCAP_BRIDGE_ROLE_CENTRAL
+
+config HELIX_MOCAP_BRIDGE_ROLE_CENTRAL
+	bool "Central / PRX"
+
+config HELIX_MOCAP_BRIDGE_ROLE_NODE
+	bool "Synthetic node / PTX"
+
+endchoice
+
+config HELIX_MOCAP_NODE_ID
+	int "Node ID"
+	range 1 255
+	default 1
+
+config HELIX_MOCAP_CENTRAL_ID
+	int "Central ID"
+	range 0 255
+	default 0
+
+config HELIX_MOCAP_PIPE
+	int "ESB pipe"
+	range 0 7
+	default 0
+
+config HELIX_MOCAP_RF_CHANNEL
+	int "ESB RF channel"
+	range 0 100
+	default 40
+
+config HELIX_MOCAP_SEND_PERIOD_MS
+	int "Node send period in milliseconds"
+	range 5 5000
+	default 20
+
+config HELIX_MOCAP_SESSION_TAG
+	int "Session tag"
+	range 0 255
+	default 77
+
+config HELIX_MOCAP_MAX_TRACKED_NODES
+	int "Maximum tracked nodes at the central"
+	range 1 16
+	default 10
+
+config HELIX_MOCAP_USB_WAIT_FOR_DTR_MS
+	int "How long the central waits for host DTR before continuing"
+	range 0 30000
+	default 5000
+
+config HELIX_MOCAP_USB_VID
+	hex "USB vendor ID"
+	range 0x0001 0xFFFF
+	default 0x1915
+
+config HELIX_MOCAP_USB_PID
+	hex "USB product ID"
+	range 0x0001 0xFFFF
+	default 0x1040 if HELIX_MOCAP_BRIDGE_ROLE_CENTRAL
+	default 0x1041 if HELIX_MOCAP_BRIDGE_ROLE_NODE
+
+config HELIX_MOCAP_NODE_LED_DEBUG
+	bool "Encode node RF state in LED cadence"
+	default y if HELIX_MOCAP_BRIDGE_ROLE_NODE
+	help
+	  When enabled on node builds, the LED cadence indicates node state:
+	  fast blink means the node is alive but has not yet confirmed TX success,
+	  medium blink means TX is succeeding without sync anchors, and slow blink
+	  means sync anchors are being received from the central.
+
+endmenu
