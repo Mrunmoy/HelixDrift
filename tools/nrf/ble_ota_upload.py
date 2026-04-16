@@ -21,6 +21,8 @@ def parse_args():
     p = argparse.ArgumentParser(description="Upload a signed image over Helix BLE OTA.")
     p.add_argument("image_bin")
     p.add_argument("--name", default="HelixOTA-v1")
+    p.add_argument("--name-prefix", action="store_true",
+                   help="Match any device whose name starts with --name")
     p.add_argument("--expect-after", default="HelixOTA-v2")
     p.add_argument("--expect-same-name", action="store_true")
     p.add_argument("--target-id", type=lambda v: int(v, 0))
@@ -47,13 +49,16 @@ def parse_args():
     return p.parse_args()
 
 
-async def find_device(name: str, timeout: float):
+async def find_device(name: str, timeout: float, prefix: bool = False):
     devices = await BleakScanner.discover(timeout=timeout, return_adv=True)
     for _addr, (dev, adv) in devices.items():
         local_name = adv.local_name or ""
         dev_name = dev.name or ""
         uuids = [u.lower() for u in (adv.service_uuids or [])]
-        if dev_name == name or local_name == name or OTA_SERVICE_UUID in uuids:
+        if prefix:
+            if dev_name.startswith(name) or local_name.startswith(name):
+                return dev
+        elif dev_name == name or local_name == name:
             return dev
     return None
 
@@ -96,7 +101,7 @@ async def main_async():
     announced_before = False
     retries_left = args.resume_retries
     while True:
-        device = await find_device(args.name, args.scan_timeout)
+        device = await find_device(args.name, args.scan_timeout, prefix=args.name_prefix)
         if not device:
             raise RuntimeError(f"target not found: {args.name}")
 
@@ -212,7 +217,7 @@ async def main_async():
     expected_name = args.name if args.expect_same_name else args.expect_after
     for _ in range(20):
         await asyncio.sleep(1.0)
-        device = await find_device(expected_name, 2.0)
+        device = await find_device(expected_name, 2.0, prefix=True)
         if device:
             print(f"after: {device.address} {device.name}")
             return 0
