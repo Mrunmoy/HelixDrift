@@ -131,13 +131,11 @@ Current M7 bring-up progress:
 - [ ] once the first `nrf52840` dongle proves `Helix840-v1 -> Helix840-v2`
       over BLE cleanly, repeat the same flow on the second 52840 target and
       then lock the 52840 BLE OTA lane with updated README/how-to docs
-- [ ] OTA BLE advertising still needs per-board unique names for fleet
-      operation:
-      derive a short stable suffix from each board's BLE identity/MAC address,
-      append it to the configured product/version prefix without exceeding
-      legacy advertising name limits, and update the uploader workflow to
-      target individual boards reliably when multiple `HelixPico-*` devices
-      are advertising at the same time
+- [x] OTA BLE advertising now uses per-board unique names:
+      a 4-char hex suffix from FICR DEVICEADDR is appended at runtime
+      (e.g. `HelixPico-v1-0D16`), the uploader supports `--name-prefix`
+      for fleet targeting, and the suffix is preserved across OTA upgrades
+      (proven: `HelixPico-v1-0D16` -> `HelixPico-v2-0D16` on real hardware)
 
 ## Planned Focus: M8 Multi-Node RF Aggregation
 
