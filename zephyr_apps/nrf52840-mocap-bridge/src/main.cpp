@@ -523,15 +523,18 @@ static helix::BleOtaService ota_service{ota_adapter, CONFIG_HELIX_OTA_TARGET_ID}
 static struct bt_conn *ota_conn;
 static bool ota_connected;
 
+static volatile bool ota_commit_pending;
+
 static ssize_t ota_write_ctrl(struct bt_conn *, const struct bt_gatt_attr *,
                               const void *buf, uint16_t len, uint16_t, uint8_t)
 {
 	auto status = ota_service.handleControlWrite(static_cast<const uint8_t *>(buf), len);
 	if (status == helix::OtaStatus::OK &&
 	    ota_manager.state() == helix::OtaState::COMMITTED) {
-		printk("ota: committed, rebooting\n");
-		k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
-		sys_reboot(SYS_REBOOT_COLD);
+		/* Don't reboot inside the GATT callback — the flash write in
+		 * setPendingUpgrade() interferes with BLE timing. Signal the
+		 * main OTA loop to handle the reboot. */
+		ota_commit_pending = true;
 	}
 	return status == helix::OtaStatus::OK
 	       ? static_cast<ssize_t>(len)
@@ -677,12 +680,18 @@ static bool run_ota_boot_window(void)
 	}
 
 	/* Connected — run OTA until complete or disconnect.
-	 * OTA commit triggers reboot inside ota_write_ctrl().
-	 * Stall watchdog: if no data for 30s, force disconnect. */
+	 * Commit is deferred from the GATT callback to avoid flash writes
+	 * interfering with BLE timing. The ota_commit_pending flag signals
+	 * that commit succeeded and we should reboot. */
 	printk("ota: running OTA transfer\n");
 	uint32_t last_bytes = 0;
 	uint32_t stall_ticks = 0;
 	while (ota_connected) {
+		if (ota_commit_pending) {
+			printk("ota: commit done, rebooting\n");
+			k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
+			sys_reboot(SYS_REBOOT_COLD);
+		}
 		uint32_t bytes = ota_manager.bytesReceived();
 		if (ota_manager.state() == helix::OtaState::RECEIVING) {
 			if (bytes == last_bytes) {
@@ -699,6 +708,12 @@ static bool run_ota_boot_window(void)
 		}
 		led_set(((k_uptime_get() / 250) & 1) != 0); /* medium blink = OTA active */
 		k_sleep(K_MSEC(50));
+	}
+	/* Check commit after disconnect too (commit might have set flag just as connection dropped) */
+	if (ota_commit_pending) {
+		printk("ota: commit done (post-disconnect), rebooting\n");
+		k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
+		sys_reboot(SYS_REBOOT_COLD);
 	}
 
 	/* If we get here without reboot, OTA was aborted or stalled */
