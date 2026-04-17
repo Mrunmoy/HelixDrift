@@ -89,15 +89,20 @@ The radio divides this band into **101 channels**, numbered 0–100. Each
 channel is 1 MHz wide. Our system uses **channel 40** by default, which
 corresponds to a center frequency of **2.440 GHz**.
 
-```mermaid
-graph LR
-    CH0["Ch 0\n2.400 GHz"] ~~~ DOTS1["..."] ~~~ CH39["Ch 39"] ~~~ CH40["Ch 40\n2.440 GHz"] ~~~ CH41["Ch 41"] ~~~ DOTS2["..."] ~~~ CH100["Ch 100\n2.4835 GHz"]
-    style CH40 fill:#4CAF50,stroke:#2E7D32,color:#fff
-    style DOTS1 fill:none,stroke:none
-    style DOTS2 fill:none,stroke:none
-```
+<table>
+<tr>
+<td style="background:#e0e0e0; border:2px solid #999; padding:6px 14px; text-align:center;">Ch 0<br><sub>2.400 GHz</sub></td>
+<td style="background:#f5f5f5; border:2px solid #ccc; padding:6px 10px; text-align:center;">Ch 1</td>
+<td style="border:none; text-align:center; padding:6px 8px;">···</td>
+<td style="background:#f5f5f5; border:2px solid #ccc; padding:6px 10px; text-align:center;">Ch 39</td>
+<td style="background:#4CAF50; color:white; border:2px solid #2E7D32; padding:6px 14px; text-align:center; font-weight:bold;">Ch 40<br><sub>2.440 GHz</sub></td>
+<td style="background:#f5f5f5; border:2px solid #ccc; padding:6px 10px; text-align:center;">Ch 41</td>
+<td style="border:none; text-align:center; padding:6px 8px;">···</td>
+<td style="background:#e0e0e0; border:2px solid #999; padding:6px 14px; text-align:center;">Ch 100<br><sub>2.4835 GHz</sub></td>
+</tr>
+</table>
 
-> **We transmit on Channel 40 (2.440 GHz) by default.**
+> **▲ We transmit on Channel 40 (2.440 GHz) by default.**
 
 ### 2.2 What Is a Packet?
 
@@ -238,25 +243,24 @@ frame to the Hub.
 Every ESB packet has this structure, MSB (most significant bit) first
 on the air:
 
-```mermaid
-graph LR
-    P["Preamble\n1 byte"]
-    A["Address\n5 bytes"]
-    PCF["PCF\n9 bits"]
-    PL["Payload\n0 to 32 bytes"]
-    CRC["CRC\n2 bytes"]
+<table>
+<tr>
+<td style="background:#e0e0e0; border:2px solid #999; padding:10px 16px; text-align:center; font-weight:bold;">Preamble<br><sub>1 byte</sub></td>
+<td style="background:#e0e0e0; border:2px solid #999; padding:10px 16px; text-align:center; font-weight:bold;">Address<br><sub>5 bytes</sub></td>
+<td style="background:#e0e0e0; border:2px solid #999; padding:10px 16px; text-align:center; font-weight:bold;">PCF<br><sub>9 bits</sub></td>
+<td style="background:#4CAF50; color:white; border:2px solid #2E7D32; padding:10px 30px; text-align:center; font-weight:bold;">Payload<br><sub>0–32 bytes</sub></td>
+<td style="background:#e0e0e0; border:2px solid #999; padding:10px 16px; text-align:center; font-weight:bold;">CRC<br><sub>2 bytes</sub></td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc; padding:4px 16px; text-align:center; font-size:12px;">Hardware<br>auto-generated</td>
+<td style="border:1px solid #ccc; padding:4px 16px; text-align:center; font-size:12px;">Hardware<br>address match</td>
+<td style="border:1px solid #ccc; padding:4px 16px; text-align:center; font-size:12px;">Hardware<br>auto-populated</td>
+<td style="border:1px solid #ccc; padding:4px 30px; text-align:center; font-size:12px; font-weight:bold;">⬆ YOUR DATA ⬆<br>Only part firmware touches</td>
+<td style="border:1px solid #ccc; padding:4px 16px; text-align:center; font-size:12px;">Hardware<br>auto-computed</td>
+</tr>
+</table>
 
-    P --> A --> PCF --> PL --> CRC
-
-    style P fill:#e0e0e0,stroke:#999
-    style A fill:#e0e0e0,stroke:#999
-    style PCF fill:#e0e0e0,stroke:#999
-    style PL fill:#4CAF50,stroke:#2E7D32,color:#fff
-    style CRC fill:#e0e0e0,stroke:#999
-```
-
-> **Green = your application data.** Grey = handled entirely by radio hardware.
-> You only ever touch the Payload. Everything else is automatic.
+> **🟩 Green = your application data.** Grey = handled entirely by radio hardware.
 
 **Total bytes on air** for a 24-byte mocap frame:
 1 (preamble) + 5 (address) + 2 (PCF, rounded to bytes) + 24 (payload)
@@ -374,25 +378,22 @@ We describe these structs in detail in Chapter 5.
 Here's what a **24-byte mocap frame** looks like as it physically
 travels from Tag to Hub:
 
-```mermaid
-graph LR
-    P["0xAA\nPreamble\n1 byte"]
-    A["E7 A1 B2 C1 D3\nAddress\n5 bytes"]
-    PCF["L=24, PID, NoACK=0\nPCF\n9 bits"]
-    PL["Mocap Frame\nPayload\n24 bytes"]
-    CRC["CRC-16\n2 bytes"]
+<table>
+<tr>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">0xAA<br><sub>Preamble</sub><br><sub>1 byte</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">E7 A1 B2 C1 D3<br><sub>Address (Pipe 0)</sub><br><sub>5 bytes</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">L=24, PID, NoACK=0<br><sub>PCF</sub><br><sub>9 bits</sub></th>
+<th style="background:#4CAF50; color:white; border:2px solid #2E7D32; padding:8px 20px; text-align:center; font-family:monospace;">Mocap Frame<br><sub>Payload (see Ch. 5)</sub><br><sub>24 bytes</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">CRC-16<br><sub>Auto-computed</sub><br><sub>2 bytes</sub></th>
+</tr>
+<tr>
+<td colspan="3" style="border:1px solid #ccc; text-align:center; padding:4px; font-size:12px;">← Radio hardware handles these fields →</td>
+<td style="border:1px solid #ccc; text-align:center; padding:4px; font-size:12px; font-weight:bold;">← Firmware fills this →</td>
+<td style="border:1px solid #ccc; text-align:center; padding:4px; font-size:12px;">← Hardware →</td>
+</tr>
+</table>
 
-    P --> A --> PCF --> PL --> CRC
-
-    style P fill:#e0e0e0,stroke:#999
-    style A fill:#e0e0e0,stroke:#999
-    style PCF fill:#e0e0e0,stroke:#999
-    style PL fill:#4CAF50,stroke:#2E7D32,color:#fff
-    style CRC fill:#e0e0e0,stroke:#999
-```
-
-> **Radio hardware** handles everything in grey.
-> **Your firmware** only fills the green payload (24 bytes).
+> **Total: 34 bytes on the air** for 24 bytes of useful data.
 
 At **2 Mbps**, these 34 bytes take approximately **136 µs** to transmit
 (34 × 8 bits ÷ 2,000,000 bits/sec = 136 µs). That's 0.136 milliseconds.
@@ -403,24 +404,18 @@ When the Hub (PRX) receives a valid packet, it automatically sends back
 an **ACK** (acknowledgment). The ACK is itself a full ESB packet with
 the same address, but with the Hub's payload stuffed inside:
 
-```mermaid
-graph LR
-    P["0xAA\nPreamble\n1 byte"]
-    A["E7 A1 B2 C1 D3\nAddress\n5 bytes"]
-    PCF["L=8, PID, NoACK=0\nPCF\n9 bits"]
-    PL["Sync Anchor\nACK Payload\n8 bytes"]
-    CRC["CRC-16\n2 bytes"]
+<table>
+<tr>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">0xAA<br><sub>Preamble</sub><br><sub>1 byte</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">E7 A1 B2 C1 D3<br><sub>Address (Pipe 0)</sub><br><sub>5 bytes</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">L=8, PID, NoACK=0<br><sub>PCF</sub><br><sub>9 bits</sub></th>
+<th style="background:#2196F3; color:white; border:2px solid #1565C0; padding:8px 20px; text-align:center; font-family:monospace;">Sync Anchor<br><sub>ACK Payload</sub><br><sub>8 bytes</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">CRC-16<br><sub>Auto-computed</sub><br><sub>2 bytes</sub></th>
+</tr>
+</table>
 
-    P --> A --> PCF --> PL --> CRC
-
-    style P fill:#e0e0e0,stroke:#999
-    style A fill:#e0e0e0,stroke:#999
-    style PCF fill:#e0e0e0,stroke:#999
-    style PL fill:#2196F3,stroke:#1565C0,color:#fff
-    style CRC fill:#e0e0e0,stroke:#999
-```
-
-> **Blue = Hub's sync anchor data** riding free inside the hardware ACK.
+> **🟦 Blue = Hub's sync anchor data** riding free inside the hardware ACK.
+> Total: **16 bytes on the air** — no extra radio transmission needed.
 
 This is the clever trick: **the sync anchor rides for free inside the
 hardware ACK**. No extra radio transmission is needed — the ACK was
@@ -605,15 +600,91 @@ so the synced time is 999,500 µs. Position is (0, 1000, 2000) mm.
 
 First, the firmware fills the struct. Here's what's in memory:
 
-| Byte | `00` | `01` | `02` | `03` | `04` | `05` | `06` | `07` | `08` | `09` | `0A` | `0B` |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Hex** | `C1` | `02` | `2A` | `4D` | `40` | `42` | `0F` | `00` | `8C` | `3F` | `0F` | `00` |
-| **Field** | type | id | seq | sess | local_ts (1,000,000) | | | | synced_ts (999,500) | | | |
+<table>
+<tr>
+<th style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">Offset</th>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">0</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">1</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">2</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">3</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">4</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">5</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">6</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">7</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">8</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">9</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">10</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">11</td>
+</tr>
+<tr>
+<th style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">Hex</th>
+<td style="background:#FFF3E0; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">C1</td>
+<td style="background:#FFF3E0; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">02</td>
+<td style="background:#FFF3E0; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">2A</td>
+<td style="background:#FFF3E0; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">4D</td>
+<td style="background:#E8F5E9; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">40</td>
+<td style="background:#E8F5E9; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">42</td>
+<td style="background:#E8F5E9; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">0F</td>
+<td style="background:#E8F5E9; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">00</td>
+<td style="background:#E3F2FD; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">8C</td>
+<td style="background:#E3F2FD; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">3F</td>
+<td style="background:#E3F2FD; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">0F</td>
+<td style="background:#E3F2FD; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">00</td>
+</tr>
+<tr>
+<th style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">Field</th>
+<td style="background:#FFF3E0; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">type</td>
+<td style="background:#FFF3E0; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">id</td>
+<td style="background:#FFF3E0; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">seq</td>
+<td style="background:#FFF3E0; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">sess</td>
+<td colspan="4" style="background:#E8F5E9; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">node_local_timestamp_us = 1,000,000</td>
+<td colspan="4" style="background:#E3F2FD; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">node_synced_timestamp_us = 999,500</td>
+</tr>
+</table>
 
-| Byte | `0C` | `0D` | `0E` | `0F` | `10` | `11` | `12` | `13` | `14` | `15` | `16` | `17` |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Hex** | `41` | `23` | `B8` | `0B` | `F6` | `FF` | `00` | `00` | `E8` | `03` | `D0` | `07` |
-| **Field** | yaw (9025) | | pitch (3000) | | roll (-10) | | x (0) | | y (1000) | | z (2000) | |
+<table>
+<tr>
+<th style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">Offset</th>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">12</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">13</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">14</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">15</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">16</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">17</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">18</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">19</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">20</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">21</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">22</td>
+<td style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">23</td>
+</tr>
+<tr>
+<th style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">Hex</th>
+<td style="background:#FCE4EC; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">41</td>
+<td style="background:#FCE4EC; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">23</td>
+<td style="background:#FCE4EC; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">B8</td>
+<td style="background:#FCE4EC; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">0B</td>
+<td style="background:#FCE4EC; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">F6</td>
+<td style="background:#FCE4EC; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">FF</td>
+<td style="background:#F3E5F5; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">00</td>
+<td style="background:#F3E5F5; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">00</td>
+<td style="background:#F3E5F5; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">E8</td>
+<td style="background:#F3E5F5; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">03</td>
+<td style="background:#F3E5F5; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">D0</td>
+<td style="background:#F3E5F5; border:1px solid #999; padding:4px 6px; text-align:center; font-family:monospace; font-weight:bold;">07</td>
+</tr>
+<tr>
+<th style="border:1px solid #999; padding:4px 6px; text-align:center; font-size:11px;">Field</th>
+<td colspan="2" style="background:#FCE4EC; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">yaw = 9025<br>(90.25°)</td>
+<td colspan="2" style="background:#FCE4EC; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">pitch = 3000<br>(30.00°)</td>
+<td colspan="2" style="background:#FCE4EC; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">roll = −10<br>(−0.10°)</td>
+<td colspan="2" style="background:#F3E5F5; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">x = 0<br>(0 mm)</td>
+<td colspan="2" style="background:#F3E5F5; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">y = 1000<br>(1.0 m)</td>
+<td colspan="2" style="background:#F3E5F5; border:1px solid #ddd; padding:4px 6px; text-align:center; font-size:10px;">z = 2000<br>(2.0 m)</td>
+</tr>
+</table>
+
+> 🟧 Orange = header fields &nbsp; 🟩 Green = local timestamp &nbsp; 🟦 Blue = synced timestamp &nbsp; 🟥 Pink = angles &nbsp; 🟪 Purple = position
 
 Let's verify one field — `node_local_timestamp_us = 1,000,000`:
 - 1,000,000 in hex = `0x000F4240`
@@ -631,22 +702,15 @@ And `roll_cdeg = -10` (which is −0.10°):
 
 Now ESB wraps the payload in its packet structure:
 
-```mermaid
-graph LR
-    P["0xAA\nPreamble"]
-    A["E7 A1 B2 C1 D3\nAddress"]
-    PCF["L=24\nPCF"]
-    PL["C1 02 2A 4D ...\nMocap Payload\n24 bytes"]
-    CRC["xx xx\nCRC-16"]
-
-    P --> A --> PCF --> PL --> CRC
-
-    style P fill:#e0e0e0,stroke:#999
-    style A fill:#e0e0e0,stroke:#999
-    style PCF fill:#e0e0e0,stroke:#999
-    style PL fill:#4CAF50,stroke:#2E7D32,color:#fff
-    style CRC fill:#e0e0e0,stroke:#999
-```
+<table>
+<tr>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">0xAA<br><sub>Preamble</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">E7 A1 B2 C1 D3<br><sub>Address</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">L=24<br><sub>PCF</sub></th>
+<th style="background:#4CAF50; color:white; border:2px solid #2E7D32; padding:8px 20px; text-align:center; font-family:monospace;">C1 02 2A 4D ...<br><sub>Mocap Payload (24 bytes)</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">xx xx<br><sub>CRC-16</sub></th>
+</tr>
+</table>
 
 > **34 bytes total on the air** for 24 bytes of useful data.
 
@@ -655,22 +719,15 @@ graph LR
 The Hub receives the frame, validates it, builds an anchor with its
 own clock reading (1,000,232 µs), and loads it into the ACK buffer:
 
-```mermaid
-graph LR
-    P["0xAA\nPreamble"]
-    A["E7 A1 B2 C1 D3\nAddress"]
-    PCF["L=8\nPCF"]
-    PL["A1 00 0F 4D\n48 43 0F 00\nSync Anchor\n8 bytes"]
-    CRC["xx xx\nCRC-16"]
-
-    P --> A --> PCF --> PL --> CRC
-
-    style P fill:#e0e0e0,stroke:#999
-    style A fill:#e0e0e0,stroke:#999
-    style PCF fill:#e0e0e0,stroke:#999
-    style PL fill:#2196F3,stroke:#1565C0,color:#fff
-    style CRC fill:#e0e0e0,stroke:#999
-```
+<table>
+<tr>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">0xAA<br><sub>Preamble</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">E7 A1 B2 C1 D3<br><sub>Address</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">L=8<br><sub>PCF</sub></th>
+<th style="background:#2196F3; color:white; border:2px solid #1565C0; padding:8px 20px; text-align:center; font-family:monospace;">A1 00 0F 4D 48 43 0F 00<br><sub>Sync Anchor (8 bytes)</sub></th>
+<th style="background:#e0e0e0; border:2px solid #999; padding:8px 12px; text-align:center; font-family:monospace;">xx xx<br><sub>CRC-16</sub></th>
+</tr>
+</table>
 
 > **16 bytes total on the air** — the anchor rides free inside the ACK.
 
