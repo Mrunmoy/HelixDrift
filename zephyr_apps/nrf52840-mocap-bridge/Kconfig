@@ -76,6 +76,14 @@ config HELIX_MOCAP_NODE_LED_DEBUG
 	  medium blink means TX is succeeding without sync anchors, and slow blink
 	  means sync anchors are being received from the central.
 
+config HELIX_OTA_HUB_RELAY
+	bool "Enable OTA relay from Hub to Tags over BLE"
+	default y if HELIX_MOCAP_BRIDGE_ROLE_CENTRAL && BT
+	help
+	  When enabled, the Hub can relay OTA firmware updates from the PC
+	  to Tags over BLE. The PC sends UartOtaProtocol frames over USB CDC,
+	  the Hub forwards them to a Tag's BLE GATT OTA service.
+
 config HELIX_OTA_BOOT_WINDOW_MS
 	int "BLE OTA boot window in milliseconds (0 to skip)"
 	range 0 60000
