@@ -325,8 +325,8 @@ static void central_handle_frame(const struct esb_payload *payload)
 		.central_timestamp_us = rx_timestamp_us,
 	};
 	struct esb_payload ack = {
-		.pipe = payload->pipe,
 		.length = sizeof(anchor),
+		.pipe = payload->pipe,
 	};
 
 	memcpy(ack.data, &anchor, sizeof(anchor));

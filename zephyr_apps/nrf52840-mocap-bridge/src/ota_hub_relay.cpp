@@ -1,14 +1,19 @@
 #include "ota_hub_relay.hpp"
 
-#include <zephyr/bluetooth/bluetooth.h>
-#include <zephyr/bluetooth/conn.h>
-#include <zephyr/bluetooth/gatt.h>
-#include <zephyr/bluetooth/uuid.h>
+#if defined(CONFIG_HELIX_OTA_HUB_RELAY)
+
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/ring_buffer.h>
 #include <string.h>
+
+extern "C" {
+#include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/gatt.h>
+#include <zephyr/bluetooth/uuid.h>
+}
 
 #include "UartOtaProtocol.hpp"
 
@@ -110,9 +115,22 @@ static void scan_recv_cb(const struct bt_le_scan_recv_info *info,
 			if (strncmp(name, target_name, strlen(target_name)) == 0) {
 				printk("relay: found %s\n", name);
 				bt_le_scan_stop();
+				static const struct bt_conn_le_create_param create_param = {
+					.options = BT_CONN_LE_OPT_NONE,
+					.interval = BT_GAP_SCAN_FAST_INTERVAL,
+					.window = BT_GAP_SCAN_FAST_WINDOW,
+					.interval_coded = 0,
+					.window_coded = 0,
+					.timeout = 0,
+				};
+				static const struct bt_le_conn_param conn_param = {
+					.interval_min = BT_GAP_INIT_CONN_INT_MIN,
+					.interval_max = BT_GAP_INIT_CONN_INT_MAX,
+					.latency = 0,
+					.timeout = 400,
+				};
 				int err = bt_conn_le_create(info->addr,
-					BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT,
-					&relay_conn);
+					&create_param, &conn_param, &relay_conn);
 				if (err) {
 					printk("relay: connect failed %d\n", err);
 					relay_state = RelayState::ERR;
@@ -358,7 +376,13 @@ bool ota_hub_relay_poll(void)
 			relay_state = RelayState::ERR;
 		} else {
 			printk("relay: scanning for %s\n", target_name);
-			err = bt_le_scan_start(BT_LE_SCAN_ACTIVE, nullptr);
+			static const struct bt_le_scan_param scan_param = {
+				.type = BT_LE_SCAN_TYPE_ACTIVE,
+				.options = BT_LE_SCAN_OPT_NONE,
+				.interval = BT_GAP_SCAN_FAST_INTERVAL,
+				.window = BT_GAP_SCAN_FAST_WINDOW,
+			};
+			err = bt_le_scan_start(&scan_param, nullptr);
 			if (err) {
 				printk("relay: scan start failed %d\n", err);
 				relay_state = RelayState::ERR;
@@ -394,3 +418,12 @@ bool ota_hub_relay_esb_can_restart(void)
 	}
 	return false;
 }
+
+#else /* !CONFIG_HELIX_OTA_HUB_RELAY */
+
+int ota_hub_relay_init(const struct device *) { return 0; }
+bool ota_hub_relay_poll(void) { return false; }
+bool ota_hub_relay_needs_esb_stop(void) { return false; }
+bool ota_hub_relay_esb_can_restart(void) { return false; }
+
+#endif /* CONFIG_HELIX_OTA_HUB_RELAY */
