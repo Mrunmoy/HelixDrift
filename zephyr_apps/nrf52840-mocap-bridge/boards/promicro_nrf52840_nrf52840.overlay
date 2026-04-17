@@ -1,0 +1,47 @@
+/*
+ * ProPico nRF52840 overlay for the mocap bridge (Tag node role).
+ * Redirect console from USB CDC ACM to physical UART and disable
+ * unused peripherals.
+ */
+
+/ {
+	chosen {
+		zephyr,console     = &uart0;
+		zephyr,shell-uart  = &uart0;
+		zephyr,uart-mcumgr = &uart0;
+		zephyr,bt-mon-uart = &uart0;
+		zephyr,bt-c2h-uart = &uart0;
+	};
+};
+
+&board_cdc_acm_uart {
+	status = "disabled";
+};
+
+&usbd {
+	status = "disabled";
+};
+
+&i2c0 {
+	status = "disabled";
+};
+
+&i2c1 {
+	status = "disabled";
+};
+
+&spi2 {
+	status = "disabled";
+};
+
+&pwm0 {
+	status = "disabled";
+};
+
+&adc {
+	status = "disabled";
+};
+
+&ieee802154 {
+	status = "disabled";
+};
