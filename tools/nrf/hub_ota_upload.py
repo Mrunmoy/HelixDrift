@@ -121,7 +121,8 @@ def main():
     print(f"Target: {args.target} (ID: 0x{args.target_id:08x})")
     print(f"Port: {args.port}")
 
-    ser = serial.Serial(args.port, args.baud, timeout=0.1)
+    ser = serial.Serial(args.port, args.baud, timeout=0.1,
+                         dsrdtr=True, rtscts=False, write_timeout=5)
     ser.reset_input_buffer()
 
     # Step 1: Send InfoReq with target name
@@ -135,7 +136,7 @@ def main():
 
     # Wait for Hub to scan, connect, and discover GATT
     print("Hub scanning and connecting...")
-    time.sleep(5)
+    time.sleep(3)
 
     # Step 2: Read status to verify connection
     ser.write(encode_frame(STATUS_REQ))

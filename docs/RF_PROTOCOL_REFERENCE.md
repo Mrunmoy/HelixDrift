@@ -12,28 +12,14 @@
 HelixDrift uses a **star topology**: one Hub receives from multiple Tags.
 
 ```mermaid
-graph TD
-    subgraph Tags["Body-Worn Tags (PTX)"]
-        T1["Tag 1<br/>wrist"]
-        T2["Tag 2<br/>elbow"]
-        T3["Tag 3<br/>shoulder"]
-    end
-
-    subgraph Hub["Hub / Central (PRX)"]
-        H["nRF52840 Dongle"]
-    end
-
-    subgraph Host["Host PC"]
-        PC["USB Serial Reader"]
-    end
-
-    T1 -- "Mocap Frame<br/>(24B, 50-100 Hz)" --> H
-    T2 -- "Mocap Frame<br/>(24B, 50-100 Hz)" --> H
-    T3 -- "Mocap Frame<br/>(24B, 50-100 Hz)" --> H
-    H -- "Sync Anchor<br/>(8B, piggybacked on ACK)" --> T1
-    H -- "Sync Anchor<br/>(8B, piggybacked on ACK)" --> T2
-    H -- "Sync Anchor<br/>(8B, piggybacked on ACK)" --> T3
-    H == "USB CDC Serial<br/>text lines" ==> PC
+graph LR
+    T1["🏷 Tag 1 — wrist"] -->|Frame 24B| Hub["📡 Hub — nRF52840 Dongle"]
+    T2["🏷 Tag 2 — elbow"] -->|Frame 24B| Hub
+    T3["🏷 Tag 3 — shoulder"] -->|Frame 24B| Hub
+    Hub -->|Anchor 8B via ACK| T1
+    Hub -->|Anchor 8B via ACK| T2
+    Hub -->|Anchor 8B via ACK| T3
+    Hub ==>|USB CDC text| PC["🖥 Host PC"]
 ```
 
 **Roles:**
@@ -80,23 +66,12 @@ Full comparison: `docs/rf-protocol-comparison.md`
 ESB uses a 5-byte address per pipe. The Hub listens on pipe 0; Tags transmit
 to pipe 0.
 
-```mermaid
-graph LR
-    subgraph Address["Pipe 0 Address (5 bytes)"]
-        B0["0xE7"] --- B1["0xA1"] --- B2["0xB2"] --- B3["0xC1"] --- B4["0xD3"]
-    end
+**Default Pipe 0 Address** (5 bytes, MSB first on air):
 
-    style B0 fill:#f9d,stroke:#333
-    style B1 fill:#ddf,stroke:#333
-    style B2 fill:#ddf,stroke:#333
-    style B3 fill:#ddf,stroke:#333
-    style B4 fill:#ddf,stroke:#333
-```
-
-| Component | Bytes | Default Value |
-|-----------|-------|---------------|
-| Base address 0 | `[0]...[3]` | `0xD3, 0xC1, 0xB2, 0xA1` |
-| Pipe 0 prefix | `[4]` | `0xE7` |
+| Byte | 4 (prefix) | 3 | 2 | 1 | 0 |
+|------|:----------:|:--:|:--:|:--:|:--:|
+| **Value** | `0xE7` | `0xA1` | `0xB2` | `0xC1` | `0xD3` |
+| **Role** | Pipe prefix | Base addr [3] | Base addr [2] | Base addr [1] | Base addr [0] |
 
 **Room isolation**: In production, each Hub derives a unique base address
 from its chip's FICR DEVICEADDR. Tags are pre-configured with their Hub's
@@ -344,16 +319,19 @@ default 20 ms):
 
 ```mermaid
 flowchart TD
-    Start["Main loop tick"] --> Ready{"tx_ready<br/>flag set?"}
-    Ready -- No --> Skip["Skip this tick<br/>(previous TX still in flight)"]
-    Ready -- Yes --> Clear["Clear tx_ready flag<br/>(atomic CAS)"]
-    Clear --> Fill["Fill HelixMocapFrame:<br/>• type = 0xC1<br/>• node_id from config<br/>• sequence = tx_attempts & 0xFF<br/>• timestamps<br/>• orientation data"]
-    Fill --> Sync["Compute synced timestamp:<br/>synced_us = local_us − offset"]
-    Sync --> TX["esb_write_payload()"]
-    TX --> Wait["Wait for ESB event callback"]
-    Wait --> Success["TX_SUCCESS:<br/>set tx_ready = 1"]
-    Wait --> Fail["TX_FAILED:<br/>flush TX FIFO<br/>set tx_ready = 1"]
+    Start["Main loop tick"] --> Ready{"tx_ready flag set?"}
+    Ready -- No --> Skip["Skip this tick"]
+    Ready -- Yes --> Clear["Clear tx_ready flag"]
+    Clear --> Fill["Fill HelixMocapFrame"]
+    Fill --> Sync["synced_us = local_us - offset"]
+    Sync --> TX["esb_write_payload"]
+    TX --> Wait["Wait for ESB event"]
+    Wait --> Success["TX_SUCCESS: set tx_ready"]
+    Wait --> Fail["TX_FAILED: flush, set tx_ready"]
 ```
+
+Frame assembly fills: `type=0xC1`, `node_id` from config,
+`sequence = tx_attempts mod 256`, both timestamps, and orientation data.
 
 **Key detail — backpressure**: The `tx_ready` atomic flag prevents the Tag
 from queuing a new frame while the previous one is still being retransmitted.

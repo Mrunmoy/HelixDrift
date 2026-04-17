@@ -312,7 +312,10 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 	auto ft = static_cast<FT>(frame.type);
 
 	if (ft == FT::InfoReq) {
-		/* Start OTA session: payload is target name (null-terminated string) */
+		/* Start OTA session: payload is target name (null-terminated string).
+		 * Don't send InfoRsp yet — ESB is still running and binary response
+		 * bytes would be interleaved with ASCII FRAME data. The response is
+		 * deferred until after ESB is stopped (in the BLE_INIT handler). */
 		if (relay_state != RelayState::IDLE && relay_state != RelayState::ERR) {
 			uint8_t rsp = 0xFF;
 			send_response(static_cast<uint8_t>(FT::InfoRsp), &rsp, 1);
@@ -326,9 +329,6 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 
 		printk("relay: OTA target=%s\n", target_name);
 		relay_state = RelayState::BLE_INIT;
-
-		uint8_t rsp = 0x00;
-		send_response(static_cast<uint8_t>(FT::InfoRsp), &rsp, 1);
 		return;
 	}
 
@@ -450,6 +450,13 @@ bool ota_hub_relay_poll(void)
 			return true; /* signal main loop to stop ESB */
 		}
 		esb_stop_requested = false;
+
+		/* Send deferred InfoRsp now that ESB is stopped and CDC TX is clean */
+		{
+			using FT = UartOtaProtocol::FrameType;
+			uint8_t rsp = 0x00;
+			send_response(static_cast<uint8_t>(FT::InfoRsp), &rsp, 1);
+		}
 
 		int err = bt_enable(nullptr);
 		if (err && err != -EALREADY) {
