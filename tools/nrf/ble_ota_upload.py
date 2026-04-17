@@ -20,10 +20,12 @@ CMD_COMMIT = 0x03
 def parse_args():
     p = argparse.ArgumentParser(description="Upload a signed image over Helix BLE OTA.")
     p.add_argument("image_bin")
-    p.add_argument("--name", default="HelixOTA-v1")
+    p.add_argument("--name", default="HTag",
+                   help="Device name or prefix to match")
     p.add_argument("--name-prefix", action="store_true",
                    help="Match any device whose name starts with --name")
-    p.add_argument("--expect-after", default="HelixOTA-v2")
+    p.add_argument("--expect-after", default="HTag",
+                   help="Name (or prefix) to expect after reboot")
     p.add_argument("--expect-same-name", action="store_true")
     p.add_argument("--target-id", type=lambda v: int(v, 0))
     p.add_argument("--no-wait-after", action="store_true")

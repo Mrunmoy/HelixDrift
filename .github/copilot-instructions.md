@@ -1,155 +1,118 @@
-# Copilot Instructions for HelixDrift / SensorFusion
+# Copilot Instructions for HelixDrift
 
-## Repository Layout
+## Project Context
 
-This repo is an embedded sensor fusion monorepo. The core library lives in `external/SensorFusion/` (a git submodule). The top-level `src/` directory is reserved for a future application layer. `third_party/esp-idf/` contains the Espressif IDF used for ESP32 cross-compilation.
+HelixDrift is a simulation-first mocap node firmware workspace targeting **nRF52840**. Host simulation is the source of truth for fusion, sync, calibration, and multi-node behavior; the nRF path stays thin and follows already-proven contracts.
 
-Work for drivers, middleware, tests, and platforms is done inside `external/SensorFusion/`.
+This branch (`nrf-xiao-nrf52840`) is **nRF-only**. Do not add ESP32 or other secondary-MCU-specific code or docs here.
+
+Target sensor stack: LSM6DSO (IMU), BMM350 (magnetometer), LPS22DF (barometer).
 
 ## Build & Test Commands
 
-All commands run from `external/SensorFusion/`:
+All commands run from the repo root. The build system uses `nix develop` under the hood.
 
 ```bash
-# Configure and build (host, with tests)
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
+# Host build + all tests (primary dev loop)
+./build.py --host-only -t
 
-# Run all tests
-./build/test/driver_tests
+# nRF cross-compile only (when platform code changes)
+./build.py --nrf-only
 
-# Run a single test suite via CTest filter
-ctest --test-dir build --output-on-failure -R test_mpu6050
+# Clean build
+./build.py --clean
 
-# Run a single GoogleTest case
-./build/test/driver_tests --gtest_filter='MPU6050Test.InitSuccess'
+# Convenience wrapper (host tests + nRF build)
+./magic.sh
 
-# Library-only build (no test binary)
-cmake -B build -DSENSORFUSION_BUILD_TESTS=OFF
-cmake --build build --parallel
+# Run a single unit test by name
+./build/host/helix_tests --gtest_filter='BlinkEngineTest.StartsOnByDefault'
 
-# Cross-compile for a specific platform backend
-cmake -B build -DSENSORFUSION_PLATFORM=esp32
-cmake --build build --parallel
+# Run a single integration test by name
+./build/host/helix_integration_tests --gtest_filter='VirtualSensorAssemblyTest.*'
 
-# Generate code size report
-scripts/generate_size_report.sh build _site
+# Run tests matching a CTest pattern
+ctest --test-dir build/host --output-on-failure -R test_blink_engine
 ```
 
 ## Architecture
 
-Five-layer stack (bottom to top):
+Two layers of code, two namespaces:
 
-```
-HAL Interfaces (drivers/hal/)        — platform-agnostic I/O contracts
-Sensor Drivers (drivers/)            — 17 sensor drivers implementing HAL
-Middleware (middleware/)             — fusion, codec, kinematics, ECG
-Platform Backends (platform/)        — concrete HAL for esp32 / nrf52 / stm32
-Application / Examples               — examples/ and main/
-```
+- **`helix`** namespace — HelixDrift application code in `firmware/common/` (BlinkEngine, MocapNodeLoop, MocapBleSender, OTA manager/service, timestamp sync transport)
+- **`sf`** namespace — SensorFusion library in `external/SensorFusion/` (sensor drivers, AHRS, codec, motion pipeline, calibration). This is a git submodule.
 
-### Key modules
+Key structural areas:
 
-| Directory | CMake target | Purpose |
-|-----------|-------------|---------|
-| `drivers/hal/` | — | Abstract interfaces: `II2CBus`, `ISPIBus`, `IAdcChannel`, `IGpioInterrupt`, `IGpioInput`, `IGpioOutput`, `IDelayProvider`, `INvStore` |
-| `drivers/` | `sensorfusion_drivers` | 17 sensor drivers (MPU6050, LSM6DSO, QMC5883L, BMM350, BMP180, LPS22DF, SHT40, SGP40, AD8232, BQ25101, …) |
-| `middleware/ahrs/` | `sensorfusion_middleware` | `MahonyAHRS` — 9-DOF complementary filter → quaternion |
-| `middleware/hub/` | — | `SensorHub` — multi-sensor read dispatcher with calibration |
-| `middleware/codec/` | — | `FrameCodec` (CRC-16 CCITT), `MocapBleTransport`, `TimestampSync` |
-| `middleware/motion/` | — | Mocap pipeline: linear accel, forward kinematics, ZUPT |
-| `middleware/ecg/` | — | `HeartRateDetector` (Pan-Tompkins) |
-| `middleware/altitude/` | — | `AltitudeEstimator` — barometer + accel complementary filter |
-| `drivers/calibration/` | — | `CalibrationStore`, `CalibrationFitter` |
-| `drivers/nvstore/` | — | `AT24CxxNvStore`, `WearLevelingNvStore` |
-| `platform/{esp32,nrf52,stm32}/` | — | Concrete HAL implementations |
-| `test/` | `driver_tests` | 428 GoogleTest unit tests |
+| Area | Location | Purpose |
+|------|----------|---------|
+| Common firmware | `firmware/common/` | Platform-agnostic embedded-safe runtime (no heap/RTTI/exceptions) |
+| OTA subsystem | `firmware/common/ota/` | MCUboot trailer, UART OTA protocol, OTA manager, BLE OTA service |
+| Unit tests | `tests/` | GoogleTest tests for `helix` code; binary: `helix_tests` |
+| Simulators | `simulators/` | Virtual I2C, sensor simulators, gimbal, magnetic environment, RF medium |
+| Integration tests | `simulators/tests/` | GoogleTest tests using simulators; binary: `helix_integration_tests` |
+| nRF examples | `examples/nrf52-*/` | Board-specific main apps (mocap node, blinky, OTA, bringup, selftest) |
+| SensorFusion | `external/SensorFusion/` | Drivers (LSM6DSO, BMM350, LPS22DF, etc.), MahonyAHRS, FrameCodec, MocapNodePipeline |
+
+### SensorFusion Submodule Rule
+
+If a fix belongs to SensorFusion, commit and push it in `external/SensorFusion/` first, then update the submodule pointer in this repo.
+
+### SensorFusion Internals (for `sf` namespace work)
+
+HAL interfaces in `drivers/hal/`: `II2CBus`, `ISPIBus`, `IDelayProvider`, `INvStore`, `IGpioInterrupt`, `IGpioInput`, `IGpioOutput`, `IAdcChannel`.
+
+Sensor drivers take HAL references via constructor injection. Middleware includes MahonyAHRS (9-DOF complementary filter → quaternion), FrameCodec (CRC-16 CCITT), MocapNodePipeline (linear accel, forward kinematics, ZUPT).
 
 ## Coding Conventions
 
 **Language**: C++17. No exceptions — use `bool` return values for error propagation.
 
-**Namespace**: All library code lives in `namespace sf {}`. Test mocks use `namespace sf::test {}`.
+**Namespaces**: `helix` for this repo, `sf` for SensorFusion.
 
 **Naming**:
-- Classes/types: `PascalCase` (`MPU6050`, `MahonyAHRS`, `CalibrationStore`)
-- Methods/functions: `camelCase` (`readAccel`, `getQuaternion`)
-- Private members: trailing underscore (`bus_`, `delay_`, `cfg_`, `q_`)
-- Constants / register addresses: `UPPER_SNAKE_CASE` (`PWR_MGMT_1`, `WHO_AM_I`)
+- Classes/types: `PascalCase` (`BlinkEngine`, `MahonyAHRS`)
+- Methods/functions: `camelCase` (`readAccel`, `sendQuaternion`)
+- Private members: trailing underscore (`bus_`, `cfg_`, `nextTickUs_`)
+- Constants / register addresses: `UPPER_SNAKE_CASE`
 - Enum classes: `PascalCase` variants (`enum class AccelRange { G2, G4, G8, G16 }`)
 
-**File layout**:
-- One class per file: `ClassName.hpp` / `ClassName.cpp`
-- Headers use `#pragma once`
-- Register address constants go in an unnamed namespace at the top of the `.cpp`
+**File layout**: one class per file (`ClassName.hpp` / `ClassName.cpp`), `#pragma once`, register constants in unnamed namespace at top of `.cpp`.
 
-**Typical driver shape**:
-```cpp
-// DriverName.hpp
-#pragma once
-#include "II2CBus.hpp"
-#include "IDelayProvider.hpp"
-namespace sf {
-    struct DriverConfig { /* default-initialized fields */ };
-    class DriverName {
-    public:
-        DriverName(II2CBus& bus, IDelayProvider& delay, const DriverConfig& cfg = {});
-        bool init();
-        bool readData(DataType& out);
-    private:
-        II2CBus& bus_;
-        IDelayProvider& delay_;
-        DriverConfig cfg_;
-    };
-} // namespace sf
+**Error handling**: guard-clause style — return `false` immediately on errors; no deep nesting.
 
-// DriverName.cpp
-namespace { constexpr uint8_t REG_WHO_AM_I = 0x0F; /* ... */ }
-```
+**Formatting**: 4-space indentation, braces on same line as control statements.
 
-**Data types**:
-- `uint8_t` — register addresses and raw byte values
-- `int16_t` — raw sensor ADC output before conversion
-- `float` — calibrated physical output (g, °/s, µT, hPa)
+**Templates**: `MocapNodeLoopT` pattern — template on Clock/Pipeline/Transport/Sample to enable host testing with mocks while compiling the same logic for nRF.
 
-**Error handling**: guard-clause style — return `false` immediately on bus errors; no deep nesting.
+## Testing
 
-**Formatting**: 4-space indentation, braces on the same line as control statements.
+Two test binaries, both GoogleTest + GMock:
 
-## Testing Conventions
+- **`helix_tests`** — unit tests in `tests/test_*.cpp`, mocks in `tests/mocks/`
+- **`helix_integration_tests`** — simulator-backed tests in `simulators/tests/test_*.cpp`
 
-Tests live in `test/test_<module>.cpp`. HAL mocks are in `test/mocks/` (`MockI2CBus.hpp`, `MockDelayProvider.hpp`, etc.).
+Test coverage expectations for new code: init success, init failure (bus/HW error), data correctness, and math/conversion accuracy.
 
-Typical test fixture:
-```cpp
-class MPU6050Test : public ::testing::Test {
-protected:
-    sf::test::MockI2CBus bus;
-    sf::test::MockDelayProvider delay;
-};
-TEST_F(MPU6050Test, InitSuccess) { /* EXPECT_CALL then assert */ }
-```
+## CI
 
-Every driver or middleware addition needs tests covering: init success, init failure (bus error), data read correctness, and conversion/math accuracy.
-
-## Platform Integration
-
-To integrate `SensorFusion` into an application (e.g., the ESP32-S3 example in `examples/esp32s3-mocap-node/`):
-
-```cmake
-add_subdirectory(external/SensorFusion)
-target_link_libraries(my_app PRIVATE sensorfusion_drivers sensorfusion_middleware)
-```
-
-Implement the HAL interfaces for your target in `platform/<target>/` and pass concrete instances to driver constructors.
+GitHub Actions workflow: `.github/workflows/ci.yml`
+- Host unit job: `helix_tests`
+- Host integration job: `helix_integration_tests`
 
 ## Commit Style
 
-Imperative, scoped summaries:
+Imperative, scoped summaries. Include test evidence (command + pass count) in PRs.
+
 ```
 Add portable LPS22DF barometric pressure driver with 11 tests
-Fix MPU6050 WHO_AM_I mask for variant detection
-Refactor SensorHub to use calibration pipeline
+Fix nRF52840 GPIO register layout for bare-metal LED drive
 ```
 
-Include test evidence in PRs: the exact command run and pass count.
+## Workflow Summary
+
+1. Write or update tests first where practical.
+2. Implement in `firmware/common/`, `simulators/`, or the nRF example as appropriate.
+3. Run `./build.py --host-only -t`.
+4. If platform code changed, run `./build.py --nrf-only`.
+5. Update docs and task tracking before handoff.
