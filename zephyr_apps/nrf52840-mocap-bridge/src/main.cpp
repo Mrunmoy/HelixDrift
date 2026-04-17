@@ -825,6 +825,7 @@ int main(void)
 		if (esb_running && ota_hub_relay_needs_esb_stop()) {
 			printk("hub: stopping ESB for OTA relay\n");
 			esb_disable();
+			k_sleep(K_MSEC(100)); /* let radio peripheral settle */
 			esb_running = false;
 		}
 

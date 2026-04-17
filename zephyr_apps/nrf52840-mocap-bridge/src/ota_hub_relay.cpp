@@ -125,9 +125,13 @@ static volatile size_t gatt_read_len;
 
 /* ── Scan callback ─────────────────────────────────────────────── */
 
-static void scan_recv_cb(const struct bt_le_scan_recv_info *info,
-                         struct net_buf_simple *buf)
+static volatile uint32_t scan_count;
+
+static void scan_result_cb(const bt_addr_le_t *addr, int8_t rssi,
+                           uint8_t adv_type, struct net_buf_simple *buf)
 {
+	scan_count++;
+
 	/* Parse advertising data for local name */
 	while (buf->len > 1) {
 		uint8_t len = net_buf_simple_pull_u8(buf);
@@ -158,7 +162,7 @@ static void scan_recv_cb(const struct bt_le_scan_recv_info *info,
 					.latency = 0,
 					.timeout = 400,
 				};
-				int err = bt_conn_le_create(info->addr,
+				int err = bt_conn_le_create(addr,
 					&create_param, &conn_param, &relay_conn);
 				if (err) {
 					printk("relay: connect failed %d\n", err);
@@ -172,10 +176,6 @@ static void scan_recv_cb(const struct bt_le_scan_recv_info *info,
 		net_buf_simple_pull(buf, len);
 	}
 }
-
-static struct bt_le_scan_cb scan_cb = {
-	.recv = scan_recv_cb,
-};
 
 /* ── Connection callbacks ──────────────────────────────────────── */
 
@@ -376,7 +376,6 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 int ota_hub_relay_init(const struct device *dev)
 {
 	host_dev = dev;
-	bt_le_scan_cb_register(&scan_cb);
 
 	/* Set up IRQ-driven RX. The CDC ACM driver in the new USB stack
 	 * only primes the bulk OUT endpoint when uart_irq_rx_enable() is
@@ -395,6 +394,13 @@ bool ota_hub_relay_poll(void)
 {
 	poll_count++;
 
+	/* Periodic scan status via host_write (not printk, which may block) */
+	if (relay_state == RelayState::SCANNING && (poll_count % 100) == 0) {
+		char dbg[48];
+		snprintk(dbg, sizeof(dbg), "SCAN_STATUS count=%u\n", scan_count);
+		host_write_bytes(reinterpret_cast<const uint8_t *>(dbg), strlen(dbg));
+	}
+
 	/* Drain IRQ ring buffer and feed into frame parser */
 	uint8_t byte;
 	while (rx_ring_get(&byte)) {
@@ -407,21 +413,30 @@ bool ota_hub_relay_poll(void)
 		}
 	}
 
-	/* Handle BLE init / scan state transitions */
+	/* Handle BLE init / scan state transitions.
+	 * When BLE_INIT is first set (by handle_relay_frame), return
+	 * immediately so the main loop can disable ESB before we call
+	 * bt_enable(). The radio is shared — ESB must be off first. */
 	if (relay_state == RelayState::BLE_INIT) {
+		static bool esb_stop_requested;
+		if (!esb_stop_requested) {
+			esb_stop_requested = true;
+			return true; /* signal main loop to stop ESB */
+		}
+		esb_stop_requested = false;
+
 		int err = bt_enable(nullptr);
 		if (err && err != -EALREADY) {
-			printk("relay: bt_enable failed %d\n", err);
 			relay_state = RelayState::ERR;
 		} else {
-			printk("relay: scanning for %s\n", target_name);
 			static const struct bt_le_scan_param scan_param = {
-				.type = BT_LE_SCAN_TYPE_ACTIVE,
+				.type = BT_LE_SCAN_TYPE_PASSIVE,
 				.options = BT_LE_SCAN_OPT_NONE,
 				.interval = BT_GAP_SCAN_FAST_INTERVAL,
 				.window = BT_GAP_SCAN_FAST_WINDOW,
 			};
-			err = bt_le_scan_start(&scan_param, nullptr);
+			scan_count = 0;
+			err = bt_le_scan_start(&scan_param, scan_result_cb);
 			if (err) {
 				printk("relay: scan start failed %d\n", err);
 				relay_state = RelayState::ERR;
@@ -436,7 +451,12 @@ bool ota_hub_relay_poll(void)
 
 bool ota_hub_relay_needs_esb_stop(void)
 {
-	return relay_state == RelayState::BLE_INIT;
+	/* ESB must be off whenever BLE is needed */
+	return relay_state == RelayState::BLE_INIT ||
+	       relay_state == RelayState::SCANNING ||
+	       relay_state == RelayState::CONNECTING ||
+	       relay_state == RelayState::DISCOVERING ||
+	       relay_state == RelayState::READY;
 }
 
 bool ota_hub_relay_esb_can_restart(void)
