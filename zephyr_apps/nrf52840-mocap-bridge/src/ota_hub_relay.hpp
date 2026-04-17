@@ -29,6 +29,10 @@ bool ota_hub_relay_needs_esb_stop(void);
 /* Check if the OTA session ended and ESB can restart. */
 bool ota_hub_relay_esb_can_restart(void);
 
+/* Debug: get total RX byte count and poll count. */
+uint32_t ota_hub_relay_rx_count(void);
+uint32_t ota_hub_relay_poll_count(void);
+
 #ifdef __cplusplus
 }
 #endif

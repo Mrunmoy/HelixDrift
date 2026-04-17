@@ -5,7 +5,6 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
-#include <zephyr/sys/ring_buffer.h>
 #include <string.h>
 
 extern "C" {
@@ -22,21 +21,51 @@ using helix::UartOtaMutableFrame;
 using helix::UartOtaFrameParser;
 
 /* ── USB CDC RX ────────────────────────────────────────────────── */
+/* The new USB device stack (CONFIG_USB_DEVICE_STACK_NEXT) only primes
+ * the bulk OUT endpoint when uart_irq_rx_enable() is called. Pure
+ * uart_poll_in() never triggers endpoint queueing, so the host write
+ * hangs indefinitely. We call uart_irq_rx_enable() at init to prime
+ * the endpoint, then use uart_poll_in() to read from the internal
+ * ring buffer. The endpoint re-primes on each read. */
 
-RING_BUF_DECLARE(usb_rx_rb, 1024);
 static const struct device *host_dev;
 static UartOtaFrameParser<512> parser;
 
-static void usb_rx_isr(const struct device *dev, void *user_data)
+/* IRQ-driven RX: the CDC ACM callback runs in the system workqueue
+ * context and drains data from the CDC ACM internal FIFO into our
+ * ring buffer. The main loop reads from our ring buffer. */
+#define RX_RING_SIZE 512
+static uint8_t rx_ring_buf[RX_RING_SIZE];
+static volatile uint16_t rx_head; /* callback writes */
+static volatile uint16_t rx_tail; /* main loop reads */
+
+static void uart_rx_callback(const struct device *dev, void *user_data)
 {
-	uart_irq_update(dev);
-	while (uart_irq_rx_ready(dev)) {
-		uint8_t buf[64];
-		int n = uart_fifo_read(dev, buf, sizeof(buf));
-		if (n > 0) {
-			ring_buf_put(&usb_rx_rb, buf, (uint32_t)n);
+	ARG_UNUSED(user_data);
+
+	while (uart_irq_update(dev) && uart_irq_is_pending(dev)) {
+		if (uart_irq_rx_ready(dev)) {
+			uint8_t buf[64];
+			int len = uart_fifo_read(dev, buf, sizeof(buf));
+			for (int i = 0; i < len; ++i) {
+				uint16_t next = (rx_head + 1) % RX_RING_SIZE;
+				if (next != rx_tail) {
+					rx_ring_buf[rx_head] = buf[i];
+					rx_head = next;
+				}
+			}
 		}
 	}
+}
+
+static bool rx_ring_get(uint8_t *byte)
+{
+	if (rx_tail == rx_head) {
+		return false;
+	}
+	*byte = rx_ring_buf[rx_tail];
+	rx_tail = (rx_tail + 1) % RX_RING_SIZE;
+	return true;
 }
 
 static void host_write_bytes(const uint8_t *data, size_t len)
@@ -347,23 +376,33 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 int ota_hub_relay_init(const struct device *dev)
 {
 	host_dev = dev;
-
-	uart_irq_callback_user_data_set(dev, usb_rx_isr, nullptr);
-	uart_irq_rx_enable(dev);
-
 	bt_le_scan_cb_register(&scan_cb);
 
-	printk("relay: init OK\n");
+	/* Set up IRQ-driven RX. The CDC ACM driver in the new USB stack
+	 * only primes the bulk OUT endpoint when uart_irq_rx_enable() is
+	 * called. The callback drains the CDC ACM FIFO into our ring buffer
+	 * using the proper uart_fifo_read API. */
+	uart_irq_callback_user_data_set(dev, uart_rx_callback, nullptr);
+	uart_irq_rx_enable(dev);
+	printk("relay: init OK (irq rx)\n");
 	return 0;
 }
 
+static uint32_t rx_byte_count;
+static uint32_t poll_count;
+
 bool ota_hub_relay_poll(void)
 {
-	/* Drain USB RX into parser */
+	poll_count++;
+
+	/* Drain IRQ ring buffer and feed into frame parser */
 	uint8_t byte;
-	while (ring_buf_get(&usb_rx_rb, &byte, 1) == 1) {
+	while (rx_ring_get(&byte)) {
+		rx_byte_count++;
 		UartOtaMutableFrame frame{};
 		if (parser.push(byte, frame)) {
+			printk("relay: got frame type=0x%02x len=%u\n",
+			       frame.type, (unsigned)frame.payloadLen);
 			handle_relay_frame(frame);
 		}
 	}
@@ -419,11 +458,16 @@ bool ota_hub_relay_esb_can_restart(void)
 	return false;
 }
 
+uint32_t ota_hub_relay_rx_count(void) { return rx_byte_count; }
+uint32_t ota_hub_relay_poll_count(void) { return poll_count; }
+
 #else /* !CONFIG_HELIX_OTA_HUB_RELAY */
 
 int ota_hub_relay_init(const struct device *) { return 0; }
 bool ota_hub_relay_poll(void) { return false; }
 bool ota_hub_relay_needs_esb_stop(void) { return false; }
 bool ota_hub_relay_esb_can_restart(void) { return false; }
+uint32_t ota_hub_relay_rx_count(void) { return 0; }
+uint32_t ota_hub_relay_poll_count(void) { return 0; }
 
 #endif /* CONFIG_HELIX_OTA_HUB_RELAY */
