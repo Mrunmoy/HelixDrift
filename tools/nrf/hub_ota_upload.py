@@ -153,7 +153,7 @@ def main():
         struct.pack("<I", args.target_id)
     print(f"\n--- BEGIN: size={len(image)} crc=0x{crc:08x} ---")
     ser.write(encode_frame(CTRL_WRITE, begin_payload))
-    rsp = read_response(ser, CTRL_RSP, timeout=45.0)
+    rsp = read_response(ser, CTRL_RSP, timeout=60.0)
     if rsp is None or rsp[0] != 0x00:
         print(f"ERROR: BEGIN failed: {rsp}")
         return 1

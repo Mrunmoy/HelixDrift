@@ -529,15 +529,32 @@ static bool ota_connected;
 
 static volatile bool ota_commit_pending;
 
+/* Deferred BEGIN: flash erase takes ~10s and would block the BLE stack
+ * if run inside the GATT callback, causing supervision timeout. Instead,
+ * we save the BEGIN parameters and process them in the main OTA loop. */
+static volatile bool ota_begin_pending;
+static uint8_t ota_begin_buf[16];
+static uint16_t ota_begin_len;
+
 static ssize_t ota_write_ctrl(struct bt_conn *, const struct bt_gatt_attr *,
                               const void *buf, uint16_t len, uint16_t, uint8_t)
 {
-	auto status = ota_service.handleControlWrite(static_cast<const uint8_t *>(buf), len);
+	const auto *data = static_cast<const uint8_t *>(buf);
+
+	/* Defer BEGIN (cmd=0x01) to the main loop — flash erase is too slow
+	 * to run inside the GATT callback. */
+	if (len > 0 && data[0] == helix::BleOtaService::CMD_BEGIN) {
+		if (len <= sizeof(ota_begin_buf)) {
+			memcpy(ota_begin_buf, data, len);
+			ota_begin_len = len;
+			ota_begin_pending = true;
+		}
+		return static_cast<ssize_t>(len); /* ACK immediately */
+	}
+
+	auto status = ota_service.handleControlWrite(data, len);
 	if (status == helix::OtaStatus::OK &&
 	    ota_manager.state() == helix::OtaState::COMMITTED) {
-		/* Don't reboot inside the GATT callback — the flash write in
-		 * setPendingUpgrade() interferes with BLE timing. Signal the
-		 * main OTA loop to handle the reboot. */
 		ota_commit_pending = true;
 	}
 	return status == helix::OtaStatus::OK
@@ -691,6 +708,14 @@ static bool run_ota_boot_window(void)
 	uint32_t last_bytes = 0;
 	uint32_t stall_ticks = 0;
 	while (ota_connected) {
+		/* Deferred BEGIN: run flash erase in the main loop where it
+		 * won't block the BLE stack's connection event processing. */
+		if (ota_begin_pending) {
+			printk("ota: begin (deferred erase)\n");
+			auto status = ota_service.handleControlWrite(ota_begin_buf, ota_begin_len);
+			printk("ota: begin status=%d\n", static_cast<int>(status));
+			ota_begin_pending = false;
+		}
 		if (ota_commit_pending) {
 			printk("ota: commit done, rebooting\n");
 			k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));

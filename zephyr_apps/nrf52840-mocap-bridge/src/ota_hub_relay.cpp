@@ -160,7 +160,7 @@ static void scan_result_cb(const bt_addr_le_t *addr, int8_t rssi,
 					.interval_min = BT_GAP_INIT_CONN_INT_MIN,
 					.interval_max = BT_GAP_INIT_CONN_INT_MAX,
 					.latency = 0,
-					.timeout = 400,
+					.timeout = 3200, /* 32s — Tag flash erase takes ~10s */
 				};
 				int err = bt_conn_le_create(addr,
 					&create_param, &conn_param, &relay_conn);
@@ -244,6 +244,17 @@ static void relay_connected(struct bt_conn *conn, uint8_t err)
 	}
 	printk("relay: connected\n");
 	relay_state = RelayState::DISCOVERING;
+
+	/* Request longer supervision timeout for flash erase (~10s) */
+	{
+		static const struct bt_le_conn_param update_param = {
+			.interval_min = 6,   /* 7.5ms */
+			.interval_max = 24,  /* 30ms */
+			.latency = 0,
+			.timeout = 3200,     /* 32s */
+		};
+		bt_conn_le_param_update(conn, &update_param);
+	}
 
 	gatt_ctrl_handle = 0;
 	gatt_data_handle = 0;
@@ -342,22 +353,31 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 
 	if (ft == FT::CtrlWrite) {
 		/* Forward CTRL write to Tag */
+		printk("relay: ctrl write h=%u len=%u cmd=0x%02x\n",
+		       gatt_ctrl_handle, frame.payloadLen,
+		       frame.payloadLen > 0 ? frame.payload[0] : 0xFF);
 		gatt_write_done = false;
+		static uint8_t ctrl_buf[64];
+		size_t copyLen = frame.payloadLen < sizeof(ctrl_buf)
+		                 ? frame.payloadLen : sizeof(ctrl_buf);
+		memcpy(ctrl_buf, frame.payload, copyLen);
 		write_params.handle = gatt_ctrl_handle;
 		write_params.offset = 0;
-		write_params.data = frame.payload;
-		write_params.length = frame.payloadLen;
+		write_params.data = ctrl_buf;
+		write_params.length = copyLen;
 		write_params.func = gatt_write_cb;
 		int err = bt_gatt_write(relay_conn, &write_params);
+		printk("relay: bt_gatt_write=%d\n", err);
 		if (err) {
 			uint8_t rsp = 0xFE;
 			send_response(static_cast<uint8_t>(FT::CtrlRsp), &rsp, 1);
 			return;
 		}
-		/* Wait for callback */
-		for (int i = 0; i < 300 && !gatt_write_done; ++i) {
+		/* Wait for callback — BEGIN triggers flash erase (~10s) */
+		for (int i = 0; i < 600 && !gatt_write_done; ++i) {
 			k_sleep(K_MSEC(100));
 		}
+		printk("relay: write done=%d err=%d\n", gatt_write_done, gatt_write_err);
 		uint8_t rsp = gatt_write_done ? static_cast<uint8_t>(gatt_write_err) : 0xFD;
 		send_response(static_cast<uint8_t>(FT::CtrlRsp), &rsp, 1);
 

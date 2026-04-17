@@ -85,13 +85,15 @@ The radio divides this band into **101 channels**, numbered 0–100. Each
 channel is 1 MHz wide. Our system uses **channel 40** by default, which
 corresponds to a center frequency of **2.440 GHz**.
 
+```mermaid
+graph LR
+    CH0["Ch 0\n2.400 GHz"] ~~~ DOTS1["..."] ~~~ CH39["Ch 39"] ~~~ CH40["Ch 40\n2.440 GHz"] ~~~ CH41["Ch 41"] ~~~ DOTS2["..."] ~~~ CH100["Ch 100\n2.4835 GHz"]
+    style CH40 fill:#4CAF50,stroke:#2E7D32,color:#fff
+    style DOTS1 fill:none,stroke:none
+    style DOTS2 fill:none,stroke:none
 ```
-2.400 GHz                    2.440 GHz                    2.4835 GHz
-   |                            |                            |
-   ├──ch 0──ch 1── ... ──ch 39──┤ch 40├──ch 41── ... ──ch 100┤
-                                  ▲
-                           We transmit here
-```
+
+> **We transmit on Channel 40 (2.440 GHz) by default.**
 
 ### 2.2 What Is a Packet?
 
@@ -224,22 +226,25 @@ frame to the Hub.
 Every ESB packet has this structure, MSB (most significant bit) first
 on the air:
 
+```mermaid
+graph LR
+    P["Preamble\n1 byte"]
+    A["Address\n5 bytes"]
+    PCF["PCF\n9 bits"]
+    PL["Payload\n0 to 32 bytes"]
+    CRC["CRC\n2 bytes"]
+
+    P --> A --> PCF --> PL --> CRC
+
+    style P fill:#e0e0e0,stroke:#999
+    style A fill:#e0e0e0,stroke:#999
+    style PCF fill:#e0e0e0,stroke:#999
+    style PL fill:#4CAF50,stroke:#2E7D32,color:#fff
+    style CRC fill:#e0e0e0,stroke:#999
 ```
-┌──────────┬─────────┬──────────────────┬─────────────────┬──────────┐
-│ Preamble │ Address │ Packet Control   │ Payload         │ CRC      │
-│ 1 byte   │ 5 bytes │ Field (PCF)      │ 0–32 bytes      │ 2 bytes  │
-│          │         │ 9 bits           │                 │          │
-│ Hardware │ Hardware│ Hardware         │ YOUR DATA       │ Hardware │
-│ auto     │ matched │ auto             │ (this is where  │ auto     │
-│          │         │                  │  our structs go)│          │
-└──────────┴─────────┴──────────────────┴─────────────────┴──────────┘
-                                         ▲
-                                         │
-                              This is the ONLY part your
-                              firmware code touches.
-                              Everything else is handled
-                              by the radio hardware.
-```
+
+> **Green = your application data.** Grey = handled entirely by radio hardware.
+> You only ever touch the Payload. Everything else is automatic.
 
 **Total bytes on air** for a 24-byte mocap frame:
 1 (preamble) + 5 (address) + 2 (PCF, rounded to bytes) + 24 (payload)
