@@ -181,12 +181,13 @@ static void scan_result_cb(const bt_addr_le_t *addr, int8_t rssi,
 
 static struct bt_gatt_discover_params disc_params;
 
-static uint8_t discover_cb(struct bt_conn *conn,
-                           const struct bt_gatt_attr *attr,
-                           struct bt_gatt_discover_params *params)
+/* Phase 2: discover characteristics within the service handle range */
+static uint8_t discover_chrc_cb(struct bt_conn *conn,
+                                const struct bt_gatt_attr *attr,
+                                struct bt_gatt_discover_params *params)
 {
 	if (!attr) {
-		printk("relay: discovery complete ctrl=%u data=%u stat=%u\n",
+		printk("relay: discovery done ctrl=%u data=%u stat=%u\n",
 		       gatt_ctrl_handle, gatt_data_handle, gatt_stat_handle);
 		if (gatt_ctrl_handle && gatt_data_handle && gatt_stat_handle) {
 			relay_state = RelayState::READY;
@@ -196,7 +197,6 @@ static uint8_t discover_cb(struct bt_conn *conn,
 		return BT_GATT_ITER_STOP;
 	}
 
-	/* Match characteristic UUIDs to store handles */
 	if (bt_uuid_cmp(attr->uuid, BT_UUID_GATT_CHRC) == 0) {
 		const auto *chrc = static_cast<const struct bt_gatt_chrc *>(attr->user_data);
 		if (bt_uuid_cmp(chrc->uuid, &ota_ctrl_uuid.uuid) == 0) {
@@ -210,6 +210,31 @@ static uint8_t discover_cb(struct bt_conn *conn,
 	return BT_GATT_ITER_CONTINUE;
 }
 
+/* Phase 1: discover the OTA primary service to get handle range */
+static uint8_t discover_svc_cb(struct bt_conn *conn,
+                               const struct bt_gatt_attr *attr,
+                               struct bt_gatt_discover_params *params)
+{
+	if (!attr) {
+		printk("relay: OTA service not found\n");
+		relay_state = RelayState::ERR;
+		return BT_GATT_ITER_STOP;
+	}
+
+	const auto *svc = static_cast<const struct bt_gatt_service_val *>(attr->user_data);
+	printk("relay: OTA svc %u-%u\n", attr->handle, svc->end_handle);
+
+	/* Phase 2: discover characteristics within this service */
+	disc_params.uuid = nullptr;
+	disc_params.func = discover_chrc_cb;
+	disc_params.start_handle = attr->handle + 1;
+	disc_params.end_handle = svc->end_handle;
+	disc_params.type = BT_GATT_DISCOVER_CHARACTERISTIC;
+	bt_gatt_discover(conn, &disc_params);
+
+	return BT_GATT_ITER_STOP;
+}
+
 static void relay_connected(struct bt_conn *conn, uint8_t err)
 {
 	if (err) {
@@ -217,18 +242,19 @@ static void relay_connected(struct bt_conn *conn, uint8_t err)
 		relay_state = RelayState::ERR;
 		return;
 	}
-	printk("relay: connected, discovering GATT\n");
+	printk("relay: connected\n");
 	relay_state = RelayState::DISCOVERING;
 
 	gatt_ctrl_handle = 0;
 	gatt_data_handle = 0;
 	gatt_stat_handle = 0;
 
+	/* Phase 1: find the OTA primary service */
 	disc_params.uuid = &ota_svc_uuid.uuid;
-	disc_params.func = discover_cb;
+	disc_params.func = discover_svc_cb;
 	disc_params.start_handle = BT_ATT_FIRST_ATTRIBUTE_HANDLE;
 	disc_params.end_handle = BT_ATT_LAST_ATTRIBUTE_HANDLE;
-	disc_params.type = BT_GATT_DISCOVER_CHARACTERISTIC;
+	disc_params.type = BT_GATT_DISCOVER_PRIMARY;
 
 	bt_gatt_discover(conn, &disc_params);
 }
