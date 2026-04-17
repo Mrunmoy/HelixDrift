@@ -278,6 +278,10 @@ int main() {
     startAdvertising();
 
     uint32_t lastLoggedBytes = 0u;
+    uint32_t lastActivityBytes = 0u;
+    uint32_t stallTicks = 0u;
+    constexpr uint32_t kStallTimeoutTicks = 60u; /* 60 * 500ms = 30 seconds */
+
     while (true) {
         heartbeat();
         const auto state = g_manager.state();
@@ -287,12 +291,36 @@ int main() {
                    CONFIG_HELIX_OTA_LABEL,
                    static_cast<unsigned>(state),
                    static_cast<unsigned>(bytes));
+            stallTicks = 0u;
+            lastActivityBytes = 0u;
         } else if (bytes - lastLoggedBytes >= 16384u) {
             lastLoggedBytes = bytes;
             printk("ota %s bytes=%u\n",
                    CONFIG_HELIX_OTA_LABEL,
                    static_cast<unsigned>(bytes));
         }
+
+        /* Connection watchdog: if OTA is RECEIVING but no new data for
+         * 30 seconds, the host likely crashed or walked away.  Force
+         * disconnect so advertising restarts and the board can accept
+         * a new OTA attempt. */
+        if (g_conn && state == helix::OtaState::RECEIVING) {
+            if (bytes == lastActivityBytes) {
+                ++stallTicks;
+            } else {
+                stallTicks = 0u;
+                lastActivityBytes = bytes;
+            }
+            if (stallTicks >= kStallTimeoutTicks) {
+                printk("ota: stall detected, forcing disconnect\n");
+                bt_conn_disconnect(g_conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+                stallTicks = 0u;
+            }
+        } else {
+            stallTicks = 0u;
+            lastActivityBytes = 0u;
+        }
+
         k_sleep(K_MSEC(500));
     }
 }
