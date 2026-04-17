@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 120" font-family="'Segoe UI', Arial, sans-serif" font-size="13">
+  <!-- Row 1: Field boxes -->
+  <rect x="10" y="10" width="100" height="50" rx="4" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="60" y="30" text-anchor="middle" font-weight="bold">Preamble</text>
+  <text x="60" y="46" text-anchor="middle" font-size="10" fill="#555">1 byte</text>
+
+  <rect x="120" y="10" width="120" height="50" rx="4" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="180" y="30" text-anchor="middle" font-weight="bold">Address</text>
+  <text x="180" y="46" text-anchor="middle" font-size="10" fill="#555">5 bytes</text>
+
+  <rect x="250" y="10" width="100" height="50" rx="4" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="300" y="30" text-anchor="middle" font-weight="bold">PCF</text>
+  <text x="300" y="46" text-anchor="middle" font-size="10" fill="#555">9 bits</text>
+
+  <rect x="360" y="10" width="200" height="50" rx="4" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
+  <text x="460" y="30" text-anchor="middle" font-weight="bold" fill="white">Payload</text>
+  <text x="460" y="46" text-anchor="middle" font-size="10" fill="#E8F5E9">0–32 bytes</text>
+
+  <rect x="570" y="10" width="100" height="50" rx="4" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="620" y="30" text-anchor="middle" font-weight="bold">CRC</text>
+  <text x="620" y="46" text-anchor="middle" font-size="10" fill="#555">2 bytes</text>
+
+  <!-- Row 2: Role labels -->
+  <text x="60" y="82" text-anchor="middle" font-size="9" fill="#777">Hardware</text>
+  <text x="60" y="93" text-anchor="middle" font-size="9" fill="#777">auto-generated</text>
+
+  <text x="180" y="82" text-anchor="middle" font-size="9" fill="#777">Hardware</text>
+  <text x="180" y="93" text-anchor="middle" font-size="9" fill="#777">address match</text>
+
+  <text x="300" y="82" text-anchor="middle" font-size="9" fill="#777">Hardware</text>
+  <text x="300" y="93" text-anchor="middle" font-size="9" fill="#777">auto-populated</text>
+
+  <text x="460" y="82" text-anchor="middle" font-size="10" fill="#2E7D32" font-weight="bold">⬆ YOUR DATA ⬆</text>
+  <text x="460" y="95" text-anchor="middle" font-size="9" fill="#2E7D32">Only part firmware touches</text>
+
+  <text x="620" y="82" text-anchor="middle" font-size="9" fill="#777">Hardware</text>
+  <text x="620" y="93" text-anchor="middle" font-size="9" fill="#777">auto-computed</text>
+
+  <!-- Legend -->
+  <rect x="10" y="108" width="10" height="10" fill="#4CAF50" rx="2"/>
+  <text x="25" y="117" font-size="10" fill="#555">Green = your application data</text>
+  <rect x="220" y="108" width="10" height="10" fill="#e0e0e0" stroke="#999" stroke-width="0.5" rx="2"/>
+  <text x="235" y="117" font-size="10" fill="#555">Grey = handled by radio hardware</text>
+</svg>

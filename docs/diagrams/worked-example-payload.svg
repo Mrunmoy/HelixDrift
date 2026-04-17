@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 250" font-family="'Segoe UI', Arial, sans-serif" font-size="12">
+  <!-- Title -->
+  <text x="10" y="18" font-size="11" fill="#555" font-weight="bold">Bytes 0–11</text>
+
+  <!-- Row 1: Offset header -->
+  <rect x="10" y="25" width="50" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="35" y="41" text-anchor="middle" font-size="10" font-weight="bold">Offset</text>
+
+  <!-- Offset values 0-11 -->
+  <rect x="60" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="82" y="41" text-anchor="middle" font-size="10">0</text>
+  <rect x="104" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="126" y="41" text-anchor="middle" font-size="10">1</text>
+  <rect x="148" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="170" y="41" text-anchor="middle" font-size="10">2</text>
+  <rect x="192" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="214" y="41" text-anchor="middle" font-size="10">3</text>
+  <rect x="236" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="258" y="41" text-anchor="middle" font-size="10">4</text>
+  <rect x="280" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="302" y="41" text-anchor="middle" font-size="10">5</text>
+  <rect x="324" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="346" y="41" text-anchor="middle" font-size="10">6</text>
+  <rect x="368" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="390" y="41" text-anchor="middle" font-size="10">7</text>
+  <rect x="412" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="434" y="41" text-anchor="middle" font-size="10">8</text>
+  <rect x="456" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="478" y="41" text-anchor="middle" font-size="10">9</text>
+  <rect x="500" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="522" y="41" text-anchor="middle" font-size="10">10</text>
+  <rect x="544" y="25" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="566" y="41" text-anchor="middle" font-size="10">11</text>
+
+  <!-- Row 2: Hex values -->
+  <rect x="10" y="49" width="50" height="26" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="35" y="67" text-anchor="middle" font-size="10" font-weight="bold">Hex</text>
+
+  <!-- Orange = header (bytes 0-3) -->
+  <rect x="60" y="49" width="44" height="26" fill="#FFF3E0" stroke="#E65100" stroke-width="1"/>
+  <text x="82" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">C1</text>
+  <rect x="104" y="49" width="44" height="26" fill="#FFF3E0" stroke="#E65100" stroke-width="1"/>
+  <text x="126" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">02</text>
+  <rect x="148" y="49" width="44" height="26" fill="#FFF3E0" stroke="#E65100" stroke-width="1"/>
+  <text x="170" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">2A</text>
+  <rect x="192" y="49" width="44" height="26" fill="#FFF3E0" stroke="#E65100" stroke-width="1"/>
+  <text x="214" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">4D</text>
+
+  <!-- Green = local_timestamp (bytes 4-7) -->
+  <rect x="236" y="49" width="44" height="26" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1"/>
+  <text x="258" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">40</text>
+  <rect x="280" y="49" width="44" height="26" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1"/>
+  <text x="302" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">42</text>
+  <rect x="324" y="49" width="44" height="26" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1"/>
+  <text x="346" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">0F</text>
+  <rect x="368" y="49" width="44" height="26" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1"/>
+  <text x="390" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">00</text>
+
+  <!-- Blue = synced_timestamp (bytes 8-11) -->
+  <rect x="412" y="49" width="44" height="26" fill="#E3F2FD" stroke="#1565C0" stroke-width="1"/>
+  <text x="434" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">8C</text>
+  <rect x="456" y="49" width="44" height="26" fill="#E3F2FD" stroke="#1565C0" stroke-width="1"/>
+  <text x="478" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">3F</text>
+  <rect x="500" y="49" width="44" height="26" fill="#E3F2FD" stroke="#1565C0" stroke-width="1"/>
+  <text x="522" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">0F</text>
+  <rect x="544" y="49" width="44" height="26" fill="#E3F2FD" stroke="#1565C0" stroke-width="1"/>
+  <text x="566" y="67" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">00</text>
+
+  <!-- Row 3: Field labels -->
+  <rect x="10" y="75" width="50" height="30" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="35" y="94" text-anchor="middle" font-size="10" font-weight="bold">Field</text>
+
+  <rect x="60" y="75" width="44" height="30" fill="#FFF3E0" stroke="#ddd" stroke-width="1"/>
+  <text x="82" y="94" text-anchor="middle" font-size="9">type</text>
+  <rect x="104" y="75" width="44" height="30" fill="#FFF3E0" stroke="#ddd" stroke-width="1"/>
+  <text x="126" y="94" text-anchor="middle" font-size="9">id</text>
+  <rect x="148" y="75" width="44" height="30" fill="#FFF3E0" stroke="#ddd" stroke-width="1"/>
+  <text x="170" y="94" text-anchor="middle" font-size="9">seq</text>
+  <rect x="192" y="75" width="44" height="30" fill="#FFF3E0" stroke="#ddd" stroke-width="1"/>
+  <text x="214" y="94" text-anchor="middle" font-size="9">sess</text>
+
+  <rect x="236" y="75" width="176" height="30" fill="#E8F5E9" stroke="#ddd" stroke-width="1"/>
+  <text x="324" y="88" text-anchor="middle" font-size="9">node_local_timestamp_us</text>
+  <text x="324" y="100" text-anchor="middle" font-size="9" fill="#2E7D32">= 1,000,000</text>
+
+  <rect x="412" y="75" width="176" height="30" fill="#E3F2FD" stroke="#ddd" stroke-width="1"/>
+  <text x="500" y="88" text-anchor="middle" font-size="9">node_synced_timestamp_us</text>
+  <text x="500" y="100" text-anchor="middle" font-size="9" fill="#1565C0">= 999,500</text>
+
+  <!-- ========== Bytes 12-23 ========== -->
+  <text x="10" y="128" font-size="11" fill="#555" font-weight="bold">Bytes 12–23</text>
+
+  <!-- Row 1: Offset header -->
+  <rect x="10" y="135" width="50" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="35" y="151" text-anchor="middle" font-size="10" font-weight="bold">Offset</text>
+
+  <rect x="60" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="82" y="151" text-anchor="middle" font-size="10">12</text>
+  <rect x="104" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="126" y="151" text-anchor="middle" font-size="10">13</text>
+  <rect x="148" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="170" y="151" text-anchor="middle" font-size="10">14</text>
+  <rect x="192" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="214" y="151" text-anchor="middle" font-size="10">15</text>
+  <rect x="236" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="258" y="151" text-anchor="middle" font-size="10">16</text>
+  <rect x="280" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="302" y="151" text-anchor="middle" font-size="10">17</text>
+  <rect x="324" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="346" y="151" text-anchor="middle" font-size="10">18</text>
+  <rect x="368" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="390" y="151" text-anchor="middle" font-size="10">19</text>
+  <rect x="412" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="434" y="151" text-anchor="middle" font-size="10">20</text>
+  <rect x="456" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="478" y="151" text-anchor="middle" font-size="10">21</text>
+  <rect x="500" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="522" y="151" text-anchor="middle" font-size="10">22</text>
+  <rect x="544" y="135" width="44" height="24" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="566" y="151" text-anchor="middle" font-size="10">23</text>
+
+  <!-- Row 2: Hex values -->
+  <rect x="10" y="159" width="50" height="26" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="35" y="177" text-anchor="middle" font-size="10" font-weight="bold">Hex</text>
+
+  <!-- Pink = angles (bytes 12-17) -->
+  <rect x="60" y="159" width="44" height="26" fill="#FCE4EC" stroke="#C62828" stroke-width="1"/>
+  <text x="82" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">41</text>
+  <rect x="104" y="159" width="44" height="26" fill="#FCE4EC" stroke="#C62828" stroke-width="1"/>
+  <text x="126" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">23</text>
+  <rect x="148" y="159" width="44" height="26" fill="#FCE4EC" stroke="#C62828" stroke-width="1"/>
+  <text x="170" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">B8</text>
+  <rect x="192" y="159" width="44" height="26" fill="#FCE4EC" stroke="#C62828" stroke-width="1"/>
+  <text x="214" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">0B</text>
+  <rect x="236" y="159" width="44" height="26" fill="#FCE4EC" stroke="#C62828" stroke-width="1"/>
+  <text x="258" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">F6</text>
+  <rect x="280" y="159" width="44" height="26" fill="#FCE4EC" stroke="#C62828" stroke-width="1"/>
+  <text x="302" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">FF</text>
+
+  <!-- Purple = position (bytes 18-23) -->
+  <rect x="324" y="159" width="44" height="26" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1"/>
+  <text x="346" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">00</text>
+  <rect x="368" y="159" width="44" height="26" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1"/>
+  <text x="390" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">00</text>
+  <rect x="412" y="159" width="44" height="26" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1"/>
+  <text x="434" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">E8</text>
+  <rect x="456" y="159" width="44" height="26" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1"/>
+  <text x="478" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">03</text>
+  <rect x="500" y="159" width="44" height="26" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1"/>
+  <text x="522" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">D0</text>
+  <rect x="544" y="159" width="44" height="26" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1"/>
+  <text x="566" y="177" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">07</text>
+
+  <!-- Row 3: Field labels -->
+  <rect x="10" y="185" width="50" height="34" fill="#fafafa" stroke="#999" stroke-width="1"/>
+  <text x="35" y="206" text-anchor="middle" font-size="10" font-weight="bold">Field</text>
+
+  <rect x="60" y="185" width="132" height="34" fill="#FCE4EC" stroke="#ddd" stroke-width="1"/>
+  <text x="126" y="198" text-anchor="middle" font-size="9">yaw = 9025</text>
+  <text x="126" y="211" text-anchor="middle" font-size="9" fill="#C62828">(90.25°)</text>
+
+  <rect x="192" y="185" width="88" height="34" fill="#FCE4EC" stroke="#ddd" stroke-width="1"/>
+  <text x="236" y="198" text-anchor="middle" font-size="9">pitch = 3000</text>
+  <text x="236" y="211" text-anchor="middle" font-size="9" fill="#C62828">(30.00°)</text>
+
+  <rect x="280" y="185" width="44" height="34" fill="#FCE4EC" stroke="#ddd" stroke-width="1"/>
+  <text x="302" y="198" text-anchor="middle" font-size="8">roll=-10</text>
+  <text x="302" y="211" text-anchor="middle" font-size="8" fill="#C62828">(-0.10°)</text>
+
+  <rect x="324" y="185" width="88" height="34" fill="#F3E5F5" stroke="#ddd" stroke-width="1"/>
+  <text x="368" y="198" text-anchor="middle" font-size="9">x = 0</text>
+  <text x="368" y="211" text-anchor="middle" font-size="9" fill="#6A1B9A">(0 mm)</text>
+
+  <rect x="412" y="185" width="88" height="34" fill="#F3E5F5" stroke="#ddd" stroke-width="1"/>
+  <text x="456" y="198" text-anchor="middle" font-size="9">y = 1000</text>
+  <text x="456" y="211" text-anchor="middle" font-size="9" fill="#6A1B9A">(1.0 m)</text>
+
+  <rect x="500" y="185" width="88" height="34" fill="#F3E5F5" stroke="#ddd" stroke-width="1"/>
+  <text x="544" y="198" text-anchor="middle" font-size="9">z = 2000</text>
+  <text x="544" y="211" text-anchor="middle" font-size="9" fill="#6A1B9A">(2.0 m)</text>
+
+  <!-- Legend -->
+  <rect x="10" y="232" width="12" height="12" fill="#FFF3E0" stroke="#E65100" stroke-width="1" rx="2"/>
+  <text x="27" y="243" font-size="10" fill="#555">Header</text>
+  <rect x="80" y="232" width="12" height="12" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1" rx="2"/>
+  <text x="97" y="243" font-size="10" fill="#555">Local timestamp</text>
+  <rect x="195" y="232" width="12" height="12" fill="#E3F2FD" stroke="#1565C0" stroke-width="1" rx="2"/>
+  <text x="212" y="243" font-size="10" fill="#555">Synced timestamp</text>
+  <rect x="320" y="232" width="12" height="12" fill="#FCE4EC" stroke="#C62828" stroke-width="1" rx="2"/>
+  <text x="337" y="243" font-size="10" fill="#555">Angles</text>
+  <rect x="395" y="232" width="12" height="12" fill="#F3E5F5" stroke="#6A1B9A" stroke-width="1" rx="2"/>
+  <text x="412" y="243" font-size="10" fill="#555">Position</text>
+</svg>

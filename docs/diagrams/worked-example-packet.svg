@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 830 80" font-family="'Segoe UI', Arial, sans-serif" font-size="13">
+  <rect x="10" y="10" width="90" height="50" rx="4" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="55" y="30" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">0xAA</text>
+  <text x="55" y="46" text-anchor="middle" font-size="10" fill="#555">Preamble</text>
+
+  <rect x="110" y="10" width="160" height="50" rx="4" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="190" y="30" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">E7 A1 B2 C1 D3</text>
+  <text x="190" y="46" text-anchor="middle" font-size="10" fill="#555">Address</text>
+
+  <rect x="280" y="10" width="80" height="50" rx="4" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="320" y="30" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">L=24</text>
+  <text x="320" y="46" text-anchor="middle" font-size="10" fill="#555">PCF</text>
+
+  <rect x="370" y="10" width="280" height="50" rx="4" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
+  <text x="510" y="30" text-anchor="middle" font-family="monospace" font-weight="bold" fill="white" font-size="12">C1 02 2A 4D ...</text>
+  <text x="510" y="46" text-anchor="middle" font-size="10" fill="#E8F5E9">Mocap Payload (24 bytes)</text>
+
+  <rect x="660" y="10" width="90" height="50" rx="4" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="705" y="30" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12">xx xx</text>
+  <text x="705" y="46" text-anchor="middle" font-size="10" fill="#555">CRC-16</text>
+
+  <text x="400" y="75" text-anchor="middle" font-size="11" fill="#333" font-weight="bold">34 bytes total on the air for 24 bytes of useful data</text>
+</svg>
