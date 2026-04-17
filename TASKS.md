@@ -132,10 +132,22 @@ Current M7 bring-up progress:
       over BLE cleanly, repeat the same flow on the second 52840 target and
       then lock the 52840 BLE OTA lane with updated README/how-to docs
 - [x] OTA BLE advertising now uses per-board unique names:
-      a 4-char hex suffix from FICR DEVICEADDR is appended at runtime
-      (e.g. `HelixPico-v1-0D16`), the uploader supports `--name-prefix`
-      for fleet targeting, and the suffix is preserved across OTA upgrades
-      (proven: `HelixPico-v1-0D16` -> `HelixPico-v2-0D16` on real hardware)
+      `HTag-XXXX` for Tags, `HHub-XXXX` for Hub. FICR DEVICEADDR suffix.
+      Version removed from name — queried via OTA status after connecting.
+      Proven: 10 Tags visible simultaneously with distinct suffixes.
+- [x] OTA connection watchdog: if host disappears mid-transfer, board
+      auto-recovers after 30s and re-advertises for another OTA attempt
+
+## Backlog: OTA Improvements (can be parallelized)
+
+| # | Task | Priority | Notes |
+|---|------|----------|-------|
+| O1 | Switch MCUboot to swap-using-move (A/B mode) | High | Halves flash wear, enables rollback. Needs `static_assert` fix in `ZephyrOtaFlashBackend.cpp`, explicit `SB_CONFIG_MCUBOOT_MODE_SWAP_USING_MOVE=y` in `sysbuild.conf`. See plan file for details. |
+| O2 | Add firmware version to OTA status characteristic | Medium | 4 bytes (major.minor.patch.build) so uploader can query version without it being in the BLE name |
+| O3 | Pre-tie Tags to Hub via FICR-derived ESB pipe address | Medium | Each Hub gets unique ESB pipe from its FICR. Tags ship pre-configured with their Hub's pipe. Zero setup for users, no interference between mocap sets. |
+| O4 | Merge Tag OTA + Tag Mocap into single firmware | High | ESB for mocap streaming, BLE for OTA. Mode switching via ESB command from Hub (production) or 10s boot-time BLE window (dev fallback). |
+| O5 | ESB command from Hub to trigger Tag OTA mode switch | Medium | PC sends "enter OTA" through Hub via ESB. Tag stops ESB, starts BLE, accepts OTA. Reboots back to ESB after. |
+| O6 | Boot-time OTA window (dev fallback) | Low | Tag starts in BLE OTA mode for 10s on every boot. If no OTA connection, switches to ESB. |
 
 ## Planned Focus: M8 Multi-Node RF Aggregation
 
