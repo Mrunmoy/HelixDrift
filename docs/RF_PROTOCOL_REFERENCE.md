@@ -294,14 +294,13 @@ uint8_t addr_prefix[8] = {0xE7, 0xC2, 0xC3, ...};     // per-pipe prefix
 
 On the air, the address bytes appear in this order:
 
-```
-Byte on air:    E7       A1       B2       C1       D3
-               ┌────┐   ┌────┐   ┌────┐   ┌────┐   ┌────┐
-               │0xE7│   │0xA1│   │0xB2│   │0xC1│   │0xD3│
-               │pfx │   │base│   │base│   │base│   │base│
-               │    │   │ [3]│   │ [2]│   │ [1]│   │ [0]│
-               └────┘   └────┘   └────┘   └────┘   └────┘
-```
+| Byte Position | Hex Value | Role |
+|:---:|:---:|---|
+| 1st | `0xE7` | Pipe prefix (selects pipe 0) |
+| 2nd | `0xA1` | Base address byte 3 |
+| 3rd | `0xB2` | Base address byte 2 |
+| 4th | `0xC1` | Base address byte 1 |
+| 5th | `0xD3` | Base address byte 0 |
 
 The receiver compares these 5 bytes against its configured pipe
 addresses. If none match, the packet is discarded before the firmware
@@ -318,13 +317,11 @@ ever sees it.
 The PCF is a 9-bit field that carries packet metadata. In DPL mode
 (Dynamic Payload Length), it has three sub-fields:
 
-```
- Bit:  8     7  6  5  4  3  2  1  0
-      ┌────┬──────────────────┬─────┐
-      │NoAk│  Payload Length  │ PID │
-      │1bit│     6 bits       │2bits│
-      └────┴──────────────────┴─────┘
-```
+| Bit(s) | Width | Sub-field | Description |
+|:---:|:---:|---|---|
+| 8 | 1 bit | **No-ACK** | If set, receiver should NOT acknowledge |
+| 7–2 | 6 bits | **Payload Length** | Number of payload bytes (0–32) |
+| 1–0 | 2 bits | **PID** | Packet ID for deduplication |
 
 | Sub-field | Bits | Size | Purpose |
 |-----------|:----:|:----:|---------|
@@ -365,18 +362,25 @@ We describe these structs in detail in Chapter 5.
 Here's what a **24-byte mocap frame** looks like as it physically
 travels from Tag to Hub:
 
+```mermaid
+graph LR
+    P["0xAA\nPreamble\n1 byte"]
+    A["E7 A1 B2 C1 D3\nAddress\n5 bytes"]
+    PCF["L=24, PID, NoACK=0\nPCF\n9 bits"]
+    PL["Mocap Frame\nPayload\n24 bytes"]
+    CRC["CRC-16\n2 bytes"]
+
+    P --> A --> PCF --> PL --> CRC
+
+    style P fill:#e0e0e0,stroke:#999
+    style A fill:#e0e0e0,stroke:#999
+    style PCF fill:#e0e0e0,stroke:#999
+    style PL fill:#4CAF50,stroke:#2E7D32,color:#fff
+    style CRC fill:#e0e0e0,stroke:#999
 ```
-On-air byte:  0     1     2     3     4     5     6    7    8     9  ...  32    33    34
-            ┌─────┬─────┬─────┬─────┬─────┬─────┬─────────────┬────...────┬─────┬─────┐
-            │0xAA │0xE7 │0xA1 │0xB2 │0xC1 │0xD3 │  PCF (9b)   │ Payload   │CRC-H│CRC-L│
-            │pream│addr │addr │addr │addr │addr │len=24,noack │ 24 bytes  │     │     │
-            │ble  │pfx  │base3│base2│base1│base0│=0, pid=auto │ (Ch.5)    │     │     │
-            └─────┴─────┴─────┴─────┴─────┴─────┴─────────────┴────...────┴─────┴─────┘
-             ▲                                                  ▲
-             │                                                  │
-             Radio hardware                                Your firmware
-             handles this                                  provides this
-```
+
+> **Radio hardware** handles everything in grey.
+> **Your firmware** only fills the green payload (24 bytes).
 
 At **2 Mbps**, these 34 bytes take approximately **136 µs** to transmit
 (34 × 8 bits ÷ 2,000,000 bits/sec = 136 µs). That's 0.136 milliseconds.
@@ -387,14 +391,24 @@ When the Hub (PRX) receives a valid packet, it automatically sends back
 an **ACK** (acknowledgment). The ACK is itself a full ESB packet with
 the same address, but with the Hub's payload stuffed inside:
 
+```mermaid
+graph LR
+    P["0xAA\nPreamble\n1 byte"]
+    A["E7 A1 B2 C1 D3\nAddress\n5 bytes"]
+    PCF["L=8, PID, NoACK=0\nPCF\n9 bits"]
+    PL["Sync Anchor\nACK Payload\n8 bytes"]
+    CRC["CRC-16\n2 bytes"]
+
+    P --> A --> PCF --> PL --> CRC
+
+    style P fill:#e0e0e0,stroke:#999
+    style A fill:#e0e0e0,stroke:#999
+    style PCF fill:#e0e0e0,stroke:#999
+    style PL fill:#2196F3,stroke:#1565C0,color:#fff
+    style CRC fill:#e0e0e0,stroke:#999
 ```
-ACK on air:   0     1     2     3     4     5     6    7    8  ...  14    15    16
-            ┌─────┬─────┬─────┬─────┬─────┬─────┬─────────────┬──...──┬─────┬─────┐
-            │0xAA │0xE7 │0xA1 │0xB2 │0xC1 │0xD3 │  PCF (9b)   │Anchor │CRC-H│CRC-L│
-            │pream│addr │addr │addr │addr │addr │len=8, noack │8 bytes│     │     │
-            │ble  │pfx  │base3│base2│base1│base0│=0, pid=auto │(Ch.5) │     │     │
-            └─────┴─────┴─────┴─────┴─────┴─────┴─────────────┴──...──┴─────┴─────┘
-```
+
+> **Blue = Hub's sync anchor data** riding free inside the hardware ACK.
 
 This is the clever trick: **the sync anchor rides for free inside the
 hardware ACK**. No extra radio transmission is needed — the ACK was

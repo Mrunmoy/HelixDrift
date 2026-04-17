@@ -184,10 +184,14 @@ def main():
     print(f"\n--- COMMIT ---")
     ser.write(encode_frame(CTRL_WRITE, bytes([CMD_COMMIT])))
     rsp = read_response(ser, CTRL_RSP, timeout=15.0)
-    if rsp is None or rsp[0] != 0x00:
+    if rsp is not None and rsp[0] == 0x00:
+        print("COMMIT OK — Tag will reboot through MCUboot")
+    elif rsp is None:
+        # Timeout is expected: Tag reboots before relay can send response
+        print("COMMIT response timeout (expected — Tag rebooting)")
+    else:
         print(f"ERROR: COMMIT failed: {rsp}")
         return 1
-    print("COMMIT OK — Tag will reboot through MCUboot")
 
     # Step 6: Wait for Hub to restart ESB
     print("\nWaiting for Hub ESB to restart...")
