@@ -138,16 +138,41 @@ Current M7 bring-up progress:
 - [x] OTA connection watchdog: if host disappears mid-transfer, board
       auto-recovers after 30s and re-advertises for another OTA attempt
 
-## Backlog: OTA Improvements (can be parallelized)
+## Parallel Task Backlog
 
-| # | Task | Priority | Notes |
-|---|------|----------|-------|
-| O1 | Switch MCUboot to swap-using-move (A/B mode) | High | Halves flash wear, enables rollback. Needs `static_assert` fix in `ZephyrOtaFlashBackend.cpp`, explicit `SB_CONFIG_MCUBOOT_MODE_SWAP_USING_MOVE=y` in `sysbuild.conf`. See plan file for details. |
-| O2 | Add firmware version to OTA status characteristic | Medium | 4 bytes (major.minor.patch.build) so uploader can query version without it being in the BLE name |
-| O3 | Pre-tie Tags to Hub via FICR-derived ESB pipe address | Medium | Each Hub gets unique ESB pipe from its FICR. Tags ship pre-configured with their Hub's pipe. Zero setup for users, no interference between mocap sets. |
-| O4 | Merge Tag OTA + Tag Mocap into single firmware | High | ESB for mocap streaming, BLE for OTA. Mode switching via ESB command from Hub (production) or 10s boot-time BLE window (dev fallback). |
-| O5 | ESB command from Hub to trigger Tag OTA mode switch | Medium | PC sends "enter OTA" through Hub via ESB. Tag stops ESB, starts BLE, accepts OTA. Reboots back to ESB after. |
-| O6 | Boot-time OTA window (dev fallback) | Low | Tag starts in BLE OTA mode for 10s on every boot. If no OTA connection, switches to ESB. |
+Tasks are labeled by owner. Agents should only pick up tasks assigned to them.
+Each task should be worked in a separate worktree.
+
+### Copilot: OTA Improvements
+Worktree: `.worktrees/copilot-ota`
+Write scope: `zephyr_apps/nrf52dk-ota-ble/`, `tools/nrf/ble_ota_upload.py`
+
+| # | Task | Priority | Status | Details |
+|---|------|----------|--------|---------|
+| O1 | Switch MCUboot to swap-using-move (A/B) | High | todo | Remove `SB_CONFIG_MCUBOOT_MODE_OVERWRITE_ONLY=y` from `build_helix_ble_ota.sh`. Add `SB_CONFIG_MCUBOOT_MODE_SWAP_USING_MOVE=y` to `sysbuild.conf`. Fix `static_assert(kFooterSize == 0x30u)` in `ZephyrOtaFlashBackend.cpp` to `>= 0x30u`. Trailer write logic unchanged — offsets are end-relative. Test: full OTA cycle + abort + recovery. |
+| O2 | Add firmware version to OTA status GATT | Medium | todo | Add 4 bytes (major.minor.patch.build) to the status characteristic read in `BleOtaService`. Read from MCUboot image header at runtime via `mcuboot_img_manager`. Update `ble_ota_upload.py` to print version after connecting. |
+| O3 | Batch OTA uploader | Low | todo | Add `--targets` flag to `ble_ota_upload.py` that takes a comma-separated list of device names and OTAs them sequentially. |
+
+### Copilot: Firmware Integration
+Worktree: `.worktrees/copilot-integration`
+Write scope: `zephyr_apps/nrf52840-mocap-bridge/`, `firmware/common/`
+
+| # | Task | Priority | Status | Details |
+|---|------|----------|--------|---------|
+| I1 | Merge Tag OTA + Tag Mocap into single firmware | High | todo | One binary for Tags: ESB mocap streaming as default mode, BLE OTA on demand. Share `main.cpp` with mode-switch logic. |
+| I2 | Boot-time OTA window (dev fallback) | Medium | todo | Tag starts BLE OTA for 10s on boot. If no connection, switches to ESB. Controlled by a Kconfig flag. |
+| I3 | ESB command from Hub to trigger Tag OTA mode | Medium | blocked by I1 | Hub sends "enter OTA" command via ESB. Tag stops ESB, starts BLE, accepts OTA, reboots back to ESB. |
+| I4 | Pre-tie Tags to Hub via FICR ESB pipe address | Medium | blocked by I1 | Derive unique 5-byte ESB pipe address from Hub's FICR. Tags configured with their Hub's pipe at build time. |
+
+### Claude: RF Testing & M8 Scaling
+Worktree: repo root (hardware access needed)
+Write scope: `tools/nrf/`, `zephyr_apps/nrf52840-mocap-bridge/`, `artifacts/`
+
+| # | Task | Priority | Status | Details |
+|---|------|----------|--------|---------|
+| R1 | 10-Tag ESB mocap bridge scaling test | High | in progress | Flash all Tags with ESB node firmware. Hub on dongle. Measure rate/loss/jitter at 50Hz and 100Hz per Tag. |
+| R2 | Debug UF2-flashed Tag RF issue | Medium | todo | UF2-flashed Tags boot but don't reach Hub RF stream. Narrow down: DTS issue, memory layout, or UF2 bootloader conflict. |
+| R3 | Long-run RF soak (10 Tags, 30 min) | Medium | blocked by R1 | Extended run to characterize drift, loss rate, and sync stability under sustained load. |
 
 ## Planned Focus: M8 Multi-Node RF Aggregation
 
