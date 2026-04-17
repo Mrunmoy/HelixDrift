@@ -601,21 +601,27 @@ BT_CONN_CB_DEFINE(ota_conn_cbs) = {
 static bool run_ota_boot_window(void)
 {
 	printk("ota: boot window %d ms\n", CONFIG_HELIX_OTA_BOOT_WINDOW_MS);
+	g_helixMocapStatus.last_error = 0xBB01U; /* entered OTA window */
 
 	if (boot_write_img_confirmed() == 0) {
 		printk("mcuboot: image confirmed\n");
 	}
+	g_helixMocapStatus.last_error = 0xBB02U; /* img confirmed */
 
 	if (!ota_backend.init()) {
 		printk("ota: backend init failed\n");
+		g_helixMocapStatus.last_error = 0xBBFEU;
 		return false;
 	}
+	g_helixMocapStatus.last_error = 0xBB03U; /* backend init ok */
 
 	int err = bt_enable(nullptr);
 	if (err) {
 		printk("ota: bt_enable failed %d\n", err);
+		g_helixMocapStatus.last_error = 0xBB00U | (uint32_t)(unsigned)(-err);
 		return false;
 	}
+	g_helixMocapStatus.last_error = 0xBB04U; /* bt_enable ok */
 
 	/* Build unique name from FICR */
 	{
@@ -635,23 +641,25 @@ static bool run_ota_boot_window(void)
 		printk("ota: name %s\n", name);
 	}
 
-	/* Build advertising data */
+	/* Build advertising data — use static storage so pointers persist */
 	const char *bt_name = bt_get_name();
-	struct bt_data ad[] = {
-		BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-		{BT_DATA_NAME_COMPLETE, static_cast<uint8_t>(strlen(bt_name)),
-		 reinterpret_cast<const uint8_t *>(bt_name)},
-	};
-	const struct bt_data sd[] = {
+	static uint8_t adv_flags[] = {BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR};
+	static struct bt_data ad[2];
+	ad[0] = {BT_DATA_FLAGS, sizeof(adv_flags), adv_flags};
+	ad[1] = {BT_DATA_NAME_COMPLETE, static_cast<uint8_t>(strlen(bt_name)),
+	         reinterpret_cast<const uint8_t *>(bt_name)};
+	static const struct bt_data sd[] = {
 		BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_HELIX_OTA_SERVICE_VAL),
 	};
 
-	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, 2, sd, ARRAY_SIZE(sd));
 	if (err) {
 		printk("ota: adv start failed %d\n", err);
+		g_helixMocapStatus.last_error = 0xBBA0U | (uint32_t)(unsigned)(-err);
 		bt_disable();
 		return false;
 	}
+	g_helixMocapStatus.last_error = 0xBB05U; /* adv start ok */
 
 	/* Wait for connection or timeout */
 	int64_t deadline = k_uptime_get() + CONFIG_HELIX_OTA_BOOT_WINDOW_MS;
@@ -662,6 +670,7 @@ static bool run_ota_boot_window(void)
 
 	if (!ota_connected) {
 		printk("ota: window expired, switching to ESB\n");
+		g_helixMocapStatus.last_error = 0xBB06U; /* window expired */
 		bt_le_adv_stop();
 		bt_disable();
 		return false;

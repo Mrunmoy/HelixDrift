@@ -79,7 +79,7 @@ config HELIX_MOCAP_NODE_LED_DEBUG
 config HELIX_OTA_BOOT_WINDOW_MS
 	int "BLE OTA boot window in milliseconds (0 to skip)"
 	range 0 60000
-	default 10000 if HELIX_MOCAP_BRIDGE_ROLE_NODE
+	default 30000 if HELIX_MOCAP_BRIDGE_ROLE_NODE
 	default 0
 	help
 	  Duration of the BLE OTA advertising window at boot. If a BLE
