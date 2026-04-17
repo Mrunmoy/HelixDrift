@@ -17,8 +17,11 @@
 #include "usbd_init.h"
 #include "ota_hub_relay.hpp"
 
-#if defined(CONFIG_BT) && defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
+#if defined(CONFIG_BT)
 #include <zephyr/bluetooth/bluetooth.h>
+#endif
+
+#if defined(CONFIG_BT) && defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/dfu/mcuboot.h>
@@ -776,6 +779,20 @@ int main(void)
 	run_ota_boot_window();
 	/* If we return here, OTA either wasn't requested or was aborted.
 	 * bt_disable() was called. Proceed to ESB. */
+#endif
+
+	/* ── Release BLE/MPSL before ESB ──────────────────── */
+#if defined(CONFIG_BT) && !defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
+	/* The Hub has CONFIG_BT=y for the OTA relay, but the SoftDevice
+	 * Controller's SYS_INIT claims MPSL resources at boot. We must
+	 * bt_enable() + bt_disable() to properly release them before ESB. */
+	{
+		int bt_err = bt_enable(nullptr);
+		if (bt_err == 0 || bt_err == -EALREADY) {
+			bt_disable();
+			printk("hub: BLE/MPSL released for ESB\n");
+		}
+	}
 #endif
 
 	/* ── ESB mocap mode ─────────────────────────────────── */
