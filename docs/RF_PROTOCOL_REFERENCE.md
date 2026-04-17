@@ -66,7 +66,11 @@ graph LR
 We will explain what each of these is, byte by byte, in later chapters.
 First, we need to understand the radio.
 
+<br>
+
 ---
+
+<br>
 
 ## 2. Radio Fundamentals
 
@@ -147,7 +151,11 @@ random bit errors.
 Like the preamble, **CRC is handled entirely in hardware**. Your firmware
 never computes or checks it — the radio does it automatically.
 
+<br>
+
 ---
+
+<br>
 
 ## 3. Enhanced ShockBurst (ESB)
 
@@ -213,7 +221,11 @@ to each other.
 | **2 Mbps bit rate** | Fastest available; minimizes time-on-air | Enabled |
 | **Multi-pipe** | PRX can listen on up to 8 addresses (pipes) simultaneously | We use pipe 0 only |
 
+<br>
+
 ---
+
+<br>
 
 ## 4. The ESB Packet on the Wire
 
@@ -416,7 +428,11 @@ going to be sent anyway. ESB's "ACK with payload" feature lets the Hub
 stuff 8 bytes of clock data into an acknowledgment it would have sent
 regardless.
 
+<br>
+
 ---
+
+<br>
 
 ## 5. HelixDrift Application Payloads
 
@@ -465,24 +481,21 @@ first). This is the native byte order of the ARM Cortex-M4 CPU inside
 the nRF52840 — the struct bytes in memory are the exact same bytes that
 go over the air.
 
-```
-Offset  Bytes    Field                      Type      Example value
-──────  ───────  ─────────────────────────  ────────  ─────────────────
-  0     [  C1 ]  type                       uint8     0xC1 (mocap frame)
-  1     [  02 ]  node_id                    uint8     2 (elbow)
-  2     [  2A ]  sequence                   uint8     42
-  3     [  4D ]  session_tag                uint8     77 (0x4D)
-  4     [  40 42 0F 00 ]  node_local_timestamp_us   uint32    1,000,000 µs
-  8     [  8C 3F 0F 00 ]  node_synced_timestamp_us  uint32    999,500 µs
- 12     [  41 23 ]  yaw_cdeg               int16     9025 → 90.25°
- 14     [  B8 0B ]  pitch_cdeg             int16     3000 → 30.00°
- 16     [  F6 FF ]  roll_cdeg              int16     -10 → -0.10°
- 18     [  00 00 ]  x_mm                   int16     0 mm
- 20     [  E8 03 ]  y_mm                   int16     1000 mm
- 22     [  D0 07 ]  z_mm                   int16     2000 mm
-──────  ───────  ─────────────────────────  ────────  ─────────────────
-        24 bytes total
-```
+| Offset | Hex Bytes | Field | Type | Example Value |
+|:---:|---|---|---|---|
+| 0 | `C1` | `type` | u8 | `0xC1` (mocap frame) |
+| 1 | `02` | `node_id` | u8 | 2 (elbow) |
+| 2 | `2A` | `sequence` | u8 | 42 |
+| 3 | `4D` | `session_tag` | u8 | 77 (`0x4D`) |
+| 4–7 | `40 42 0F 00` | `node_local_timestamp_us` | u32 | 1,000,000 µs |
+| 8–11 | `8C 3F 0F 00` | `node_synced_timestamp_us` | u32 | 999,500 µs |
+| 12–13 | `41 23` | `yaw_cdeg` | i16 | 9025 → 90.25° |
+| 14–15 | `B8 0B` | `pitch_cdeg` | i16 | 3000 → 30.00° |
+| 16–17 | `F6 FF` | `roll_cdeg` | i16 | −10 → −0.10° |
+| 18–19 | `00 00` | `x_mm` | i16 | 0 mm |
+| 20–21 | `E8 03` | `y_mm` | i16 | 1000 mm |
+| 22–23 | `D0 07` | `z_mm` | i16 | 2000 mm |
+| | | | | **24 bytes total** |
 
 #### Field reference
 
@@ -542,17 +555,14 @@ struct __packed HelixSyncAnchor {
 
 #### Byte-by-byte memory layout
 
-```
-Offset  Bytes    Field                    Type      Example value
-──────  ───────  ───────────────────────  ────────  ────────────────────
-  0     [  A1 ]  type                     uint8     0xA1 (sync anchor)
-  1     [  00 ]  central_id               uint8     0 (Hub 0)
-  2     [  0F ]  anchor_sequence          uint8     15
-  3     [  4D ]  session_tag              uint8     77 (0x4D)
-  4     [  48 43 0F 00 ]  central_timestamp_us  uint32  1,000,232 µs
-──────  ───────  ───────────────────────  ────────  ────────────────────
-        8 bytes total
-```
+| Offset | Hex Bytes | Field | Type | Example Value |
+|:---:|---|---|---|---|
+| 0 | `A1` | `type` | u8 | `0xA1` (sync anchor) |
+| 1 | `00` | `central_id` | u8 | 0 (Hub 0) |
+| 2 | `0F` | `anchor_sequence` | u8 | 15 |
+| 3 | `4D` | `session_tag` | u8 | 77 (`0x4D`) |
+| 4–7 | `48 43 0F 00` | `central_timestamp_us` | u32 | 1,000,232 µs |
+| | | | | **8 bytes total** |
 
 #### Field reference
 
@@ -578,7 +588,11 @@ The anchor doesn't cause a separate radio transmission — it hitchhikes
 on the ACK that ESB would have sent anyway. This is why we call it
 **"free-riding"**: zero additional radio time, zero additional power.
 
+<br>
+
 ---
+
+<br>
 
 ## 6. Worked Example: Bytes on the Air
 
@@ -591,17 +605,15 @@ so the synced time is 999,500 µs. Position is (0, 1000, 2000) mm.
 
 First, the firmware fills the struct. Here's what's in memory:
 
-```
-Byte: 00   01   02   03   04   05   06   07   08   09   0A   0B
-Hex:  C1   02   2A   4D   40   42   0F   00   8C   3F   0F   00
-      ╰─╯  ╰─╯  ╰─╯  ╰─╯  ╰──────────────╯  ╰──────────────╯
-      type id   seq  sess  local_ts=1000000   synced_ts=999500
+| Byte | `00` | `01` | `02` | `03` | `04` | `05` | `06` | `07` | `08` | `09` | `0A` | `0B` |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Hex** | `C1` | `02` | `2A` | `4D` | `40` | `42` | `0F` | `00` | `8C` | `3F` | `0F` | `00` |
+| **Field** | type | id | seq | sess | local_ts (1,000,000) | | | | synced_ts (999,500) | | | |
 
-Byte: 0C   0D   0E   0F   10   11   12   13   14   15   16   17
-Hex:  41   23   B8   0B   F6   FF   00   00   E8   03   D0   07
-      ╰────────╯  ╰────────╯  ╰────────╯  ╰────────╯  ╰────────╯  ╰────────╯
-      yaw=9025    pitch=3000  roll=-10     x=0         y=1000     z=2000
-```
+| Byte | `0C` | `0D` | `0E` | `0F` | `10` | `11` | `12` | `13` | `14` | `15` | `16` | `17` |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Hex** | `41` | `23` | `B8` | `0B` | `F6` | `FF` | `00` | `00` | `E8` | `03` | `D0` | `07` |
+| **Field** | yaw (9025) | | pitch (3000) | | roll (-10) | | x (0) | | y (1000) | | z (2000) | |
 
 Let's verify one field — `node_local_timestamp_us = 1,000,000`:
 - 1,000,000 in hex = `0x000F4240`
@@ -619,30 +631,48 @@ And `roll_cdeg = -10` (which is −0.10°):
 
 Now ESB wraps the payload in its packet structure:
 
+```mermaid
+graph LR
+    P["0xAA\nPreamble"]
+    A["E7 A1 B2 C1 D3\nAddress"]
+    PCF["L=24\nPCF"]
+    PL["C1 02 2A 4D ...\nMocap Payload\n24 bytes"]
+    CRC["xx xx\nCRC-16"]
+
+    P --> A --> PCF --> PL --> CRC
+
+    style P fill:#e0e0e0,stroke:#999
+    style A fill:#e0e0e0,stroke:#999
+    style PCF fill:#e0e0e0,stroke:#999
+    style PL fill:#4CAF50,stroke:#2E7D32,color:#fff
+    style CRC fill:#e0e0e0,stroke:#999
 ```
-Byte:  0     1     2     3     4     5     6-7       8  ...  31    32    33
-     ┌─────┬─────┬─────┬─────┬─────┬─────┬─────────┬────────────┬─────┬─────┐
-     │ AA  │ E7  │ A1  │ B2  │ C1  │ D3  │PCF: L=24│ [payload]  │CRC  │CRC  │
-     │prmbl│ addr bytes (pipe 0)         │PID,NoAck│  24 bytes  │ hi  │ lo  │
-     └─────┴─────┴─────┴─────┴─────┴─────┴─────────┴────────────┴─────┴─────┘
-     │◄──── radio hardware ─────────────►│◄ firm- ►│◄── radio hardware ──►│
-                                          ware
-```
+
+> **34 bytes total on the air** for 24 bytes of useful data.
 
 ### 6.3 The ACK Coming Back (16 bytes on air)
 
 The Hub receives the frame, validates it, builds an anchor with its
 own clock reading (1,000,232 µs), and loads it into the ACK buffer:
 
+```mermaid
+graph LR
+    P["0xAA\nPreamble"]
+    A["E7 A1 B2 C1 D3\nAddress"]
+    PCF["L=8\nPCF"]
+    PL["A1 00 0F 4D\n48 43 0F 00\nSync Anchor\n8 bytes"]
+    CRC["xx xx\nCRC-16"]
+
+    P --> A --> PCF --> PL --> CRC
+
+    style P fill:#e0e0e0,stroke:#999
+    style A fill:#e0e0e0,stroke:#999
+    style PCF fill:#e0e0e0,stroke:#999
+    style PL fill:#2196F3,stroke:#1565C0,color:#fff
+    style CRC fill:#e0e0e0,stroke:#999
 ```
-ACK:   0     1     2     3     4     5     6-7       8  ...  15    16    17
-     ┌─────┬─────┬─────┬─────┬─────┬─────┬─────────┬────────────┬─────┬─────┐
-     │ AA  │ E7  │ A1  │ B2  │ C1  │ D3  │PCF: L=8 │ A1 00 0F   │CRC  │CRC  │
-     │prmbl│ addr bytes (pipe 0)         │PID,NoAck│ 4D 48 43   │ hi  │ lo  │
-     │     │                             │         │ 0F 00      │     │     │
-     │     │                             │         │ (anchor)   │     │     │
-     └─────┴─────┴─────┴─────┴─────┴─────┴─────────┴────────────┴─────┴─────┘
-```
+
+> **16 bytes total on the air** — the anchor rides free inside the ACK.
 
 ### 6.4 What the Tag Does with the Anchor
 
@@ -661,7 +691,11 @@ synced_us = local_us - 768
 The Tag now knows its clock is ~768 µs ahead of the Hub. All future
 frames use this offset to report timestamps in the Hub's time domain.
 
+<br>
+
 ---
+
+<br>
 
 ## 7. The Protocol Exchange
 
@@ -753,7 +787,11 @@ are only ~136 µs long and the interval between packets is ~20,000 µs,
 the probability of collision is very low — roughly 0.7% per frame
 with 8 Tags at 100 Hz.
 
+<br>
+
 ---
+
+<br>
 
 ## 8. Why Clocks Drift and How We Fix It
 
@@ -842,7 +880,11 @@ receives ~25 anchors per second — far more than enough to track drift.
 See [Time Synchronization Deep Dive](RF_TIME_SYNC_REFERENCE.md) for
 convergence analysis, simulator validation, and hardware measurements.
 
+<br>
+
 ---
+
+<br>
 
 ## 9. Hub-Side Processing
 
@@ -929,7 +971,11 @@ This gets loaded into the ESB ACK buffer via `esb_write_payload()`.
 The anchor sits there until the next frame arrives from that pipe,
 at which point ESB automatically includes it in the hardware ACK.
 
+<br>
+
 ---
+
+<br>
 
 ## 10. Tag-Side Processing
 
@@ -998,7 +1044,11 @@ you what's happening without needing a serial connection:
 | **Medium blink** | 250 ms | TX working, but no sync anchors received |
 | **Slow blink** | 500 ms | Fully synchronized — everything working ✓ |
 
+<br>
+
 ---
+
+<br>
 
 ## 11. USB Host Output Format
 
@@ -1042,7 +1092,11 @@ SUMMARY role=central rx=1543 anchors=1543 tracked=2 usb_lines=1543 err=0 hb=200
 SUMMARY role=node id=1 tx_ok=500 tx_fail=3 anchors=497 offset_us=12345 err=0 hb=200
 ```
 
+<br>
+
 ---
+
+<br>
 
 ## 12. Configuration Reference
 
@@ -1068,7 +1122,11 @@ All values are set via Zephyr Kconfig. Tag-specific overrides go in
 | `HELIX_OTA_TARGET_ID` | `0x52840071` | hex | OTA target identity |
 | `HELIX_OTA_REBOOT_DELAY_MS` | `300` | int | Delay before OTA reboot |
 
+<br>
+
 ---
+
+<br>
 
 ## 13. OTA Firmware Updates
 
@@ -1111,7 +1169,11 @@ flowchart LR
 | OTA Data | `3ef6a003-...` | Write / Write-no-response |
 | OTA Status | `3ef6a004-...` | Read |
 
+<br>
+
 ---
+
+<br>
 
 ## 14. Simulator Protocol Variant
 
@@ -1131,7 +1193,11 @@ The *protocol logic* is identical — frame → ACK+anchor → sync offset.
 Only the encoding differs. When reading simulator code, don't be
 confused by the different struct sizes.
 
+<br>
+
 ---
+
+<br>
 
 ## 15. Related Documents
 
