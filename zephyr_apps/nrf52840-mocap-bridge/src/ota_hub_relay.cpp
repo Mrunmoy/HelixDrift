@@ -125,12 +125,11 @@ static volatile size_t gatt_read_len;
 
 /* ── Scan callback ─────────────────────────────────────────────── */
 
-static volatile uint32_t scan_count;
-
 static void scan_result_cb(const bt_addr_le_t *addr, int8_t rssi,
                            uint8_t adv_type, struct net_buf_simple *buf)
 {
-	scan_count++;
+	ARG_UNUSED(rssi);
+	ARG_UNUSED(adv_type);
 
 	/* Parse advertising data for local name */
 	while (buf->len > 1) {
@@ -352,10 +351,9 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 	}
 
 	if (ft == FT::CtrlWrite) {
-		/* Forward CTRL write to Tag */
-		printk("relay: ctrl write h=%u len=%u cmd=0x%02x\n",
-		       gatt_ctrl_handle, frame.payloadLen,
-		       frame.payloadLen > 0 ? frame.payload[0] : 0xFF);
+		/* Forward CTRL write to Tag. Copy payload to a stable buffer
+		 * since bt_gatt_write is async and the parser buffer may be
+		 * reused during the k_sleep wait. */
 		gatt_write_done = false;
 		static uint8_t ctrl_buf[64];
 		size_t copyLen = frame.payloadLen < sizeof(ctrl_buf)
@@ -367,7 +365,6 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 		write_params.length = copyLen;
 		write_params.func = gatt_write_cb;
 		int err = bt_gatt_write(relay_conn, &write_params);
-		printk("relay: bt_gatt_write=%d\n", err);
 		if (err) {
 			uint8_t rsp = 0xFE;
 			send_response(static_cast<uint8_t>(FT::CtrlRsp), &rsp, 1);
@@ -377,7 +374,6 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 		for (int i = 0; i < 600 && !gatt_write_done; ++i) {
 			k_sleep(K_MSEC(100));
 		}
-		printk("relay: write done=%d err=%d\n", gatt_write_done, gatt_write_err);
 		uint8_t rsp = gatt_write_done ? static_cast<uint8_t>(gatt_write_err) : 0xFD;
 		send_response(static_cast<uint8_t>(FT::CtrlRsp), &rsp, 1);
 
@@ -440,21 +436,12 @@ bool ota_hub_relay_poll(void)
 {
 	poll_count++;
 
-	/* Periodic scan status via host_write (not printk, which may block) */
-	if (relay_state == RelayState::SCANNING && (poll_count % 100) == 0) {
-		char dbg[48];
-		snprintk(dbg, sizeof(dbg), "SCAN_STATUS count=%u\n", scan_count);
-		host_write_bytes(reinterpret_cast<const uint8_t *>(dbg), strlen(dbg));
-	}
-
 	/* Drain IRQ ring buffer and feed into frame parser */
 	uint8_t byte;
 	while (rx_ring_get(&byte)) {
 		rx_byte_count++;
 		UartOtaMutableFrame frame{};
 		if (parser.push(byte, frame)) {
-			printk("relay: got frame type=0x%02x len=%u\n",
-			       frame.type, (unsigned)frame.payloadLen);
 			handle_relay_frame(frame);
 		}
 	}
@@ -488,7 +475,6 @@ bool ota_hub_relay_poll(void)
 				.interval = BT_GAP_SCAN_FAST_INTERVAL,
 				.window = BT_GAP_SCAN_FAST_WINDOW,
 			};
-			scan_count = 0;
 			err = bt_le_scan_start(&scan_param, scan_result_cb);
 			if (err) {
 				printk("relay: scan start failed %d\n", err);
