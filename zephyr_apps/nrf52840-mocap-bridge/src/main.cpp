@@ -782,17 +782,21 @@ int main(void)
 #endif
 
 	/* ── Release BLE/MPSL before ESB ──────────────────── */
-#if defined(CONFIG_BT) && !defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
-	/* The Hub has CONFIG_BT=y for the OTA relay, but the SoftDevice
-	 * Controller's SYS_INIT claims MPSL resources at boot. We must
-	 * bt_enable() + bt_disable() to properly release them before ESB. */
+#if defined(CONFIG_BT)
+	/* Both Hub and Tag need bt_enable()+bt_disable() before esb_init()
+	 * to properly cycle MPSL resources. The SoftDevice Controller's
+	 * SYS_INIT claims TIMER0/RTC0/RADIO. bt_disable() with
+	 * CONFIG_BT_UNINIT_MPSL_ON_DISABLE releases them for ESB. */
+#if !defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE) || \
+    !(CONFIG_HELIX_OTA_BOOT_WINDOW_MS > 0)
 	{
 		int bt_err = bt_enable(nullptr);
 		if (bt_err == 0 || bt_err == -EALREADY) {
 			bt_disable();
-			printk("hub: BLE/MPSL released for ESB\n");
+			printk("ble/mpsl released for esb\n");
 		}
 	}
+#endif
 #endif
 
 	/* ── ESB mocap mode ─────────────────────────────────── */
