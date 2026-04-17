@@ -1,0 +1,5 @@
+if(SB_CONFIG_BOARD_PROMICRO_NRF52840_NRF52840)
+  set(PM_STATIC_YML_FILE
+      ${CMAKE_CURRENT_LIST_DIR}/pm_static_promicro_nrf52840_nrf52840.yml
+      CACHE INTERNAL "")
+endif()

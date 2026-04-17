@@ -76,4 +76,23 @@ config HELIX_MOCAP_NODE_LED_DEBUG
 	  medium blink means TX is succeeding without sync anchors, and slow blink
 	  means sync anchors are being received from the central.
 
+config HELIX_OTA_BOOT_WINDOW_MS
+	int "BLE OTA boot window in milliseconds (0 to skip)"
+	range 0 60000
+	default 10000 if HELIX_MOCAP_BRIDGE_ROLE_NODE
+	default 0
+	help
+	  Duration of the BLE OTA advertising window at boot. If a BLE
+	  connection is made during this window, OTA proceeds. If not,
+	  the device transitions to ESB mocap mode. Set to 0 to skip
+	  the BLE window entirely and boot straight into ESB.
+
+config HELIX_OTA_TARGET_ID
+	hex "OTA target identity"
+	default 0x52840071
+
+config HELIX_OTA_REBOOT_DELAY_MS
+	int "Reboot delay after OTA commit (ms)"
+	default 300
+
 endmenu

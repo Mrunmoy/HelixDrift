@@ -8,12 +8,26 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/sys/reboot.h>
 #include <zephyr/types.h>
 #include <string.h>
 
 #include <esb.h>
 
 #include "usbd_init.h"
+
+#if defined(CONFIG_BT) && defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
+#include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/gatt.h>
+#include <zephyr/dfu/mcuboot.h>
+
+#include "BleOtaService.hpp"
+#include "IOtaManager.hpp"
+#include "OtaManager.hpp"
+#include "OtaTargetIdentity.hpp"
+#include "ZephyrOtaFlashBackend.hpp"
+#endif
 
 LOG_MODULE_REGISTER(helix_mocap_bridge, LOG_LEVEL_INF);
 
@@ -483,6 +497,210 @@ static void maybe_send_frame(void)
 }
 #endif
 
+/* ── BLE OTA Boot Window (node role only) ──────────────────────── */
+#if defined(CONFIG_BT) && defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE) && \
+    (CONFIG_HELIX_OTA_BOOT_WINDOW_MS > 0)
+
+#define BT_UUID_HELIX_OTA_SERVICE_VAL \
+    BT_UUID_128_ENCODE(0x3ef6a001, 0x2d3b, 0x4f2a, 0x89e4, 0x7b59d1c0a001)
+#define BT_UUID_HELIX_OTA_CTRL_VAL \
+    BT_UUID_128_ENCODE(0x3ef6a002, 0x2d3b, 0x4f2a, 0x89e4, 0x7b59d1c0a001)
+#define BT_UUID_HELIX_OTA_DATA_VAL \
+    BT_UUID_128_ENCODE(0x3ef6a003, 0x2d3b, 0x4f2a, 0x89e4, 0x7b59d1c0a001)
+#define BT_UUID_HELIX_OTA_STATUS_VAL \
+    BT_UUID_128_ENCODE(0x3ef6a004, 0x2d3b, 0x4f2a, 0x89e4, 0x7b59d1c0a001)
+
+static struct bt_uuid_128 ota_svc_uuid = BT_UUID_INIT_128(BT_UUID_HELIX_OTA_SERVICE_VAL);
+static struct bt_uuid_128 ota_ctrl_uuid = BT_UUID_INIT_128(BT_UUID_HELIX_OTA_CTRL_VAL);
+static struct bt_uuid_128 ota_data_uuid = BT_UUID_INIT_128(BT_UUID_HELIX_OTA_DATA_VAL);
+static struct bt_uuid_128 ota_status_uuid = BT_UUID_INIT_128(BT_UUID_HELIX_OTA_STATUS_VAL);
+
+static helix::ZephyrOtaFlashBackend ota_backend;
+static helix::OtaManager ota_manager{ota_backend};
+static helix::OtaManagerAdapter ota_adapter{ota_manager};
+static helix::BleOtaService ota_service{ota_adapter, CONFIG_HELIX_OTA_TARGET_ID};
+
+static struct bt_conn *ota_conn;
+static bool ota_connected;
+
+static ssize_t ota_write_ctrl(struct bt_conn *, const struct bt_gatt_attr *,
+                              const void *buf, uint16_t len, uint16_t, uint8_t)
+{
+	auto status = ota_service.handleControlWrite(static_cast<const uint8_t *>(buf), len);
+	if (status == helix::OtaStatus::OK &&
+	    ota_manager.state() == helix::OtaState::COMMITTED) {
+		printk("ota: committed, rebooting\n");
+		k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
+		sys_reboot(SYS_REBOOT_COLD);
+	}
+	return status == helix::OtaStatus::OK
+	       ? static_cast<ssize_t>(len)
+	       : BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+}
+
+static ssize_t ota_write_data(struct bt_conn *, const struct bt_gatt_attr *,
+                              const void *buf, uint16_t len, uint16_t, uint8_t)
+{
+	auto status = ota_service.handleDataWrite(static_cast<const uint8_t *>(buf), len);
+	return status == helix::OtaStatus::OK
+	       ? static_cast<ssize_t>(len)
+	       : BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+}
+
+static ssize_t ota_read_status(struct bt_conn *, const struct bt_gatt_attr *attr,
+                               void *buf, uint16_t len, uint16_t offset)
+{
+	uint8_t status[helix::BleOtaService::kStatusLen] = {};
+	size_t slen = 0;
+	ota_service.getStatus(status, &slen);
+	return bt_gatt_attr_read(nullptr, attr, buf, len, offset, status, slen);
+}
+
+BT_GATT_SERVICE_DEFINE(helix_ota_svc,
+    BT_GATT_PRIMARY_SERVICE(&ota_svc_uuid),
+    BT_GATT_CHARACTERISTIC(&ota_ctrl_uuid.uuid,
+                           BT_GATT_CHRC_WRITE,
+                           BT_GATT_PERM_WRITE,
+                           nullptr, ota_write_ctrl, nullptr),
+    BT_GATT_CHARACTERISTIC(&ota_data_uuid.uuid,
+                           BT_GATT_CHRC_WRITE | BT_GATT_CHRC_WRITE_WITHOUT_RESP,
+                           BT_GATT_PERM_WRITE,
+                           nullptr, ota_write_data, nullptr),
+    BT_GATT_CHARACTERISTIC(&ota_status_uuid.uuid,
+                           BT_GATT_CHRC_READ,
+                           BT_GATT_PERM_READ,
+                           ota_read_status, nullptr, nullptr),
+);
+
+static void ota_bt_connected(struct bt_conn *conn, uint8_t err)
+{
+	if (err == 0 && !ota_conn) {
+		ota_conn = bt_conn_ref(conn);
+		ota_connected = true;
+		printk("ota: connected\n");
+	}
+}
+
+static void ota_bt_disconnected(struct bt_conn *conn, uint8_t reason)
+{
+	if (ota_conn == conn) {
+		bt_conn_unref(ota_conn);
+		ota_conn = nullptr;
+		ota_connected = false;
+		printk("ota: disconnected reason=%u\n", reason);
+	}
+}
+
+BT_CONN_CB_DEFINE(ota_conn_cbs) = {
+    .connected = ota_bt_connected,
+    .disconnected = ota_bt_disconnected,
+};
+
+/* Run the BLE OTA boot window. Returns true if OTA completed (reboot
+ * happens inside), false if the window expired with no connection. */
+static bool run_ota_boot_window(void)
+{
+	printk("ota: boot window %d ms\n", CONFIG_HELIX_OTA_BOOT_WINDOW_MS);
+
+	if (boot_write_img_confirmed() == 0) {
+		printk("mcuboot: image confirmed\n");
+	}
+
+	if (!ota_backend.init()) {
+		printk("ota: backend init failed\n");
+		return false;
+	}
+
+	int err = bt_enable(nullptr);
+	if (err) {
+		printk("ota: bt_enable failed %d\n", err);
+		return false;
+	}
+
+	/* Build unique name from FICR */
+	{
+		const auto ficr0 = *reinterpret_cast<const volatile uint32_t *>(0x100000A4U);
+		static const char hex[] = "0123456789ABCDEF";
+		char name[16];
+		const char *base = CONFIG_BT_DEVICE_NAME;
+		size_t n = strlen(base);
+		memcpy(name, base, n);
+		name[n]     = '-';
+		name[n + 1] = hex[(ficr0 >>  4) & 0xF];
+		name[n + 2] = hex[ ficr0        & 0xF];
+		name[n + 3] = hex[(ficr0 >> 12) & 0xF];
+		name[n + 4] = hex[(ficr0 >>  8) & 0xF];
+		name[n + 5] = '\0';
+		bt_set_name(name);
+		printk("ota: name %s\n", name);
+	}
+
+	/* Build advertising data */
+	const char *bt_name = bt_get_name();
+	struct bt_data ad[] = {
+		BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+		{BT_DATA_NAME_COMPLETE, static_cast<uint8_t>(strlen(bt_name)),
+		 reinterpret_cast<const uint8_t *>(bt_name)},
+	};
+	const struct bt_data sd[] = {
+		BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_HELIX_OTA_SERVICE_VAL),
+	};
+
+	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+	if (err) {
+		printk("ota: adv start failed %d\n", err);
+		bt_disable();
+		return false;
+	}
+
+	/* Wait for connection or timeout */
+	int64_t deadline = k_uptime_get() + CONFIG_HELIX_OTA_BOOT_WINDOW_MS;
+	while (k_uptime_get() < deadline && !ota_connected) {
+		led_set(((k_uptime_get() / 100) & 1) != 0); /* fast blink = OTA window */
+		k_sleep(K_MSEC(50));
+	}
+
+	if (!ota_connected) {
+		printk("ota: window expired, switching to ESB\n");
+		bt_le_adv_stop();
+		bt_disable();
+		return false;
+	}
+
+	/* Connected — run OTA until complete or disconnect.
+	 * OTA commit triggers reboot inside ota_write_ctrl().
+	 * Stall watchdog: if no data for 30s, force disconnect. */
+	printk("ota: running OTA transfer\n");
+	uint32_t last_bytes = 0;
+	uint32_t stall_ticks = 0;
+	while (ota_connected) {
+		uint32_t bytes = ota_manager.bytesReceived();
+		if (ota_manager.state() == helix::OtaState::RECEIVING) {
+			if (bytes == last_bytes) {
+				stall_ticks++;
+			} else {
+				stall_ticks = 0;
+				last_bytes = bytes;
+			}
+			if (stall_ticks >= 600) { /* 600 * 50ms = 30s */
+				printk("ota: stall, disconnecting\n");
+				bt_conn_disconnect(ota_conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+				break;
+			}
+		}
+		led_set(((k_uptime_get() / 250) & 1) != 0); /* medium blink = OTA active */
+		k_sleep(K_MSEC(50));
+	}
+
+	/* If we get here without reboot, OTA was aborted or stalled */
+	printk("ota: session ended without commit, switching to ESB\n");
+	bt_le_adv_stop();
+	bt_disable();
+	return false;
+}
+
+#endif /* CONFIG_BT && ROLE_NODE && BOOT_WINDOW > 0 */
+
 int main(void)
 {
 	int err;
@@ -513,6 +731,25 @@ int main(void)
 	}
 	g_helixMocapStatus.phase = 3U;
 
+#if defined(CONFIG_BOARD_PROMICRO_NRF52840_NRF52840)
+	/* NCS v3.2.4 UARTE legacy shim PSEL.TXD workaround */
+	{
+		volatile auto *pselTxd = reinterpret_cast<volatile uint32_t *>(0x40002508U);
+		if (*pselTxd == 0xFFFFFFFFU) {
+			*pselTxd = 9U;
+		}
+	}
+#endif
+
+	/* ── BLE OTA boot window (node only) ────────────────── */
+#if defined(CONFIG_BT) && defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE) && \
+    (CONFIG_HELIX_OTA_BOOT_WINDOW_MS > 0)
+	run_ota_boot_window();
+	/* If we return here, OTA either wasn't requested or was aborted.
+	 * bt_disable() was called. Proceed to ESB. */
+#endif
+
+	/* ── ESB mocap mode ─────────────────────────────────── */
 	err = esb_initialize();
 	if (err) {
 		status_set_error(err);

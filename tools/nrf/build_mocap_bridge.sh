@@ -31,8 +31,18 @@ WORKSPACE_DIR="${NCS_WORKSPACE_DIR:-${REPO_ROOT}/.deps/ncs/${NCS_VERSION}}"
 APP_DIR="${REPO_ROOT}/zephyr_apps/nrf52840-mocap-bridge"
 BUILD_DIR_NAME="build-helix-${BOARD//\//-}-mocap-${ROLE}-node${NODE_ID}"
 BOARD_OVERLAY="${APP_DIR}/boards/${BOARD//\//_}.overlay"
+MCUBOOT_PATCH="${REPO_ROOT}/patches/0001-mcuboot-nrf-cleanup-gpio-present-check.patch"
 
 "${REPO_ROOT}/tools/dev/bootstrap_ncs_workspace.sh" "${NCS_VERSION}" "${WORKSPACE_DIR}"
+
+# Apply MCUboot GPIO safety patch for ProPico if needed
+if [[ "${BOARD}" == promicro_nrf52840/* && "${ROLE}" == "node" ]]; then
+  MCUBOOT_REPO="${WORKSPACE_DIR}/bootloader/mcuboot"
+  MCUBOOT_TARGET_FILE="${MCUBOOT_REPO}/boot/zephyr/nrf_cleanup.c"
+  if ! grep -q "nrfy_gpio_pin_present_check" "${MCUBOOT_TARGET_FILE}"; then
+    git -C "${MCUBOOT_REPO}" apply "${MCUBOOT_PATCH}"
+  fi
+fi
 
 export ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb
 export GNUARMEMB_TOOLCHAIN_PATH
@@ -52,7 +62,13 @@ GNUARMEMB_TOOLCHAIN_PATH="$(dirname "$(dirname "$(command -v arm-none-eabi-gcc)"
   if [[ -f "${BOARD_OVERLAY}" ]]; then
     BUILD_ARGS+=("-DDTC_OVERLAY_FILE=${BOARD_OVERLAY}")
   fi
-  west build -p auto -b "${BOARD}" "${APP_DIR}" -d "${BUILD_DIR_NAME}" -- \
+  # Node builds use sysbuild for MCUboot signing; central builds don't need MCUboot
+  SYSBUILD_FLAG=()
+  if [[ "${ROLE}" == "node" ]]; then
+    SYSBUILD_FLAG=(--sysbuild)
+  fi
+
+  west build ${SYSBUILD_FLAG[@]+"${SYSBUILD_FLAG[@]}"} -p auto -b "${BOARD}" "${APP_DIR}" -d "${BUILD_DIR_NAME}" -- \
     "${BUILD_ARGS[@]}" \
     "${EXTRA_ARGS[@]}"
 )
