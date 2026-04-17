@@ -15,6 +15,7 @@
 #include <esb.h>
 
 #include "usbd_init.h"
+#include "ota_hub_relay.hpp"
 
 #if defined(CONFIG_BT) && defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
 #include <zephyr/bluetooth/bluetooth.h>
@@ -755,6 +756,10 @@ int main(void)
 	}
 	g_helixMocapStatus.phase = 3U;
 
+#if defined(CONFIG_HELIX_OTA_HUB_RELAY)
+	ota_hub_relay_init(host_stream);
+#endif
+
 #if defined(CONFIG_BOARD_PROMICRO_NRF52840_NRF52840)
 	/* NCS v3.2.4 UARTE legacy shim PSEL.TXD workaround */
 	{
@@ -789,8 +794,34 @@ int main(void)
 
 	host_write("HELIX_MOCAP_BRIDGE_READY\n");
 
+	static bool esb_running = true;
+
 	while (1) {
 		heartbeat_tick();
+
+#if defined(CONFIG_HELIX_OTA_HUB_RELAY)
+		/* Check if OTA relay needs to stop ESB */
+		if (esb_running && ota_hub_relay_needs_esb_stop()) {
+			printk("hub: stopping ESB for OTA relay\n");
+			esb_disable();
+			esb_running = false;
+		}
+
+		/* Poll OTA relay (processes USB RX, drives BLE state machine) */
+		ota_hub_relay_poll();
+
+		/* Check if OTA session ended and ESB can restart */
+		if (!esb_running && ota_hub_relay_esb_can_restart()) {
+			printk("hub: restarting ESB after OTA relay\n");
+			esb_initialize();
+#if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
+			esb_start_rx();
+#endif
+			esb_running = true;
+			host_write("HELIX_MOCAP_BRIDGE_READY\n");
+		}
+#endif
+
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
 		maybe_send_frame();
 #endif

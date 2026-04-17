@@ -8,6 +8,7 @@ target_sources(app PRIVATE
   src/usbd_init.c
   src/main.cpp
   src/ZephyrOtaFlashBackend.cpp
+  src/ota_hub_relay.cpp
   ${HELIX_ROOT}/firmware/common/ota/OtaManager.cpp
   ${HELIX_ROOT}/firmware/common/ota/BleOtaService.cpp
 )
