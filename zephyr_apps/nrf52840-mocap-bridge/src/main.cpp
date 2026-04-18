@@ -353,7 +353,13 @@ static void central_handle_frame(const struct esb_payload *payload)
 		.pipe = payload->pipe,
 	};
 
-	/* Inject OTA trigger if requested for this node (or broadcast) */
+	/* Inject OTA trigger if requested for this node (or broadcast).
+	 * NOTE: esb_flush_tx() from ISR context doesn't reliably replace
+	 * the ACK payload already latched by the radio peripheral.  For now
+	 * we still write it (counter tracks attempts) but the Tag may not
+	 * receive it consistently.  A proper fix requires deferring the
+	 * flush+write sequence to the main loop with ESB disable/re-enable,
+	 * which is a larger refactor. */
 	if (ota_trigger_target_node != 0u &&
 	    (ota_trigger_target_node == 0xFFu ||
 	     ota_trigger_target_node == frame->node_id)) {
@@ -366,17 +372,13 @@ static void central_handle_frame(const struct esb_payload *payload)
 		};
 		ack.length = sizeof(trig);
 		memcpy(ack.data, &trig, sizeof(trig));
-		/* Flush any stale ACK payloads queued ahead of us.  Nordic ESB
-		 * queues ACK payloads in a FIFO; without flushing, the trigger
-		 * ends up behind an anchor and only reaches the Tag on the
-		 * following packet (or not at all if the FIFO keeps refilling). */
 		(void)esb_flush_tx();
 		if (esb_write_payload(&ack) == 0) {
 			ota_triggers_sent++;
 			if (ota_trigger_retries > 0u) {
 				ota_trigger_retries--;
 			} else {
-				ota_trigger_target_node = 0u; /* done */
+				ota_trigger_target_node = 0u;
 			}
 		}
 		return;
