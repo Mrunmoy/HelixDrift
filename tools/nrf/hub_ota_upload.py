@@ -107,8 +107,8 @@ def parse_args():
     p.add_argument("image_bin", help="Path to the signed .bin firmware image")
     p.add_argument("--port", default="/dev/ttyACM1", help="Hub USB CDC serial port")
     p.add_argument("--target", required=True, help="Target Tag BLE name (e.g. HTag-0D16)")
-    p.add_argument("--target-id", type=lambda v: int(v, 0), default=0x52840071,
-                   help="OTA target identity hex")
+    p.add_argument("--target-id", type=lambda v: int(v, 0), default=0x52840070,
+                   help="OTA target identity hex (must match Kconfig HELIX_OTA_TARGET_ID)")
     p.add_argument("--trigger-node", type=lambda v: int(v, 0), default=0,
                    help="ESB node_id (1-255) to trigger remote OTA reboot before upload. "
                         "0 = no trigger (Tag must already be in BLE OTA window). "
