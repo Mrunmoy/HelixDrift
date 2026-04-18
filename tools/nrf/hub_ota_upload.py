@@ -174,7 +174,21 @@ def main():
     if rsp is None or rsp[0] != 0x00:
         print(f"ERROR: BEGIN failed: {rsp}")
         return 1
-    print("BEGIN OK")
+    print("BEGIN ACK received, waiting for flash erase...")
+
+    # Tag defers flash erase out of GATT callback — poll STATUS until
+    # state transitions from IDLE (0) to RECEIVING (1). Erase takes ~10s.
+    erase_deadline = time.time() + 20.0
+    while time.time() < erase_deadline:
+        time.sleep(0.5)
+        ser.write(encode_frame(STATUS_REQ))
+        rsp = read_response(ser, STATUS_RSP, timeout=3.0)
+        if rsp is not None and len(rsp) >= 1 and rsp[0] == 1:  # OtaState::RECEIVING
+            break
+    else:
+        print("ERROR: Tag did not transition to RECEIVING after 20s")
+        return 1
+    print("BEGIN OK (erase complete, Tag ready to receive)")
 
     # Step 4: Send data chunks
     offset = 0

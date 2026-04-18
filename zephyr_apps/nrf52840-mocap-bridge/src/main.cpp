@@ -118,8 +118,6 @@ static bool have_anchor;
 static int32_t estimated_offset_us;
 /* Set from ESB ISR when an OTA trigger arrives; main loop reboots. */
 static atomic_t ota_reboot_pending = ATOMIC_INIT(0);
-/* DEBUG: last ACK byte[0] and length (encoded into FRAME.yaw_cdeg) */
-static volatile uint16_t debug_last_ack;
 #endif
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
 static struct NodeTrack tracked_nodes[CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES];
@@ -423,7 +421,7 @@ static void node_fill_frame(struct HelixMocapFrame *frame)
 	frame->session_tag = (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG;
 	frame->node_local_timestamp_us = local_us;
 	frame->node_synced_timestamp_us = synced_us;
-	frame->yaw_cdeg = (int16_t)debug_last_ack; /* DEBUG: hi=data[0], lo=length */
+	frame->yaw_cdeg = synth_wave(sequence, 37, 3600);
 	frame->pitch_cdeg = synth_wave(sequence, 23, 1800);
 	frame->roll_cdeg = synth_wave(sequence, 17, 1800);
 	frame->x_mm = synth_wave(sequence, 11, 1200);
@@ -437,13 +435,18 @@ static void node_handle_anchor(const struct esb_payload *payload)
 		return;
 	}
 
-	/* DEBUG: remember last ACK data[0] and length */
-	debug_last_ack = (uint16_t)(((uint16_t)payload->data[0] << 8) |
-	                             (uint16_t)(payload->length & 0xFF));
-
-	/* DEBUG: reboot on any payload starting with 0xE1, no validation. */
-	if (payload->data[0] == HELIX_PACKET_OTA_TRIGGER) {
-		atomic_set(&ota_reboot_pending, 1);
+	/* Check for OTA trigger packet. This runs in ESB ISR context —
+	 * just set the flag; the main loop does the actual reboot. */
+	if (payload->data[0] == HELIX_PACKET_OTA_TRIGGER &&
+	    payload->length >= sizeof(HelixOtaTrigger)) {
+		const struct HelixOtaTrigger *trig =
+			(const struct HelixOtaTrigger *)payload->data;
+		if (trig->session_tag == (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG &&
+		    trig->magic == kOtaTriggerMagic &&
+		    (trig->target_node_id == 0xFFu ||
+		     trig->target_node_id == (uint8_t)CONFIG_HELIX_MOCAP_NODE_ID)) {
+			atomic_set(&ota_reboot_pending, 1);
+		}
 		return;
 	}
 
