@@ -30,6 +30,8 @@ DATA_WRITE = 0x30
 DATA_RSP = 0x31
 STATUS_REQ = 0x40
 STATUS_RSP = 0x41
+ESB_TRIG_REQ = 0x50
+ESB_TRIG_RSP = 0x51
 
 # OTA commands
 CMD_BEGIN = 0x01
@@ -107,6 +109,10 @@ def parse_args():
     p.add_argument("--target", required=True, help="Target Tag BLE name (e.g. HTag-0D16)")
     p.add_argument("--target-id", type=lambda v: int(v, 0), default=0x52840071,
                    help="OTA target identity hex")
+    p.add_argument("--trigger-node", type=lambda v: int(v, 0), default=0,
+                   help="ESB node_id (1-255) to trigger remote OTA reboot before upload. "
+                        "0 = no trigger (Tag must already be in BLE OTA window). "
+                        "0xFF = broadcast to all nodes.")
     p.add_argument("--chunk-size", type=int, default=128, help="Data chunk size in bytes")
     p.add_argument("--baud", type=int, default=115200, help="Serial baud rate")
     return p.parse_args()
@@ -124,6 +130,17 @@ def main():
     ser = serial.Serial(args.port, args.baud, timeout=0.1,
                          dsrdtr=True, rtscts=False, write_timeout=5)
     ser.reset_input_buffer()
+
+    # Step 0: Optionally trigger remote OTA reboot via ESB
+    if args.trigger_node != 0:
+        print(f"\n--- ESB trigger: node={args.trigger_node} (reboot to BLE OTA) ---")
+        ser.write(encode_frame(ESB_TRIG_REQ, bytes([args.trigger_node & 0xFF, 3])))
+        rsp = read_response(ser, ESB_TRIG_RSP, timeout=5.0)
+        if rsp is None or rsp[0] != 0x00:
+            print(f"WARNING: ESB trigger response: {rsp}")
+        else:
+            print("Trigger queued, waiting 4s for Tag reboot + BLE advertise...")
+            time.sleep(4)
 
     # Step 1: Send InfoReq with target name
     print(f"\n--- Connecting to {args.target} through Hub ---")

@@ -38,7 +38,11 @@ LOG_MODULE_REGISTER(helix_mocap_bridge, LOG_LEVEL_INF);
 enum {
 	HELIX_PACKET_SYNC_ANCHOR = 0xA1,
 	HELIX_PACKET_MOCAP_FRAME = 0xC1,
+	HELIX_PACKET_OTA_TRIGGER = 0xE1,
 };
+
+/* Magic value to prevent accidental OTA triggers. Must match on both sides. */
+static constexpr uint32_t kOtaTriggerMagic = 0xDEADBEEFu;
 
 struct __packed HelixSyncAnchor {
 	uint8_t type;
@@ -46,6 +50,14 @@ struct __packed HelixSyncAnchor {
 	uint8_t anchor_sequence;
 	uint8_t session_tag;
 	uint32_t central_timestamp_us;
+};
+
+struct __packed HelixOtaTrigger {
+	uint8_t type;           /* HELIX_PACKET_OTA_TRIGGER */
+	uint8_t central_id;
+	uint8_t target_node_id; /* 0xFF = broadcast */
+	uint8_t session_tag;
+	uint32_t magic;         /* kOtaTriggerMagic */
 };
 
 struct __packed HelixMocapFrame {
@@ -104,10 +116,28 @@ static struct esb_payload tx_payload;
 static atomic_t tx_ready = ATOMIC_INIT(1);
 static bool have_anchor;
 static int32_t estimated_offset_us;
+/* Set from ESB ISR when an OTA trigger arrives; main loop reboots. */
+static atomic_t ota_reboot_pending = ATOMIC_INIT(0);
+/* DEBUG: last ACK byte[0] and length (encoded into FRAME.yaw_cdeg) */
+static volatile uint16_t debug_last_ack;
 #endif
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
 static struct NodeTrack tracked_nodes[CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES];
 static uint8_t next_anchor_sequence;
+/* When non-zero, the central injects an OTA trigger into the next ACK
+ * payload for the target node (0xFF = broadcast). Cleared after send. */
+static volatile uint8_t ota_trigger_target_node;
+static volatile uint8_t ota_trigger_retries;
+static volatile uint32_t ota_triggers_sent;
+
+/* Request an OTA trigger for a specific node (or 0xFF = broadcast).
+ * Sends the trigger on the next few FRAMEs from the target, then clears.
+ * Called from the Hub relay when the PC requests a remote OTA trigger. */
+extern "C" void helix_request_ota_trigger(uint8_t node_id, uint8_t retries)
+{
+	ota_trigger_retries = retries;
+	ota_trigger_target_node = node_id;
+}
 #endif
 
 static uint32_t now_us(void)
@@ -196,13 +226,14 @@ static void report_summary(void)
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
 	snprintk(line,
 		 sizeof(line),
-		 "SUMMARY role=central rx=%u anchors=%u tracked=%u usb_lines=%u err=%u hb=%u\n",
+		 "SUMMARY role=central rx=%u anchors=%u tracked=%u usb_lines=%u err=%u hb=%u trigs=%u\n",
 		 g_helixMocapStatus.rx_packets,
 		 g_helixMocapStatus.anchors_sent,
 		 g_helixMocapStatus.tracked_nodes,
 		 g_helixMocapStatus.usb_lines,
 		 g_helixMocapStatus.last_error,
-		 g_helixMocapStatus.heartbeat);
+		 g_helixMocapStatus.heartbeat,
+		 ota_triggers_sent);
 #else
 	snprintk(line,
 		 sizeof(line),
@@ -320,6 +351,39 @@ static void central_handle_frame(const struct esb_payload *payload)
 
 	host_emit_frame(frame, rx_timestamp_us, gaps);
 
+	struct esb_payload ack = {
+		.pipe = payload->pipe,
+	};
+
+	/* Inject OTA trigger if requested for this node (or broadcast) */
+	if (ota_trigger_target_node != 0u &&
+	    (ota_trigger_target_node == 0xFFu ||
+	     ota_trigger_target_node == frame->node_id)) {
+		struct HelixOtaTrigger trig = {
+			.type = HELIX_PACKET_OTA_TRIGGER,
+			.central_id = (uint8_t)CONFIG_HELIX_MOCAP_CENTRAL_ID,
+			.target_node_id = ota_trigger_target_node,
+			.session_tag = (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG,
+			.magic = kOtaTriggerMagic,
+		};
+		ack.length = sizeof(trig);
+		memcpy(ack.data, &trig, sizeof(trig));
+		/* Flush any stale ACK payloads queued ahead of us.  Nordic ESB
+		 * queues ACK payloads in a FIFO; without flushing, the trigger
+		 * ends up behind an anchor and only reaches the Tag on the
+		 * following packet (or not at all if the FIFO keeps refilling). */
+		(void)esb_flush_tx();
+		if (esb_write_payload(&ack) == 0) {
+			ota_triggers_sent++;
+			if (ota_trigger_retries > 0u) {
+				ota_trigger_retries--;
+			} else {
+				ota_trigger_target_node = 0u; /* done */
+			}
+		}
+		return;
+	}
+
 	struct HelixSyncAnchor anchor = {
 		.type = HELIX_PACKET_SYNC_ANCHOR,
 		.central_id = (uint8_t)CONFIG_HELIX_MOCAP_CENTRAL_ID,
@@ -327,11 +391,7 @@ static void central_handle_frame(const struct esb_payload *payload)
 		.session_tag = (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG,
 		.central_timestamp_us = rx_timestamp_us,
 	};
-	struct esb_payload ack = {
-		.length = sizeof(anchor),
-		.pipe = payload->pipe,
-	};
-
+	ack.length = sizeof(anchor);
 	memcpy(ack.data, &anchor, sizeof(anchor));
 	if (esb_write_payload(&ack) == 0) {
 		g_helixMocapStatus.anchors_sent++;
@@ -363,7 +423,7 @@ static void node_fill_frame(struct HelixMocapFrame *frame)
 	frame->session_tag = (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG;
 	frame->node_local_timestamp_us = local_us;
 	frame->node_synced_timestamp_us = synced_us;
-	frame->yaw_cdeg = synth_wave(sequence, 37, 3600);
+	frame->yaw_cdeg = (int16_t)debug_last_ack; /* DEBUG: hi=data[0], lo=length */
 	frame->pitch_cdeg = synth_wave(sequence, 23, 1800);
 	frame->roll_cdeg = synth_wave(sequence, 17, 1800);
 	frame->x_mm = synth_wave(sequence, 11, 1200);
@@ -373,6 +433,20 @@ static void node_fill_frame(struct HelixMocapFrame *frame)
 
 static void node_handle_anchor(const struct esb_payload *payload)
 {
+	if (payload->length < 1) {
+		return;
+	}
+
+	/* DEBUG: remember last ACK data[0] and length */
+	debug_last_ack = (uint16_t)(((uint16_t)payload->data[0] << 8) |
+	                             (uint16_t)(payload->length & 0xFF));
+
+	/* DEBUG: reboot on any payload starting with 0xE1, no validation. */
+	if (payload->data[0] == HELIX_PACKET_OTA_TRIGGER) {
+		atomic_set(&ota_reboot_pending, 1);
+		return;
+	}
+
 	const struct HelixSyncAnchor *anchor = (const struct HelixSyncAnchor *)payload->data;
 	const uint32_t local_us = now_us();
 
@@ -870,6 +944,12 @@ int main(void)
 #endif
 
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
+		/* Handle deferred OTA reboot triggered from ESB ISR */
+		if (atomic_cas(&ota_reboot_pending, 1, 0)) {
+			printk("ota: ESB trigger received, rebooting\n");
+			k_sleep(K_MSEC(50));
+			sys_reboot(SYS_REBOOT_COLD);
+		}
 		maybe_send_frame();
 #endif
 		if ((g_helixMocapStatus.heartbeat % 25U) == 0U) {

@@ -16,6 +16,10 @@ extern "C" {
 
 #include "UartOtaProtocol.hpp"
 
+/* Declared in main.cpp — requests the Hub to inject an ESB OTA trigger
+ * into ACK payloads for the target node. retries=0 means one-shot. */
+extern "C" void helix_request_ota_trigger(uint8_t node_id, uint8_t retries);
+
 using helix::UartOtaProtocol;
 using helix::UartOtaMutableFrame;
 using helix::UartOtaFrameParser;
@@ -320,6 +324,22 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 {
 	using FT = UartOtaProtocol::FrameType;
 	auto ft = static_cast<FT>(frame.type);
+
+	if (ft == FT::EsbTrigReq) {
+		/* Request Hub to inject an ESB OTA trigger for a node.
+		 * Payload: [node_id, retries].  ESB is still running at this point. */
+		if (frame.payloadLen >= 2) {
+			helix_request_ota_trigger(frame.payload[0], frame.payload[1]);
+			printk("relay: esb trigger node=%u retries=%u\n",
+			       frame.payload[0], frame.payload[1]);
+			uint8_t rsp = 0x00;
+			send_response(static_cast<uint8_t>(FT::EsbTrigRsp), &rsp, 1);
+		} else {
+			uint8_t rsp = 0xFF;
+			send_response(static_cast<uint8_t>(FT::EsbTrigRsp), &rsp, 1);
+		}
+		return;
+	}
 
 	if (ft == FT::InfoReq) {
 		/* Start OTA session: payload is target name (null-terminated string).

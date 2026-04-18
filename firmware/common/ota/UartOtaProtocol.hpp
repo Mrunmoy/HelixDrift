@@ -25,14 +25,18 @@ struct UartOtaProtocol {
     static constexpr std::size_t kFrameOverhead = kHeaderSize + kFooterSize;
 
     enum class FrameType : uint8_t {
-        InfoReq   = 0x10u,
-        InfoRsp   = 0x11u,
-        CtrlWrite = 0x20u,
-        CtrlRsp   = 0x21u,
-        DataWrite = 0x30u,
-        DataRsp   = 0x31u,
-        StatusReq = 0x40u,
-        StatusRsp = 0x41u,
+        InfoReq      = 0x10u,
+        InfoRsp      = 0x11u,
+        CtrlWrite    = 0x20u,
+        CtrlRsp      = 0x21u,
+        DataWrite    = 0x30u,
+        DataRsp      = 0x31u,
+        StatusReq    = 0x40u,
+        StatusRsp    = 0x41u,
+        /* Hub-relay-only: request Hub to send an ESB OTA trigger to a Tag
+         * so it reboots into its BLE OTA window. Payload: [node_id, retries] */
+        EsbTrigReq   = 0x50u,
+        EsbTrigRsp   = 0x51u,
     };
 
     static uint8_t checksum(uint8_t type, const uint8_t* payload, std::size_t payloadLen) {
