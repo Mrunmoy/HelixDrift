@@ -1,0 +1,44 @@
+# Time Sync §7.1 - TimestampSynchronizedTransport
+
+direction: right
+
+Template: {
+  label: "TimestampSynchronizedTransportT<Transport, SyncFilter, AnchorSource>"
+  style.fill: "#FAFAFA"
+  style.stroke: "#666"
+  style.border-radius: 8
+  style.font-size: 11
+
+  Poll AnchorSource\nfor new anchors: {
+    shape: rectangle
+    style.fill: "#E3F2FD"
+    style.stroke: "#1565C0"
+    style.font-size: 11
+  }
+
+  Update SyncFilter\nwith anchor observation: {
+    shape: rectangle
+    style.fill: "#BBDEFB"
+    style.stroke: "#1565C0"
+    style.font-size: 11
+  }
+
+  Map local timestamp\nto remote (Hub) domain: {
+    shape: rectangle
+    style.fill: "#90CAF9"
+    style.stroke: "#0D47A1"
+    style.font-size: 11
+  }
+
+  Call Transport.sendQuaternion()\nwith mapped timestamp: {
+    shape: rectangle
+    style.fill: "#2196F3"
+    style.stroke: "#0D47A1"
+    style.font-color: "#ffffff"
+    style.font-size: 11
+  }
+
+  Poll AnchorSource\nfor new anchors -> Update SyncFilter\nwith anchor observation
+  Update SyncFilter\nwith anchor observation -> Map local timestamp\nto remote (Hub) domain
+  Map local timestamp\nto remote (Hub) domain -> Call Transport.sendQuaternion()\nwith mapped timestamp
+}

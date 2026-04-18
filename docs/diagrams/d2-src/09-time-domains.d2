@@ -1,0 +1,64 @@
+# Time Sync §3 - Time Domains
+
+direction: right
+
+Tag Time Domain: {
+  style.fill: "#E8F5E9"
+  style.stroke: "#2E7D32"
+  style.border-radius: 8
+
+  t_local\n(free-running µs counter): {
+    shape: rectangle
+    style.fill: "#C8E6C9"
+    style.stroke: "#2E7D32"
+  }
+
+  t_synced\n(t_local − offset): {
+    shape: rectangle
+    style.fill: "#A5D6A7"
+    style.stroke: "#1B5E20"
+  }
+
+  t_local\n(free-running µs counter) -> t_synced\n(t_local − offset): "− offset" {
+    style.stroke: "#2E7D32"
+  }
+}
+
+Hub Time Domain: {
+  style.fill: "#E3F2FD"
+  style.stroke: "#1565C0"
+  style.border-radius: 8
+
+  t_hub\n(reference clock): {
+    shape: rectangle
+    style.fill: "#90CAF9"
+    style.stroke: "#1565C0"
+  }
+
+  t_rx\n(when frame arrived): {
+    shape: rectangle
+    style.fill: "#90CAF9"
+    style.stroke: "#1565C0"
+  }
+}
+
+PC Time Domain: {
+  style.fill: "#F3E5F5"
+  style.stroke: "#6A1B9A"
+  style.border-radius: 8
+
+  Receives all three:\nnode_us (t_local)\nsync_us (t_synced)\nrx_us (t_rx): {
+    shape: rectangle
+    style.fill: "#CE93D8"
+    style.stroke: "#6A1B9A"
+  }
+}
+
+Tag Time Domain.t_synced\n(t_local − offset) -> Hub Time Domain.t_hub\n(reference clock): "≈ maps to" {
+  style.stroke: "#1565C0"
+  style.stroke-dash: 4
+}
+
+Hub Time Domain -> PC Time Domain: "USB forward" {
+  style.stroke: "#333"
+}

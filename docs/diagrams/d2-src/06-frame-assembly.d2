@@ -1,0 +1,71 @@
+# §10.1 Frame Assembly and Transmission
+
+direction: down
+
+Main loop tick: {
+  shape: oval
+  style.fill: "#E8F5E9"
+  style.stroke: "#2E7D32"
+}
+
+tx_ready?: {
+  shape: diamond
+  style.fill: "#FFF3E0"
+  style.stroke: "#E65100"
+}
+
+Skip this tick: {
+  shape: rectangle
+  style.fill: "#e0e0e0"
+  style.stroke: "#999"
+  style.font-size: 12
+}
+
+Claim tx_ready flag: {
+  shape: rectangle
+  style.fill: "#BBDEFB"
+  style.stroke: "#1565C0"
+}
+
+Fill 24-byte frame: {
+  shape: rectangle
+  style.fill: "#BBDEFB"
+  style.stroke: "#1565C0"
+}
+
+esb_write_payload: {
+  shape: rectangle
+  style.fill: "#2196F3"
+  style.stroke: "#1565C0"
+  style.font-color: "#ffffff"
+  style.bold: true
+}
+
+Wait for ESB event: {
+  shape: diamond
+  style.fill: "#FFF3E0"
+  style.stroke: "#E65100"
+}
+
+TX_SUCCESS:\nrelease tx_ready: {
+  shape: rectangle
+  style.fill: "#4CAF50"
+  style.stroke: "#2E7D32"
+  style.font-color: "#ffffff"
+}
+
+TX_FAILED:\nflush + release: {
+  shape: rectangle
+  style.fill: "#F44336"
+  style.stroke: "#C62828"
+  style.font-color: "#ffffff"
+}
+
+Main loop tick -> tx_ready?
+tx_ready? -> Skip this tick: No {style.stroke: "#F44336"}
+tx_ready? -> Claim tx_ready flag: Yes {style.stroke: "#4CAF50"}
+Claim tx_ready flag -> Fill 24-byte frame
+Fill 24-byte frame -> esb_write_payload
+esb_write_payload -> Wait for ESB event
+Wait for ESB event -> TX_SUCCESS:\nrelease tx_ready: Success {style.stroke: "#4CAF50"}
+Wait for ESB event -> TX_FAILED:\nflush + release: Failed {style.stroke: "#F44336"}

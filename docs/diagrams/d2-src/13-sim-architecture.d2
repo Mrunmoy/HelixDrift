@@ -1,0 +1,57 @@
+# Time Sync §6.1 - Simulation Architecture
+
+direction: down
+
+Host Simulation Layer: {
+  style.fill: "#FAFAFA"
+  style.stroke: "#666"
+  style.border-radius: 8
+
+  VirtualRFMedium\nPacket delivery with\nlatency + loss + jitter: {
+    shape: rectangle
+    style.fill: "#BBDEFB"
+    style.stroke: "#1565C0"
+    style.font-size: 11
+  }
+
+  VirtualSyncMaster\nBroadcasts anchors\nCollects frames: {
+    shape: rectangle
+    style.fill: "#2196F3"
+    style.stroke: "#1565C0"
+    style.font-color: "#ffffff"
+    style.font-size: 11
+  }
+
+  VirtualSyncNode 1\nClock: +5ms, +15ppm: {
+    shape: rectangle
+    style.fill: "#E8F5E9"
+    style.stroke: "#2E7D32"
+    style.font-size: 11
+  }
+
+  VirtualSyncNode 2\nClock: -3ms, -8ppm: {
+    shape: rectangle
+    style.fill: "#E8F5E9"
+    style.stroke: "#2E7D32"
+    style.font-size: 11
+  }
+
+  VirtualSyncNode N\nClock: random: {
+    shape: rectangle
+    style.fill: "#E8F5E9"
+    style.stroke: "#2E7D32"
+    style.font-size: 11
+  }
+
+  VirtualSyncMaster\nBroadcasts anchors\nCollects frames -> VirtualRFMedium\nPacket delivery with\nlatency + loss + jitter: "anchor (dst=0xFF)" {style.stroke: "#2196F3"; style.font-size: 10}
+
+  VirtualRFMedium\nPacket delivery with\nlatency + loss + jitter -> VirtualSyncNode 1\nClock: +5ms, +15ppm: "deliver" {style.stroke: "#999"; style.font-size: 10}
+  VirtualRFMedium\nPacket delivery with\nlatency + loss + jitter -> VirtualSyncNode 2\nClock: -3ms, -8ppm: "deliver" {style.stroke: "#999"; style.font-size: 10}
+  VirtualRFMedium\nPacket delivery with\nlatency + loss + jitter -> VirtualSyncNode N\nClock: random: "deliver" {style.stroke: "#999"; style.font-size: 10}
+
+  VirtualSyncNode 1\nClock: +5ms, +15ppm -> VirtualRFMedium\nPacket delivery with\nlatency + loss + jitter: "frame" {style.stroke: "#4CAF50"; style.font-size: 10}
+  VirtualSyncNode 2\nClock: -3ms, -8ppm -> VirtualRFMedium\nPacket delivery with\nlatency + loss + jitter: "frame" {style.stroke: "#4CAF50"; style.font-size: 10}
+  VirtualSyncNode N\nClock: random -> VirtualRFMedium\nPacket delivery with\nlatency + loss + jitter: "frame" {style.stroke: "#4CAF50"; style.font-size: 10}
+
+  VirtualRFMedium\nPacket delivery with\nlatency + loss + jitter -> VirtualSyncMaster\nBroadcasts anchors\nCollects frames: "deliver to master" {style.stroke: "#999"; style.font-size: 10}
+}

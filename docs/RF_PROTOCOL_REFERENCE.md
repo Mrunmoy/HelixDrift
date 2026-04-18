@@ -50,13 +50,7 @@ synchronized in time, and uses it to reconstruct the performer's motion.
 **The topology is a star:** one Hub in the center, many Tags around it.
 Tags never talk to each other. Everything goes through the Hub.
 
-```mermaid
-graph LR
-    T1["Tag 1 wrist"] -->|"wirelessly"| Hub["Hub"]
-    T2["Tag 2 elbow"] -->|"wirelessly"| Hub
-    T3["Tag 3 shoulder"] -->|"wirelessly"| Hub
-    Hub ==>|"USB cable"| PC["PC"]
-```
+<img src="diagrams/01-topology.svg" alt="Star topology: Tags 1-3 wirelessly connect to Hub, Hub connects to PC via USB" />
 
 **Two things flow through the air:**
 
@@ -793,16 +787,7 @@ This chapter describes what the Hub does when it receives a frame.
 
 Every incoming packet goes through three checks before processing:
 
-```mermaid
-flowchart LR
-    RX["Receive"] --> Len{"Length >= 24?"}
-    Len -- No --> Drop["Drop"]
-    Len -- Yes --> Type{"type = 0xC1?"}
-    Type -- No --> Drop
-    Type -- Yes --> Sess{"session = 77?"}
-    Sess -- No --> Drop
-    Sess -- Yes --> OK["Process"]
-```
+<img src="diagrams/05-validation.svg" alt="Frame validation flowchart: check length >= 24, type == 0xC1, session == 77" />
 
 From `central_handle_frame()` (line 286):
 
@@ -883,17 +868,7 @@ at which point ESB automatically includes it in the hardware ACK.
 Every 20 ms (configurable), the Tag's main loop builds and sends a
 frame:
 
-```mermaid
-flowchart TD
-    Start["Main loop tick"] --> Ready{"tx_ready?"}
-    Ready -- No --> Skip["Skip this tick"]
-    Ready -- Yes --> Clear["Claim tx_ready flag"]
-    Clear --> Fill["Fill 24-byte frame"]
-    Fill --> TX["esb_write_payload"]
-    TX --> Wait["Wait for ESB event"]
-    Wait --> Success["TX_SUCCESS: release tx_ready"]
-    Wait --> Fail["TX_FAILED: flush, release tx_ready"]
-```
+<img src="diagrams/06-frame-assembly.svg" alt="Frame assembly flowchart: main loop tick, tx_ready check, fill frame, ESB write, wait for event" />
 
 The `tx_ready` flag is an atomic variable that implements
 **backpressure**: the Tag won't queue a new frame while the previous
@@ -1035,18 +1010,7 @@ mocap streaming.
 
 ### 13.1 Boot Sequence
 
-```mermaid
-flowchart LR
-    Boot["Power on"] --> MCU["MCUboot validates image"]
-    MCU --> App["App starts"]
-    App --> Check{"OTA window > 0?"}
-    Check -- No --> ESB["Start ESB streaming"]
-    Check -- Yes --> BLE["BLE advertise 30s"]
-    BLE --> Conn{"Connection?"}
-    Conn -- Yes --> OTA["Receive firmware"]
-    OTA --> Reboot["MCUboot reboot"]
-    Conn -- Timeout --> ESB
-```
+<img src="diagrams/07-boot-sequence.svg" alt="Boot sequence flowchart: power on, MCUboot, OTA check, BLE advertise or ESB streaming" />
 
 ### 13.2 The OTA Flow
 

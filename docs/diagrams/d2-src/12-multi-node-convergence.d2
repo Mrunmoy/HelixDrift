@@ -1,0 +1,38 @@
+# Time Sync §5.2 - Multi-Node Convergence
+
+direction: right
+
+10 anchors\n(~1 second): {
+  shape: rectangle
+  style.fill: "#E3F2FD"
+  style.stroke: "#1565C0"
+  style.font-size: 13
+}
+
+All 6 nodes\nwithin 1 ms: {
+  shape: rectangle
+  style.fill: "#4CAF50"
+  style.stroke: "#2E7D32"
+  style.font-color: "#ffffff"
+  style.font-size: 13
+  style.bold: true
+}
+
+100 anchors\n(~10 seconds): {
+  shape: rectangle
+  style.fill: "#BBDEFB"
+  style.stroke: "#1565C0"
+  style.font-size: 13
+}
+
+All 6 nodes\nwithin 100 µs: {
+  shape: rectangle
+  style.fill: "#2E7D32"
+  style.stroke: "#1B5E20"
+  style.font-color: "#ffffff"
+  style.font-size: 13
+  style.bold: true
+}
+
+10 anchors\n(~1 second) -> All 6 nodes\nwithin 1 ms {style.stroke: "#4CAF50"}
+100 anchors\n(~10 seconds) -> All 6 nodes\nwithin 100 µs {style.stroke: "#2E7D32"}

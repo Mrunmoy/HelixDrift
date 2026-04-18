@@ -1,0 +1,35 @@
+# Time Sync §4.1 - Crystal Drift Model
+
+direction: right
+
+t=0\noffset = 5000 µs: {
+  shape: rectangle
+  style.fill: "#E8F5E9"
+  style.stroke: "#2E7D32"
+  style.font-size: 12
+}
+
+t=10s\noffset = 5200 µs\n(+20 ppm drift): {
+  shape: rectangle
+  style.fill: "#FFF3E0"
+  style.stroke: "#E65100"
+  style.font-size: 12
+}
+
+t=60s\noffset = 6200 µs\n(+1200 µs accumulated): {
+  shape: rectangle
+  style.fill: "#FFE0B2"
+  style.stroke: "#E65100"
+  style.font-size: 12
+}
+
+t=5min\noffset = 11000 µs\n(+6000 µs accumulated): {
+  shape: rectangle
+  style.fill: "#FFCCBC"
+  style.stroke: "#D84315"
+  style.font-size: 12
+}
+
+t=0\noffset = 5000 µs -> t=10s\noffset = 5200 µs\n(+20 ppm drift): "+200 µs" {style.stroke: "#E65100"}
+t=10s\noffset = 5200 µs\n(+20 ppm drift) -> t=60s\noffset = 6200 µs\n(+1200 µs accumulated): "+1000 µs" {style.stroke: "#E65100"}
+t=60s\noffset = 6200 µs\n(+1200 µs accumulated) -> t=5min\noffset = 11000 µs\n(+6000 µs accumulated): "+4800 µs" {style.stroke: "#D84315"}

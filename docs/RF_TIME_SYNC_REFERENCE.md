@@ -91,29 +91,7 @@ timing between nodes.
 
 ## 3. Time Domains
 
-```mermaid
-graph LR
-    subgraph Tag["Tag Time Domain"]
-        TL["t_local<br/>(free-running µs counter)"]
-        TS["t_synced<br/>(t_local − offset)"]
-    end
-
-    subgraph Hub["Hub Time Domain"]
-        TH["t_hub<br/>(reference clock)"]
-        TR["t_rx<br/>(when frame arrived)"]
-    end
-
-    subgraph PC["PC Time Domain"]
-        ALL["Receives all three:<br/>node_us (t_local)<br/>sync_us (t_synced)<br/>rx_us (t_rx)"]
-    end
-
-    TL -- "− offset" --> TS
-    TS -. "should ≈" .-> TH
-    TH --> TR
-    TR --> ALL
-    TS --> ALL
-    TL --> ALL
-```
+<img src="diagrams/09-time-domains.svg" alt="Time domains: Tag local and synced time, Hub reference time, PC receives all three" />
 
 | Domain | Symbol | Source | Description |
 |--------|--------|-------|-------------|
@@ -135,15 +113,7 @@ The PC receives `node_us` (t_local), `sync_us` (t_synced), and `rx_us`
 
 ### 4.1 Crystal Drift Model
 
-```mermaid
-graph TD
-    subgraph DriftModel["Clock Drift Over Time"]
-        direction LR
-        T0["t=0<br/>offset = 5000 µs"] --> T10["t=10s<br/>offset = 5200 µs<br/>(+20 ppm drift)"]
-        T10 --> T60["t=60s<br/>offset = 6200 µs<br/>(+1200 µs accumulated)"]
-        T60 --> T300["t=5min<br/>offset = 11000 µs<br/>(+6000 µs accumulated)"]
-    end
-```
+<img src="diagrams/10-crystal-drift.svg" alt="Crystal drift model: offset growing from 5000 µs at t=0 to 11000 µs at t=5min" />
 
 A ±20 ppm crystal drifts ~1.2 ms per minute. Without correction, multi-node
 alignment degrades rapidly.
@@ -185,11 +155,7 @@ realistic random drift within ±20 ppm.
 A single anchor exchange is sufficient to establish an offset estimate.
 The simulator proves this:
 
-```mermaid
-graph LR
-    A1["1 anchor"] --> E1["Offset error < 1 µs"]
-    style E1 fill:#9f9,stroke:#393
-```
+<img src="diagrams/11-single-anchor.svg" alt="Single anchor convergence: 1 anchor → offset error less than 1 µs" />
 
 The offset converges in one round-trip because the calculation is a direct
 subtraction, not a filter or estimator.
@@ -198,13 +164,7 @@ subtraction, not a filter or estimator.
 
 Six nodes with random crystal drift (±20 ppm), tested over 10 seconds:
 
-```mermaid
-graph LR
-    A10["10 anchors<br/>(~1 second)"] --> E10["All 6 nodes<br/>within 1 ms"]
-    A100["100 anchors<br/>(~10 seconds)"] --> E100["All 6 nodes<br/>within 100 µs"]
-    style E10 fill:#9f9,stroke:#393
-    style E100 fill:#9f9,stroke:#393
-```
+<img src="diagrams/12-multi-node-convergence.svg" alt="Multi-node convergence: 10 anchors → within 1 ms, 100 anchors → within 100 µs" />
 
 ### 5.3 Degradation Under Packet Loss
 
@@ -245,25 +205,7 @@ All sync logic is proven on the host before deployment to hardware.
 
 ### 6.1 Architecture
 
-```mermaid
-graph TD
-    subgraph SimLayer["Host Simulation Layer"]
-        Medium["VirtualRFMedium<br/>Packet delivery with<br/>latency + loss + jitter"]
-        Master["VirtualSyncMaster<br/>Broadcasts anchors<br/>Collects frames"]
-        Node1["VirtualSyncNode 1<br/>Clock: +5ms, +15ppm"]
-        Node2["VirtualSyncNode 2<br/>Clock: -3ms, -8ppm"]
-        NodeN["VirtualSyncNode N<br/>Clock: random"]
-    end
-
-    Master -- "anchor broadcast<br/>(dst=0xFF)" --> Medium
-    Medium -- "deliver to all" --> Node1
-    Medium -- "deliver to all" --> Node2
-    Medium -- "deliver to all" --> NodeN
-    Node1 -- "frame" --> Medium
-    Node2 -- "frame" --> Medium
-    NodeN -- "frame" --> Medium
-    Medium -- "deliver to master" --> Master
-```
+<img src="diagrams/13-sim-architecture.svg" alt="Simulation architecture: VirtualRFMedium connecting VirtualSyncMaster to multiple VirtualSyncNodes" />
 
 ### 6.2 Configurable Impairments
 
@@ -299,17 +241,7 @@ Additional runtime controls:
 The common firmware provides a generic template that wraps any transport
 with sync logic:
 
-```mermaid
-graph LR
-    subgraph Template["TimestampSynchronizedTransportT&lt;Transport, SyncFilter, AnchorSource&gt;"]
-        Poll["Poll AnchorSource<br/>for new anchors"]
-        Filter["Update SyncFilter<br/>with anchor observation"]
-        Map["Map local timestamp<br/>to remote (Hub) domain"]
-        Send["Call Transport.sendQuaternion()<br/>with mapped timestamp"]
-    end
-
-    Poll --> Filter --> Map --> Send
-```
+<img src="diagrams/14-sync-transport.svg" alt="TimestampSynchronizedTransport template: poll anchor, update filter, map timestamp, send" />
 
 ```cpp
 template <typename Transport, typename SyncFilter, typename AnchorSource>
@@ -349,18 +281,7 @@ accuracy during packet loss periods by predicting drift.
 
 ## 8. End-to-End Latency Budget
 
-```mermaid
-graph LR
-    subgraph Budget["Latency Budget (target < 20 ms)"]
-        direction LR
-        S["Sensor sample<br/>~1 ms"] --> F["Fusion (AHRS)<br/>~0.5 ms"]
-        F --> P["Pack frame<br/>~0.1 ms"]
-        P --> TX["ESB TX + ACK<br/>~1 ms"]
-        TX --> D["Hub decode<br/>~0.1 ms"]
-        D --> U["USB write<br/>~1 ms"]
-        U --> PC["PC parse<br/>~0.5 ms"]
-    end
-```
+<img src="diagrams/15-latency-budget.svg" alt="End-to-end latency budget: sensor → fusion → pack → ESB TX → Hub decode → USB → PC parse" />
 
 | Stage | Budget | Notes |
 |-------|--------|-------|

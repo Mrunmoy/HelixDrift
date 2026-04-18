@@ -1,0 +1,72 @@
+# §9.1 Frame Validation Flowchart
+
+direction: right
+
+Receive: {
+  shape: oval
+  style.fill: "#E8F5E9"
+  style.stroke: "#2E7D32"
+  style.font-size: 13
+}
+
+check-len: Length >= 24 {
+  shape: diamond
+  style.fill: "#FFF3E0"
+  style.stroke: "#E65100"
+  style.font-size: 12
+}
+
+check-type: type == 0xC1 {
+  shape: diamond
+  style.fill: "#FFF3E0"
+  style.stroke: "#E65100"
+  style.font-size: 12
+}
+
+check-sess: session == 77 {
+  shape: diamond
+  style.fill: "#FFF3E0"
+  style.stroke: "#E65100"
+  style.font-size: 12
+}
+
+Process: {
+  shape: rectangle
+  style.fill: "#4CAF50"
+  style.stroke: "#2E7D32"
+  style.font-color: "#ffffff"
+  style.font-size: 13
+  style.bold: true
+}
+
+drop-len: Drop (bad length) {
+  shape: rectangle
+  style.fill: "#F44336"
+  style.stroke: "#C62828"
+  style.font-color: "#ffffff"
+  style.font-size: 11
+}
+
+drop-type: Drop (bad type) {
+  shape: rectangle
+  style.fill: "#F44336"
+  style.stroke: "#C62828"
+  style.font-color: "#ffffff"
+  style.font-size: 11
+}
+
+drop-sess: Drop (bad session) {
+  shape: rectangle
+  style.fill: "#F44336"
+  style.stroke: "#C62828"
+  style.font-color: "#ffffff"
+  style.font-size: 11
+}
+
+Receive -> check-len
+check-len -> check-type: Yes {style.stroke: "#4CAF50"}
+check-len -> drop-len: No {style.stroke: "#F44336"}
+check-type -> check-sess: Yes {style.stroke: "#4CAF50"}
+check-type -> drop-type: No {style.stroke: "#F44336"}
+check-sess -> Process: Yes {style.stroke: "#4CAF50"}
+check-sess -> drop-sess: No {style.stroke: "#F44336"}

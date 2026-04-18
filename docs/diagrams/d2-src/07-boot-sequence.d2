@@ -1,0 +1,69 @@
+# §13.1 Boot Sequence
+
+direction: right
+
+power-on: Power on {
+  shape: oval
+  style.fill: "#e0e0e0"
+  style.stroke: "#999"
+}
+
+mcuboot: MCUboot validates image {
+  shape: rectangle
+  style.fill: "#BBDEFB"
+  style.stroke: "#1565C0"
+}
+
+app: App starts {
+  shape: rectangle
+  style.fill: "#BBDEFB"
+  style.stroke: "#1565C0"
+}
+
+ota-check: OTA window > 0 {
+  shape: diamond
+  style.fill: "#FFF3E0"
+  style.stroke: "#E65100"
+}
+
+esb: Start ESB streaming {
+  shape: rectangle
+  style.fill: "#4CAF50"
+  style.stroke: "#2E7D32"
+  style.font-color: "#ffffff"
+  style.bold: true
+}
+
+ble: BLE advertise 30s {
+  shape: rectangle
+  style.fill: "#CE93D8"
+  style.stroke: "#6A1B9A"
+}
+
+conn-check: Connection received {
+  shape: diamond
+  style.fill: "#FFF3E0"
+  style.stroke: "#E65100"
+}
+
+ota-rx: Receive firmware {
+  shape: rectangle
+  style.fill: "#CE93D8"
+  style.stroke: "#6A1B9A"
+}
+
+reboot: MCUboot reboot {
+  shape: rectangle
+  style.fill: "#BBDEFB"
+  style.stroke: "#1565C0"
+}
+
+power-on -> mcuboot
+mcuboot -> app
+app -> ota-check
+ota-check -> esb: No {style.stroke: "#4CAF50"}
+ota-check -> ble: Yes {style.stroke: "#6A1B9A"}
+ble -> conn-check
+conn-check -> ota-rx: Yes {style.stroke: "#6A1B9A"}
+ota-rx -> reboot
+conn-check -> esb: Timeout {style.stroke: "#4CAF50"; style.stroke-dash: 4}
