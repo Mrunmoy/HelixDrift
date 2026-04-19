@@ -117,6 +117,42 @@ struct NodeTrack {
 
 volatile struct HelixMocapStatus g_helixMocapStatus;
 
+/* ── Persistent node_id (flash-backed) ──────────────────────────────
+ *
+ * Single firmware binary for all 10 Tags. Each Tag's unique node_id is
+ * stored in the first word of the settings_storage partition at 0xFE000
+ * (we have CONFIG_SETTINGS=n so that 8 KB page is otherwise unused).
+ *
+ * Layout: [node_id:u8][0xFF:u8][0xFF:u8][0xFF:u8]
+ *   lower byte = node_id (1..255); sentinel 0xFFFFFFFF = unprovisioned.
+ *
+ * Provisioning (SWD): after `nrfutil device program` (which erases the
+ * whole flash, so this word ends up as 0xFFFFFFFF), write the node_id:
+ *   nrfutil device write --address 0xFE000 --value 0xFFFFFF<nn> --direct
+ *
+ * If unprovisioned, we fall back to CONFIG_HELIX_MOCAP_NODE_ID so dev
+ * workflow still works on a single Tag.
+ *
+ * OTA never touches this page (MCUboot overwrite-only only writes
+ * mcuboot_secondary at 0x85000-0xFE000), so node_id persists forever
+ * after provisioning.
+ */
+static constexpr uint32_t kHelixConfigAddr = 0xFE000u;
+static uint8_t g_node_id = (uint8_t)CONFIG_HELIX_MOCAP_NODE_ID;
+
+static uint8_t helix_load_node_id(void)
+{
+	const uint32_t val = *reinterpret_cast<const volatile uint32_t *>(kHelixConfigAddr);
+	if (val == 0xFFFFFFFFu) {
+		return (uint8_t)CONFIG_HELIX_MOCAP_NODE_ID;
+	}
+	const uint8_t id = (uint8_t)(val & 0xFFu);
+	if (id == 0u) {
+		return (uint8_t)CONFIG_HELIX_MOCAP_NODE_ID;
+	}
+	return id;
+}
+
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET_OR(DT_ALIAS(led0), gpios, {0});
 static const struct device *const host_stream = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 static struct esb_payload rx_payload;
@@ -245,7 +281,7 @@ static void report_summary(void)
 	snprintk(line,
 		 sizeof(line),
 		 "SUMMARY role=node id=%u tx_ok=%u tx_fail=%u anchors=%u offset_us=%d err=%u hb=%u\n",
-		 CONFIG_HELIX_MOCAP_NODE_ID,
+		 g_node_id,
 		 g_helixMocapStatus.tx_success,
 		 g_helixMocapStatus.tx_failed,
 		 g_helixMocapStatus.anchors_received,
@@ -415,7 +451,7 @@ static void node_fill_frame(struct HelixMocapFrame *frame)
 	const uint32_t synced_us = local_us - (uint32_t)estimated_offset_us;
 
 	frame->type = HELIX_PACKET_MOCAP_FRAME;
-	frame->node_id = (uint8_t)CONFIG_HELIX_MOCAP_NODE_ID;
+	frame->node_id = g_node_id;
 	frame->sequence = sequence;
 	frame->session_tag = (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG;
 	frame->node_local_timestamp_us = local_us;
@@ -443,7 +479,7 @@ static void node_handle_anchor(const struct esb_payload *payload)
 		if (trig->session_tag == (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG &&
 		    trig->magic == kOtaTriggerMagic &&
 		    (trig->target_node_id == 0xFFu ||
-		     trig->target_node_id == (uint8_t)CONFIG_HELIX_MOCAP_NODE_ID)) {
+		     trig->target_node_id == g_node_id)) {
 			atomic_set(&ota_reboot_pending, 1);
 		}
 		return;
@@ -903,6 +939,10 @@ static bool run_ota_boot_window(void)
 int main(void)
 {
 	int err;
+
+	/* Resolve node_id from flash first so every subsequent subsystem
+	 * (ESB init, logging, OTA trigger filter) sees the provisioned value. */
+	g_node_id = helix_load_node_id();
 
 	memset((void *)&g_helixMocapStatus, 0, sizeof(g_helixMocapStatus));
 	g_helixMocapStatus.magic = 0x484D4244U;
