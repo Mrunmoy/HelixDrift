@@ -33,40 +33,18 @@ uint32_t ZephyrOtaFlashBackend::slotSize() const {
     return slot1_ ? slot1_->fa_size : 0u;
 }
 
-/* DEBUG: trace where eraseSlot is stuck. In .data so zeroed on each boot. */
-volatile uint32_t helix_erase_trace __attribute__((used)) = 0;
-volatile uint32_t helix_write_count __attribute__((used)) = 0;
-volatile uint32_t helix_write_last_off __attribute__((used)) = 0;
-volatile uint32_t helix_write_err __attribute__((used)) = 0;
-
 bool ZephyrOtaFlashBackend::eraseSlot() {
-    helix_erase_trace = 0x10000000u;
-    if (!slot1_) {
-        helix_erase_trace = 0xEE000001u;
-        return false;
-    }
-    helix_erase_trace = 0x20000000u | slot1_->fa_size;
-    int rc = flash_area_erase(slot1_, 0, slot1_->fa_size);
-    helix_erase_trace = 0x30000000u | (uint32_t)(rc & 0xFFFF);
-    if (rc != 0) {
+    if (!slot1_ || flash_area_erase(slot1_, 0, slot1_->fa_size) != 0) {
         return false;
     }
     nextWriteOffset_ = 0u;
     bufferBaseOffset_ = 0u;
     bufferedBytes_ = 0u;
-    helix_erase_trace = 0x40000000u;
     return true;
 }
 
 bool ZephyrOtaFlashBackend::writeChunk(uint32_t offset, const uint8_t* data, size_t len) {
-    helix_write_count++;
-    helix_write_last_off = offset;
     if (!slot1_ || !data || offset != nextWriteOffset_ || offset + len > slot1_->fa_size) {
-        helix_write_err = 0xA0000000u
-                        | ((!slot1_) ? 0x01u : 0)
-                        | ((!data)   ? 0x02u : 0)
-                        | ((offset != nextWriteOffset_) ? 0x04u : 0)
-                        | ((offset + len > (slot1_ ? slot1_->fa_size : 0)) ? 0x08u : 0);
         return false;
     }
 

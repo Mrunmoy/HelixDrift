@@ -53,7 +53,13 @@ struct __packed HelixSyncAnchor {
 	uint8_t anchor_sequence;
 	uint8_t session_tag;
 	uint32_t central_timestamp_us;
+	/* v2+: optional flags byte. bit0 = tell target tag to reboot into
+	 * BLE OTA window. Anchors of the OLD 8-byte size are still accepted
+	 * (flags defaults to 0 when absent). Node checks payload->length. */
+	uint8_t flags;
 };
+
+static constexpr uint8_t HELIX_ANCHOR_FLAG_OTA_REQ = 0x01u;
 
 struct __packed HelixOtaTrigger {
 	uint8_t type;           /* HELIX_PACKET_OTA_TRIGGER */
@@ -356,36 +362,15 @@ static void central_handle_frame(const struct esb_payload *payload)
 		.pipe = payload->pipe,
 	};
 
-	/* Inject OTA trigger if requested for this node (or broadcast).
-	 * NOTE: esb_flush_tx() from ISR context doesn't reliably replace
-	 * the ACK payload already latched by the radio peripheral.  For now
-	 * we still write it (counter tracks attempts) but the Tag may not
-	 * receive it consistently.  A proper fix requires deferring the
-	 * flush+write sequence to the main loop with ESB disable/re-enable,
-	 * which is a larger refactor. */
-	if (ota_trigger_target_node != 0u &&
+	/* Build anchor. If this Tag is the current OTA-trigger target (or
+	 * broadcast 0xFF), set the OTA request flag.  Unlike the old
+	 * 'replace ACK payload' approach that fought the radio's ACK
+	 * latching, this piggybacks the request on the reliable anchor
+	 * flow.  retries counts how many FRAMEs we'll keep setting the
+	 * flag for — the Tag reboots on the first one it sees. */
+	bool set_ota_flag = (ota_trigger_target_node != 0u &&
 	    (ota_trigger_target_node == 0xFFu ||
-	     ota_trigger_target_node == frame->node_id)) {
-		struct HelixOtaTrigger trig = {
-			.type = HELIX_PACKET_OTA_TRIGGER,
-			.central_id = (uint8_t)CONFIG_HELIX_MOCAP_CENTRAL_ID,
-			.target_node_id = ota_trigger_target_node,
-			.session_tag = (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG,
-			.magic = kOtaTriggerMagic,
-		};
-		ack.length = sizeof(trig);
-		memcpy(ack.data, &trig, sizeof(trig));
-		(void)esb_flush_tx();
-		if (esb_write_payload(&ack) == 0) {
-			ota_triggers_sent++;
-			if (ota_trigger_retries > 0u) {
-				ota_trigger_retries--;
-			} else {
-				ota_trigger_target_node = 0u;
-			}
-		}
-		return;
-	}
+	     ota_trigger_target_node == frame->node_id));
 
 	struct HelixSyncAnchor anchor = {
 		.type = HELIX_PACKET_SYNC_ANCHOR,
@@ -393,11 +378,20 @@ static void central_handle_frame(const struct esb_payload *payload)
 		.anchor_sequence = next_anchor_sequence++,
 		.session_tag = (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG,
 		.central_timestamp_us = rx_timestamp_us,
+		.flags = static_cast<uint8_t>(set_ota_flag ? HELIX_ANCHOR_FLAG_OTA_REQ : 0),
 	};
 	ack.length = sizeof(anchor);
 	memcpy(ack.data, &anchor, sizeof(anchor));
 	if (esb_write_payload(&ack) == 0) {
 		g_helixMocapStatus.anchors_sent++;
+		if (set_ota_flag) {
+			ota_triggers_sent++;
+			if (ota_trigger_retries > 0u) {
+				ota_trigger_retries--;
+			} else {
+				ota_trigger_target_node = 0u; /* done */
+			}
+		}
 	}
 }
 #endif
@@ -458,10 +452,21 @@ static void node_handle_anchor(const struct esb_payload *payload)
 	const struct HelixSyncAnchor *anchor = (const struct HelixSyncAnchor *)payload->data;
 	const uint32_t local_us = now_us();
 
-	if (payload->length < sizeof(*anchor) ||
+	/* Accept both 8-byte (legacy, no flags) and 9-byte (flags) anchors.
+	 * sizeof(HelixSyncAnchor) is 9 in v2+, we check the legacy 8. */
+	constexpr size_t kLegacyAnchorSize = 8u;
+	if (payload->length < kLegacyAnchorSize ||
 	    anchor->type != HELIX_PACKET_SYNC_ANCHOR ||
 	    anchor->session_tag != (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG) {
 		return;
+	}
+
+	/* If anchor carries flags (>=9 bytes) and OTA request bit is set,
+	 * reboot into BLE OTA window. ISR-safe: atomic flag, main loop
+	 * handles the actual reboot. */
+	if (payload->length >= sizeof(*anchor) &&
+	    (anchor->flags & HELIX_ANCHOR_FLAG_OTA_REQ)) {
+		atomic_set(&ota_reboot_pending, 1);
 	}
 
 	estimated_offset_us = (int32_t)(local_us - anchor->central_timestamp_us);
@@ -727,30 +732,6 @@ static bool run_ota_boot_window(void)
 	}
 	g_helixMocapStatus.last_error = 0xBB02U; /* img confirmed */
 
-	/* DEBUG: dump slot0 header, slot1 header, slot1 trailer to a known
-	 * RAM struct so we can inspect via SWD and see what MCUboot left. */
-	static struct {
-		uint32_t magic;            /* 'DBG0' */
-		uint8_t slot0_hdr[32];
-		uint8_t slot1_hdr[32];
-		uint8_t slot1_trailer[48]; /* last 48 bytes of slot1 */
-		uint32_t slot1_size;
-	} boot_debug __attribute__((used)) __attribute__((section(".noinit")));
-
-	boot_debug.magic = 0x44424730u; /* 'DBG0' */
-	const struct flash_area *s0 = nullptr, *s1 = nullptr;
-	if (flash_area_open(PM_MCUBOOT_PRIMARY_ID, &s0) == 0 && s0) {
-		flash_area_read(s0, 0, boot_debug.slot0_hdr, sizeof(boot_debug.slot0_hdr));
-		flash_area_close(s0);
-	}
-	if (flash_area_open(PM_MCUBOOT_SECONDARY_ID, &s1) == 0 && s1) {
-		boot_debug.slot1_size = s1->fa_size;
-		flash_area_read(s1, 0, boot_debug.slot1_hdr, sizeof(boot_debug.slot1_hdr));
-		flash_area_read(s1,
-			(off_t)s1->fa_size - (off_t)sizeof(boot_debug.slot1_trailer),
-			boot_debug.slot1_trailer, sizeof(boot_debug.slot1_trailer));
-		flash_area_close(s1);
-	}
 
 	if (!ota_backend.init()) {
 		printk("ota: backend init failed\n");

@@ -413,10 +413,14 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 		send_response(static_cast<uint8_t>(FT::CtrlRsp), &rsp, 1);
 
 	} else if (ft == FT::DataWrite) {
-		/* Forward DATA write-without-response to Tag. Retry on -ENOMEM
-		 * so chunks aren't silently dropped when the BLE stack's ACL
-		 * buffer is full — otherwise we'd lose data and COMMIT would
-		 * fail with ERROR_INCOMPLETE. */
+		/* Forward DATA write-without-response. Retry on -ENOMEM to avoid
+		 * silent drops under BLE backpressure. Note: Hub relay throughput
+		 * can outpace Tag's ACL RX buffer — if you hit missing-chunks
+		 * issues (nextExpectedOffset stays at 0 after OTA "completes"),
+		 * use direct-BLE OTA (tools/nrf/ble_ota_upload.py) instead.  The
+		 * Tag-side flow (boot_request_upgrade + PM slot1) is proven
+		 * reliable via direct BLE; Hub-relay throughput needs additional
+		 * flow-control work. */
 		int err = -ENOMEM;
 		for (int retries = 0; err == -ENOMEM && retries < 100; retries++) {
 			err = bt_gatt_write_without_response(relay_conn, gatt_data_handle,
@@ -424,9 +428,6 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 			if (err == -ENOMEM) {
 				k_sleep(K_MSEC(2));
 			}
-		}
-		if (err && err != -ENOMEM) {
-			printk("relay: data write err %d\n", err);
 		}
 
 	} else if (ft == FT::StatusReq) {
