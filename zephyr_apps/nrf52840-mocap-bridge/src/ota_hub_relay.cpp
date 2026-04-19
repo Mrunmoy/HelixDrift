@@ -135,7 +135,12 @@ static void scan_result_cb(const bt_addr_le_t *addr, int8_t rssi,
 	ARG_UNUSED(rssi);
 	ARG_UNUSED(adv_type);
 
-	/* Parse advertising data for local name */
+	/* Parse all AD structures in one pass, capturing name and
+	 * manufacturer data. */
+	char found_name[16] = {};
+	uint8_t mfg_buf[24] = {};
+	uint8_t mfg_len = 0;
+
 	while (buf->len > 1) {
 		uint8_t len = net_buf_simple_pull_u8(buf);
 		if (len == 0 || len > buf->len) {
@@ -144,39 +149,49 @@ static void scan_result_cb(const bt_addr_le_t *addr, int8_t rssi,
 		uint8_t type = net_buf_simple_pull_u8(buf);
 		len--;
 		if ((type == BT_DATA_NAME_COMPLETE || type == BT_DATA_NAME_SHORTENED) &&
-		    len > 0 && len < sizeof(target_name)) {
-			char name[16] = {};
-			memcpy(name, buf->data, len);
-			name[len] = '\0';
-			if (strncmp(name, target_name, strlen(target_name)) == 0) {
-				printk("relay: found %s\n", name);
-				bt_le_scan_stop();
-				static const struct bt_conn_le_create_param create_param = {
-					.options = BT_CONN_LE_OPT_NONE,
-					.interval = BT_GAP_SCAN_FAST_INTERVAL,
-					.window = BT_GAP_SCAN_FAST_WINDOW,
-					.interval_coded = 0,
-					.window_coded = 0,
-					.timeout = 0,
-				};
-				static const struct bt_le_conn_param conn_param = {
-					.interval_min = BT_GAP_INIT_CONN_INT_MIN,
-					.interval_max = BT_GAP_INIT_CONN_INT_MAX,
-					.latency = 0,
-					.timeout = 3200, /* 32s — Tag flash erase takes ~10s */
-				};
-				int err = bt_conn_le_create(addr,
-					&create_param, &conn_param, &relay_conn);
-				if (err) {
-					printk("relay: connect failed %d\n", err);
-					relay_state = RelayState::ERR;
-				} else {
-					relay_state = RelayState::CONNECTING;
-				}
-				return;
-			}
+		    len > 0 && len < sizeof(found_name)) {
+			memcpy(found_name, buf->data, len);
+			found_name[len] = '\0';
+		} else if (type == BT_DATA_MANUFACTURER_DATA &&
+		           len > 0 && len <= sizeof(mfg_buf)) {
+			memcpy(mfg_buf, buf->data, len);
+			mfg_len = len;
 		}
 		net_buf_simple_pull(buf, len);
+	}
+
+	if (found_name[0] == '\0' ||
+	    strncmp(found_name, target_name, strlen(target_name)) != 0) {
+		return;
+	}
+
+	printk("relay: found %s (mfg %u bytes:", found_name, mfg_len);
+	for (uint8_t i = 0; i < mfg_len && i < 16; i++) {
+		printk(" %02x", mfg_buf[i]);
+	}
+	printk(")\n");
+
+	bt_le_scan_stop();
+	static const struct bt_conn_le_create_param create_param = {
+		.options = BT_CONN_LE_OPT_NONE,
+		.interval = BT_GAP_SCAN_FAST_INTERVAL,
+		.window = BT_GAP_SCAN_FAST_WINDOW,
+		.interval_coded = 0,
+		.window_coded = 0,
+		.timeout = 0,
+	};
+	static const struct bt_le_conn_param conn_param = {
+		.interval_min = BT_GAP_INIT_CONN_INT_MIN,
+		.interval_max = BT_GAP_INIT_CONN_INT_MAX,
+		.latency = 0,
+		.timeout = 3200, /* 32s — Tag flash erase takes ~10s */
+	};
+	int err = bt_conn_le_create(addr, &create_param, &conn_param, &relay_conn);
+	if (err) {
+		printk("relay: connect failed %d\n", err);
+		relay_state = RelayState::ERR;
+	} else {
+		relay_state = RelayState::CONNECTING;
 	}
 }
 

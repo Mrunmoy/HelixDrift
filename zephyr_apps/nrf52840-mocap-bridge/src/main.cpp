@@ -24,7 +24,9 @@
 #if defined(CONFIG_BT) && defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
+#include <zephyr/devicetree/fixed-partitions.h>
 #include <zephyr/dfu/mcuboot.h>
+#include <zephyr/storage/flash_map.h>
 
 #include "BleOtaService.hpp"
 #include "IOtaManager.hpp"
@@ -744,18 +746,51 @@ static bool run_ota_boot_window(void)
 		printk("ota: name %s\n", name);
 	}
 
+	/* Read our own MCUboot image version from the active slot */
+	struct mcuboot_img_header img_hdr = {};
+	uint8_t app_major = 0, app_minor = 0;
+	uint16_t app_rev = 0;
+	uint32_t app_build = 0;
+	if (boot_read_bank_header(FIXED_PARTITION_ID(slot0_partition),
+	                          &img_hdr, sizeof(img_hdr)) == 0 &&
+	    img_hdr.mcuboot_version == 1) {
+		app_major = img_hdr.h.v1.sem_ver.major;
+		app_minor = img_hdr.h.v1.sem_ver.minor;
+		app_rev = img_hdr.h.v1.sem_ver.revision;
+		app_build = img_hdr.h.v1.sem_ver.build_num;
+	}
+	printk("ota: app v%u.%u.%u+%u\n", app_major, app_minor, app_rev, app_build);
+
 	/* Build advertising data — use static storage so pointers persist */
 	const char *bt_name = bt_get_name();
 	static uint8_t adv_flags[] = {BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR};
-	static struct bt_data ad[2];
+
+	/* Manufacturer-specific data carrying versions.
+	 * Layout: [company_id_lo][company_id_hi] [tag='H'][payload_ver=1]
+	 *         [app_major][app_minor][app_rev_lo][app_rev_hi]
+	 *         [boot_major][boot_minor][boot_rev_lo][boot_rev_hi]
+	 * Total: 12 bytes payload (build_num dropped for BLE fit).
+	 * Adv budget: flags(3) + name "HTag-XXXX"(11) + mfg(14) = 28 / 31 bytes. */
+	static uint8_t mfg_data[12];
+	mfg_data[0] = 0xFF; mfg_data[1] = 0xFF;  /* local-use company id */
+	mfg_data[2] = 'H';                        /* helix tag marker */
+	mfg_data[3] = 0x01;                       /* payload version */
+	mfg_data[4] = app_major;
+	mfg_data[5] = app_minor;
+	mfg_data[6] = app_rev & 0xFF;
+	mfg_data[7] = (app_rev >> 8) & 0xFF;
+	mfg_data[8]  = CONFIG_HELIX_BOOTLOADER_VERSION_MAJOR;
+	mfg_data[9]  = CONFIG_HELIX_BOOTLOADER_VERSION_MINOR;
+	mfg_data[10] = CONFIG_HELIX_BOOTLOADER_VERSION_REVISION & 0xFF;
+	mfg_data[11] = (CONFIG_HELIX_BOOTLOADER_VERSION_REVISION >> 8) & 0xFF;
+
+	static struct bt_data ad[3];
 	ad[0] = {BT_DATA_FLAGS, sizeof(adv_flags), adv_flags};
 	ad[1] = {BT_DATA_NAME_COMPLETE, static_cast<uint8_t>(strlen(bt_name)),
 	         reinterpret_cast<const uint8_t *>(bt_name)};
-	static const struct bt_data sd[] = {
-		BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_HELIX_OTA_SERVICE_VAL),
-	};
+	ad[2] = {BT_DATA_MANUFACTURER_DATA, sizeof(mfg_data), mfg_data};
 
-	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, 2, sd, ARRAY_SIZE(sd));
+	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, 3, nullptr, 0);
 	if (err) {
 		printk("ota: adv start failed %d\n", err);
 		g_helixMocapStatus.last_error = 0xBBA0U | (uint32_t)(unsigned)(-err);

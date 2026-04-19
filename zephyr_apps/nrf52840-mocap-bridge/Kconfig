@@ -99,6 +99,21 @@ config HELIX_OTA_TARGET_ID
 	hex "OTA target identity"
 	default 0x52840071
 
+config HELIX_BOOTLOADER_VERSION_MAJOR
+	int "Bootloader (MCUboot) major version — manually bumped"
+	default 1
+	help
+	  MCUboot does not publish its own version to the app, so we track
+	  it manually here. Bump whenever MCUboot itself is rebuilt.
+
+config HELIX_BOOTLOADER_VERSION_MINOR
+	int "Bootloader (MCUboot) minor version"
+	default 0
+
+config HELIX_BOOTLOADER_VERSION_REVISION
+	int "Bootloader (MCUboot) revision"
+	default 0
+
 config HELIX_OTA_REBOOT_DELAY_MS
 	int "Reboot delay after OTA commit (ms)"
 	default 300

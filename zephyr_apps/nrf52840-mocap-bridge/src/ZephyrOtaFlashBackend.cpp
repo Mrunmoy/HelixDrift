@@ -3,26 +3,10 @@
 #include <string.h>
 #include <zephyr/autoconf.h>
 #include <zephyr/devicetree/fixed-partitions.h>
+#include <zephyr/dfu/mcuboot.h>
 #include <zephyr/storage/flash_map.h>
 
 namespace helix {
-
-namespace {
-constexpr uint32_t kFooterSize = CONFIG_MCUBOOT_UPDATE_FOOTER_SIZE;
-constexpr uint32_t kBootMaxAlign = 8u;
-constexpr uint32_t kSwapInfoOffsetFromEnd = 5u * kBootMaxAlign;
-constexpr uint32_t kImageOkOffsetFromEnd = 3u * kBootMaxAlign;
-constexpr uint32_t kMagicOffsetFromEnd = 16u;
-constexpr uint8_t kMagic[16] = {
-    0x77u, 0xc2u, 0x95u, 0xf3u,
-    0x60u, 0xd2u, 0xefu, 0x7fu,
-    0x35u, 0x52u, 0x50u, 0x0fu,
-    0x2cu, 0xb6u, 0x79u, 0x80u
-};
-constexpr uint8_t kSwapTypeTest = 0x02u;
-
-static_assert(kFooterSize == 0x30u, "Unexpected MCUboot update footer size");
-}
 
 bool ZephyrOtaFlashBackend::init() {
     if (slot1_) {
@@ -75,25 +59,9 @@ bool ZephyrOtaFlashBackend::setPendingUpgrade() {
     if (!flushBuffered() || !slot1_) {
         return false;
     }
-
-    uint8_t swapInfo[kBootMaxAlign];
-    memset(swapInfo, 0xFF, sizeof(swapInfo));
-    swapInfo[0] = kSwapTypeTest;
-
-    uint8_t magic[sizeof(kMagic)];
-    memcpy(magic, kMagic, sizeof(magic));
-
-    const off_t swapInfoOffset = static_cast<off_t>(slot1_->fa_size - kSwapInfoOffsetFromEnd);
-    const off_t imageOkOffset = static_cast<off_t>(slot1_->fa_size - kImageOkOffsetFromEnd);
-    const off_t magicOffset = static_cast<off_t>(slot1_->fa_size - kMagicOffsetFromEnd);
-
-    uint8_t imageOkProbe = 0xFFu;
-    if (flash_area_read(slot1_, imageOkOffset, &imageOkProbe, sizeof(imageOkProbe)) != 0) {
-        return false;
-    }
-
-    return flash_area_write(slot1_, swapInfoOffset, swapInfo, sizeof(swapInfo)) == 0
-        && flash_area_write(slot1_, magicOffset, magic, sizeof(magic)) == 0;
+    /* Use Zephyr's official API to request the upgrade. BOOT_UPGRADE_PERMANENT
+     * (nonzero) so MCUboot doesn't require a confirm after reboot. */
+    return boot_request_upgrade(BOOT_UPGRADE_PERMANENT) == 0;
 }
 
 bool ZephyrOtaFlashBackend::flushBuffered() {
