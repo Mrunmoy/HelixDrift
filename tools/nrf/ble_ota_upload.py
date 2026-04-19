@@ -132,8 +132,17 @@ async def main_async():
                     begin = bytes([CMD_BEGIN]) + len(image).to_bytes(4, "little") + crc.to_bytes(4, "little") + target_id.to_bytes(4, "little")
                     print(f"begin: size={len(image)} crc=0x{crc:08x}")
                     await write_gatt_with_timeout(client, OTA_CTRL_UUID, begin, response=True, timeout=args.begin_timeout)
-                    status = await read_status_with_timeout(client, args.begin_timeout)
+                    # Wait for state to transition from IDLE (0) to RECEIVING (1).
+                    # Tag defers flash erase out of GATT callback; erase ~12s for 483KB.
+                    deadline = asyncio.get_event_loop().time() + 45.0
+                    while asyncio.get_event_loop().time() < deadline:
+                        status = await read_status_with_timeout(client, args.begin_timeout)
+                        if status["state"] == 1:
+                            break
+                        await asyncio.sleep(0.5)
                     print(f"status-after-begin: state={status['state']} bytes={status['bytes_received']} last={status['last_status']}")
+                    if status["state"] != 1:
+                        raise RuntimeError(f"begin did not transition to RECEIVING in 45s: {status}")
                     if status["last_status"] != 0:
                         raise RuntimeError(f"begin failed: {status}")
                 else:

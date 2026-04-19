@@ -870,9 +870,9 @@ static bool run_ota_boot_window(void)
 			ota_begin_pending = false;
 		}
 		if (ota_commit_pending) {
-			printk("ota: commit done — HALTING (debug, no reboot)\n");
-			g_helixMocapStatus.last_error = 0xDEADBEEFu;
-			while (1) { k_sleep(K_SECONDS(10)); }
+			printk("ota: commit done, rebooting\n");
+			k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
+			sys_reboot(SYS_REBOOT_COLD);
 		}
 		uint32_t bytes = ota_manager.bytesReceived();
 		if (ota_manager.state() == helix::OtaState::RECEIVING) {
@@ -893,9 +893,9 @@ static bool run_ota_boot_window(void)
 	}
 	/* Check commit after disconnect too (commit might have set flag just as connection dropped) */
 	if (ota_commit_pending) {
-		printk("ota: commit done (post-disconnect) — HALTING (debug, no reboot)\n");
-		g_helixMocapStatus.last_error = 0xDEADBEEFu;
-		while (1) { k_sleep(K_SECONDS(10)); }
+		printk("ota: commit done (post-disconnect), rebooting\n");
+		k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
+		sys_reboot(SYS_REBOOT_COLD);
 	}
 
 	/* If we get here without reboot, OTA was aborted or stalled */
