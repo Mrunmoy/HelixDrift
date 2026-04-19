@@ -131,16 +131,25 @@ def main():
                          dsrdtr=True, rtscts=False, write_timeout=5)
     ser.reset_input_buffer()
 
-    # Step 0: Optionally trigger remote OTA reboot via ESB
+    # Step 0: Optionally trigger remote OTA reboot via ESB.
+    #
+    # Hub floods OTA_REQ + target_node_id in every ACK payload during the
+    # trigger window (retries counts TOTAL anchors flooded, not target-only
+    # hits — see main.cpp central_handle_frame). 100 flooded anchors at
+    # ~30-50 Hub RX/s = ~2-3 s of flood; generous for 10-Tag fleets.
+    # Wait 8 s post-ACK: Tag needs ~200 ms (mcuboot) + 4 s (LFRC settle
+    # on Tag boot) + ~200 ms (bt_enable + adv_start), so ~4.5 s minimum;
+    # 8 s gives Hub 3 s of "Tag already advertising" margin before the
+    # uploader moves on to the BLE InfoReq/StatusReq sequence.
     if args.trigger_node != 0:
-        print(f"\n--- ESB trigger: node={args.trigger_node} (reboot to BLE OTA) ---")
-        ser.write(encode_frame(ESB_TRIG_REQ, bytes([args.trigger_node & 0xFF, 3])))
+        print(f"\n--- ESB trigger: node={args.trigger_node} (flood 100 anchors, reboot to BLE OTA) ---")
+        ser.write(encode_frame(ESB_TRIG_REQ, bytes([args.trigger_node & 0xFF, 100])))
         rsp = read_response(ser, ESB_TRIG_RSP, timeout=5.0)
         if rsp is None or rsp[0] != 0x00:
             print(f"WARNING: ESB trigger response: {rsp}")
         else:
-            print("Trigger queued, waiting 4s for Tag reboot + BLE advertise...")
-            time.sleep(4)
+            print("Trigger queued, waiting 8s for Tag reboot + BLE advertise...")
+            time.sleep(8)
 
     # Step 1: Send InfoReq with target name
     print(f"\n--- Connecting to {args.target} through Hub ---")

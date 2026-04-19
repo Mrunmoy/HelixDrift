@@ -53,10 +53,18 @@ struct __packed HelixSyncAnchor {
 	uint8_t anchor_sequence;
 	uint8_t session_tag;
 	uint32_t central_timestamp_us;
-	/* v2+: optional flags byte. bit0 = tell target tag to reboot into
-	 * BLE OTA window. Anchors of the OLD 8-byte size are still accepted
-	 * (flags defaults to 0 when absent). Node checks payload->length. */
+	/* v2+: flags byte. bit0 = tell target tag to reboot into BLE OTA
+	 * window. Anchors of the OLD 8-byte size are still accepted
+	 * (flags defaults to 0 when absent). */
 	uint8_t flags;
+	/* v3+: target node_id for OTA trigger. Needed because Hub now
+	 * FLOODS the OTA_REQ flag in every anchor during the trigger window
+	 * (not just the target's ACKs) — so each receiving Tag must be able
+	 * to tell whether the flag is for it. 0xFF = broadcast (all nodes).
+	 * Tags that see the old 9-byte anchor (no target_id field) treat
+	 * the OTA_REQ flag as broadcast — preserves legacy single-target
+	 * behaviour for fleets that haven't migrated to v3 anchors yet. */
+	uint8_t ota_target_node_id;
 };
 
 static constexpr uint8_t HELIX_ANCHOR_FLAG_OTA_REQ = 0x01u;
@@ -398,15 +406,19 @@ static void central_handle_frame(const struct esb_payload *payload)
 		.pipe = payload->pipe,
 	};
 
-	/* Build anchor. If this Tag is the current OTA-trigger target (or
-	 * broadcast 0xFF), set the OTA request flag.  Unlike the old
-	 * 'replace ACK payload' approach that fought the radio's ACK
-	 * latching, this piggybacks the request on the reliable anchor
-	 * flow.  retries counts how many FRAMEs we'll keep setting the
-	 * flag for — the Tag reboots on the first one it sees. */
-	bool set_ota_flag = (ota_trigger_target_node != 0u &&
-	    (ota_trigger_target_node == 0xFFu ||
-	     ota_trigger_target_node == frame->node_id));
+	/* Build anchor. When an OTA trigger is active, FLOOD every ACK
+	 * payload with OTA_REQ + target node_id (not just ACKs going to the
+	 * target). Previously we only tagged the ACK for the target Tag —
+	 * but with N Tags sharing pipe 0 and heavy collisions, the target's
+	 * ACK-carrying frames were the least likely to land, so triggers
+	 * dropped ~50% first try (Copilot analysis, Apr 2026). Flooding
+	 * every ACK means every Tag that does TX will see OTA_REQ in its
+	 * next returned anchor and filter by target_node_id in firmware.
+	 *
+	 * retries now counts TOTAL flooded anchors sent (not per-target
+	 * hits) — gives a time-bounded flood window regardless of which
+	 * Tag happens to be RX'd. */
+	const bool flooding = (ota_trigger_target_node != 0u);
 
 	struct HelixSyncAnchor anchor = {
 		.type = HELIX_PACKET_SYNC_ANCHOR,
@@ -414,18 +426,19 @@ static void central_handle_frame(const struct esb_payload *payload)
 		.anchor_sequence = next_anchor_sequence++,
 		.session_tag = (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG,
 		.central_timestamp_us = rx_timestamp_us,
-		.flags = static_cast<uint8_t>(set_ota_flag ? HELIX_ANCHOR_FLAG_OTA_REQ : 0),
+		.flags = static_cast<uint8_t>(flooding ? HELIX_ANCHOR_FLAG_OTA_REQ : 0),
+		.ota_target_node_id = flooding ? ota_trigger_target_node : (uint8_t)0,
 	};
 	ack.length = sizeof(anchor);
 	memcpy(ack.data, &anchor, sizeof(anchor));
 	if (esb_write_payload(&ack) == 0) {
 		g_helixMocapStatus.anchors_sent++;
-		if (set_ota_flag) {
+		if (flooding) {
 			ota_triggers_sent++;
 			if (ota_trigger_retries > 0u) {
 				ota_trigger_retries--;
 			} else {
-				ota_trigger_target_node = 0u; /* done */
+				ota_trigger_target_node = 0u; /* flood window done */
 			}
 		}
 	}
@@ -497,11 +510,23 @@ static void node_handle_anchor(const struct esb_payload *payload)
 		return;
 	}
 
-	/* If anchor carries flags (>=9 bytes) and OTA request bit is set,
-	 * reboot into BLE OTA window. ISR-safe: atomic flag, main loop
-	 * handles the actual reboot. */
-	if (payload->length >= sizeof(*anchor) &&
-	    (anchor->flags & HELIX_ANCHOR_FLAG_OTA_REQ)) {
+	/* Handle OTA trigger (piggybacked on anchor flags).
+	 *  - 9-byte anchor (legacy): flag set → reboot (single-target semantics
+	 *    because old Hubs only tagged the target's ACK).
+	 *  - 10-byte anchor (v3+): Hub floods the flag on *every* ACK, so we
+	 *    must filter by the ota_target_node_id field. 0xFF = broadcast
+	 *    (reboot all). Own node_id (runtime, flash-provisioned) = targeted
+	 *    reboot. Any other value = not for us, ignore. */
+	if (!(anchor->flags & HELIX_ANCHOR_FLAG_OTA_REQ)) {
+		/* no trigger bit — fast path */
+	} else if (payload->length >= sizeof(*anchor)) {
+		/* v3+ anchor — filter by target */
+		if (anchor->ota_target_node_id == g_node_id ||
+		    anchor->ota_target_node_id == 0xFFu) {
+			atomic_set(&ota_reboot_pending, 1);
+		}
+	} else if (payload->length >= 9) {
+		/* legacy 9-byte anchor — no target field, legacy semantics */
 		atomic_set(&ota_reboot_pending, 1);
 	}
 
