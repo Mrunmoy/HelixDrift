@@ -26,6 +26,7 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/devicetree/fixed-partitions.h>
 #include <zephyr/dfu/mcuboot.h>
+#include <pm_config.h>
 #include <zephyr/storage/flash_map.h>
 
 #include "BleOtaService.hpp"
@@ -623,14 +624,27 @@ static ssize_t ota_write_ctrl(struct bt_conn *, const struct bt_gatt_attr *,
 	const auto *data = static_cast<const uint8_t *>(buf);
 
 	/* Defer BEGIN (cmd=0x01) to the main loop — flash erase is too slow
-	 * to run inside the GATT callback. */
+	 * to run inside the GATT callback. But validate payload *here* so we
+	 * can NACK immediately on bad target_id or short payload; otherwise
+	 * the uploader would think BEGIN succeeded and poll STATUS forever
+	 * while the main-loop handleControlWrite silently rejects. */
 	if (len > 0 && data[0] == helix::BleOtaService::CMD_BEGIN) {
-		if (len <= sizeof(ota_begin_buf)) {
-			memcpy(ota_begin_buf, data, len);
-			ota_begin_len = len;
-			ota_begin_pending = true;
+		if (len < helix::BleOtaService::kCtrlBeginMinLen ||
+		    len > sizeof(ota_begin_buf)) {
+			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 		}
-		return static_cast<ssize_t>(len); /* ACK immediately */
+		/* Validate target_id before accepting. Layout: [cmd][size:4][crc:4][tid:4] */
+		uint32_t req_tid = (uint32_t)data[9]
+		                 | ((uint32_t)data[10] << 8)
+		                 | ((uint32_t)data[11] << 16)
+		                 | ((uint32_t)data[12] << 24);
+		if (req_tid != (uint32_t)CONFIG_HELIX_OTA_TARGET_ID) {
+			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+		}
+		memcpy(ota_begin_buf, data, len);
+		ota_begin_len = len;
+		ota_begin_pending = true;
+		return static_cast<ssize_t>(len); /* ACK, main loop does erase */
 	}
 
 	auto status = ota_service.handleControlWrite(data, len);
@@ -713,6 +727,31 @@ static bool run_ota_boot_window(void)
 	}
 	g_helixMocapStatus.last_error = 0xBB02U; /* img confirmed */
 
+	/* DEBUG: dump slot0 header, slot1 header, slot1 trailer to a known
+	 * RAM struct so we can inspect via SWD and see what MCUboot left. */
+	static struct {
+		uint32_t magic;            /* 'DBG0' */
+		uint8_t slot0_hdr[32];
+		uint8_t slot1_hdr[32];
+		uint8_t slot1_trailer[48]; /* last 48 bytes of slot1 */
+		uint32_t slot1_size;
+	} boot_debug __attribute__((used)) __attribute__((section(".noinit")));
+
+	boot_debug.magic = 0x44424730u; /* 'DBG0' */
+	const struct flash_area *s0 = nullptr, *s1 = nullptr;
+	if (flash_area_open(PM_MCUBOOT_PRIMARY_ID, &s0) == 0 && s0) {
+		flash_area_read(s0, 0, boot_debug.slot0_hdr, sizeof(boot_debug.slot0_hdr));
+		flash_area_close(s0);
+	}
+	if (flash_area_open(PM_MCUBOOT_SECONDARY_ID, &s1) == 0 && s1) {
+		boot_debug.slot1_size = s1->fa_size;
+		flash_area_read(s1, 0, boot_debug.slot1_hdr, sizeof(boot_debug.slot1_hdr));
+		flash_area_read(s1,
+			(off_t)s1->fa_size - (off_t)sizeof(boot_debug.slot1_trailer),
+			boot_debug.slot1_trailer, sizeof(boot_debug.slot1_trailer));
+		flash_area_close(s1);
+	}
+
 	if (!ota_backend.init()) {
 		printk("ota: backend init failed\n");
 		g_helixMocapStatus.last_error = 0xBBFEU;
@@ -773,7 +812,7 @@ static bool run_ota_boot_window(void)
 	 * Adv budget: flags(3) + name "HTag-XXXX"(11) + mfg(14) = 28 / 31 bytes. */
 	static uint8_t mfg_data[12];
 	mfg_data[0] = 0xFF; mfg_data[1] = 0xFF;  /* local-use company id */
-	mfg_data[2] = 'H';                        /* helix tag marker */
+	mfg_data[2] = 'V';                        /* v4 marker byte changed H->V to prove swap */
 	mfg_data[3] = 0x01;                       /* payload version */
 	mfg_data[4] = app_major;
 	mfg_data[5] = app_minor;
@@ -831,9 +870,9 @@ static bool run_ota_boot_window(void)
 			ota_begin_pending = false;
 		}
 		if (ota_commit_pending) {
-			printk("ota: commit done, rebooting\n");
-			k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
-			sys_reboot(SYS_REBOOT_COLD);
+			printk("ota: commit done — HALTING (debug, no reboot)\n");
+			g_helixMocapStatus.last_error = 0xDEADBEEFu;
+			while (1) { k_sleep(K_SECONDS(10)); }
 		}
 		uint32_t bytes = ota_manager.bytesReceived();
 		if (ota_manager.state() == helix::OtaState::RECEIVING) {
@@ -854,9 +893,9 @@ static bool run_ota_boot_window(void)
 	}
 	/* Check commit after disconnect too (commit might have set flag just as connection dropped) */
 	if (ota_commit_pending) {
-		printk("ota: commit done (post-disconnect), rebooting\n");
-		k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
-		sys_reboot(SYS_REBOOT_COLD);
+		printk("ota: commit done (post-disconnect) — HALTING (debug, no reboot)\n");
+		g_helixMocapStatus.last_error = 0xDEADBEEFu;
+		while (1) { k_sleep(K_SECONDS(10)); }
 	}
 
 	/* If we get here without reboot, OTA was aborted or stalled */

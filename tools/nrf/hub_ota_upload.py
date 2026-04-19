@@ -107,7 +107,7 @@ def parse_args():
     p.add_argument("image_bin", help="Path to the signed .bin firmware image")
     p.add_argument("--port", default="/dev/ttyACM1", help="Hub USB CDC serial port")
     p.add_argument("--target", required=True, help="Target Tag BLE name (e.g. HTag-0D16)")
-    p.add_argument("--target-id", type=lambda v: int(v, 0), default=0x52840070,
+    p.add_argument("--target-id", type=lambda v: int(v, 0), default=0x52840071,
                    help="OTA target identity hex (must match Kconfig HELIX_OTA_TARGET_ID)")
     p.add_argument("--trigger-node", type=lambda v: int(v, 0), default=0,
                    help="ESB node_id (1-255) to trigger remote OTA reboot before upload. "
@@ -177,8 +177,9 @@ def main():
     print("BEGIN ACK received, waiting for flash erase...")
 
     # Tag defers flash erase out of GATT callback — poll STATUS until
-    # state transitions from IDLE (0) to RECEIVING (1). Erase takes ~10s.
-    erase_deadline = time.time() + 20.0
+    # state transitions from IDLE (0) to RECEIVING (1). Full slot erase
+    # on nRF52840 (~483KB / 121 pages @ 85ms) takes ~10s; budget 45s.
+    erase_deadline = time.time() + 45.0
     while time.time() < erase_deadline:
         time.sleep(0.5)
         ser.write(encode_frame(STATUS_REQ))
@@ -186,7 +187,7 @@ def main():
         if rsp is not None and len(rsp) >= 1 and rsp[0] == 1:  # OtaState::RECEIVING
             break
     else:
-        print("ERROR: Tag did not transition to RECEIVING after 20s")
+        print("ERROR: Tag did not transition to RECEIVING after 45s")
         return 1
     print("BEGIN OK (erase complete, Tag ready to receive)")
 

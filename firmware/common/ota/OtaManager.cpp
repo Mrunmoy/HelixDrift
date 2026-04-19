@@ -6,8 +6,11 @@ OtaManager::OtaManager(OtaFlashBackend& backend)
     : backend_(backend) {}
 
 OtaStatus OtaManager::begin(uint32_t imageSize, uint32_t expectedCrc32) {
+    /* Allow re-init from any state: a new BEGIN is an implicit ABORT of
+     * any in-flight session (which might be stale from a dropped BLE
+     * connection or failed prior upload). */
     if (state_ == OtaState::RECEIVING) {
-        return OtaStatus::ERROR_INVALID_STATE;
+        abort();
     }
     if (imageSize == 0 || imageSize > backend_.slotSize()) {
         return OtaStatus::ERROR_IMAGE_TOO_LARGE;

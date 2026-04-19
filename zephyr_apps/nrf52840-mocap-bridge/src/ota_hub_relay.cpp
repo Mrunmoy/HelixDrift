@@ -413,11 +413,19 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 		send_response(static_cast<uint8_t>(FT::CtrlRsp), &rsp, 1);
 
 	} else if (ft == FT::DataWrite) {
-		/* Forward DATA write-without-response to Tag — no callback needed */
-		int err = bt_gatt_write_without_response(relay_conn, gatt_data_handle,
-		                                          frame.payload, frame.payloadLen, false);
-		/* Don't send response for data writes (fire-and-forget for throughput) */
-		if (err) {
+		/* Forward DATA write-without-response to Tag. Retry on -ENOMEM
+		 * so chunks aren't silently dropped when the BLE stack's ACL
+		 * buffer is full — otherwise we'd lose data and COMMIT would
+		 * fail with ERROR_INCOMPLETE. */
+		int err = -ENOMEM;
+		for (int retries = 0; err == -ENOMEM && retries < 100; retries++) {
+			err = bt_gatt_write_without_response(relay_conn, gatt_data_handle,
+			                                      frame.payload, frame.payloadLen, false);
+			if (err == -ENOMEM) {
+				k_sleep(K_MSEC(2));
+			}
+		}
+		if (err && err != -ENOMEM) {
 			printk("relay: data write err %d\n", err);
 		}
 
