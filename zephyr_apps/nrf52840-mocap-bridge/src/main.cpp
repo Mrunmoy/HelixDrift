@@ -623,9 +623,14 @@ static volatile bool ota_begin_pending;
 static uint8_t ota_begin_buf[16];
 static uint16_t ota_begin_len;
 
+/* DEBUG counters (fwd-declared for ota_write_ctrl) */
+extern volatile uint32_t helix_ota_data_calls;
+extern volatile uint32_t helix_ota_ctrl_calls;
+
 static ssize_t ota_write_ctrl(struct bt_conn *, const struct bt_gatt_attr *,
                               const void *buf, uint16_t len, uint16_t, uint8_t)
 {
+	helix_ota_ctrl_calls++;
 	const auto *data = static_cast<const uint8_t *>(buf);
 
 	/* Defer BEGIN (cmd=0x01) to the main loop — flash erase is too slow
@@ -662,9 +667,14 @@ static ssize_t ota_write_ctrl(struct bt_conn *, const struct bt_gatt_attr *,
 	       : BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 }
 
+/* DEBUG: count calls to data/ctrl write handlers */
+volatile uint32_t helix_ota_data_calls __attribute__((used));
+volatile uint32_t helix_ota_ctrl_calls __attribute__((used));
+
 static ssize_t ota_write_data(struct bt_conn *, const struct bt_gatt_attr *,
                               const void *buf, uint16_t len, uint16_t, uint8_t)
 {
+	helix_ota_data_calls++;
 	auto status = ota_service.handleDataWrite(static_cast<const uint8_t *>(buf), len);
 	return status == helix::OtaStatus::OK
 	       ? static_cast<ssize_t>(len)

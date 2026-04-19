@@ -24,6 +24,21 @@ using helix::UartOtaProtocol;
 using helix::UartOtaMutableFrame;
 using helix::UartOtaFrameParser;
 
+/* Binary semaphore for DATA_WRITE flow control.  bt_gatt_write_without_response()
+ * returns 0 as soon as the write is queued locally, not when the PDU has been
+ * ACKed on-air.  Without flow control the Hub queues faster than the Tag's
+ * ACL RX buffers can absorb — PDUs get dropped silently (write-without-response
+ * has no NACK).  The *_cb variant invokes our callback when the controller
+ * reports the PDU was sent, giving us real per-chunk flow control. */
+static K_SEM_DEFINE(data_tx_sem, 1, 1);
+
+static void data_tx_complete_cb(struct bt_conn *conn, void *user_data)
+{
+	ARG_UNUSED(conn);
+	ARG_UNUSED(user_data);
+	k_sem_give(&data_tx_sem);
+}
+
 /* ── USB CDC RX ────────────────────────────────────────────────── */
 /* The new USB device stack (CONFIG_USB_DEVICE_STACK_NEXT) only primes
  * the bulk OUT endpoint when uart_irq_rx_enable() is called. Pure
@@ -413,21 +428,36 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 		send_response(static_cast<uint8_t>(FT::CtrlRsp), &rsp, 1);
 
 	} else if (ft == FT::DataWrite) {
-		/* Forward DATA write-without-response. Retry on -ENOMEM to avoid
-		 * silent drops under BLE backpressure. Note: Hub relay throughput
-		 * can outpace Tag's ACL RX buffer — if you hit missing-chunks
-		 * issues (nextExpectedOffset stays at 0 after OTA "completes"),
-		 * use direct-BLE OTA (tools/nrf/ble_ota_upload.py) instead.  The
-		 * Tag-side flow (boot_request_upgrade + PM slot1) is proven
-		 * reliable via direct BLE; Hub-relay throughput needs additional
-		 * flow-control work. */
+		/* Use write-WITH-response so Hub waits for Tag's ATT Write Response
+		 * per chunk. This gives true flow control — the Tag has processed
+		 * the chunk (handleDataWrite returned) before we send the next.
+		 * Write-without-response (even with the _cb variant) only waits
+		 * for local TX queue, not remote-side processing, so we were
+		 * overrunning the Tag's ACL RX buffer + flash-write throughput. */
+		static uint8_t dw_buf[256];
+		size_t dw_len = frame.payloadLen < sizeof(dw_buf)
+		                 ? frame.payloadLen : sizeof(dw_buf);
+		memcpy(dw_buf, frame.payload, dw_len);
+		gatt_write_done = false;
+		write_params.handle = gatt_data_handle;
+		write_params.offset = 0;
+		write_params.data = dw_buf;
+		write_params.length = dw_len;
+		write_params.func = gatt_write_cb;
 		int err = -ENOMEM;
-		for (int retries = 0; err == -ENOMEM && retries < 100; retries++) {
-			err = bt_gatt_write_without_response(relay_conn, gatt_data_handle,
-			                                      frame.payload, frame.payloadLen, false);
+		for (int retries = 0; err == -ENOMEM && retries < 50; retries++) {
+			err = bt_gatt_write(relay_conn, &write_params);
 			if (err == -ENOMEM) {
-				k_sleep(K_MSEC(2));
+				k_sleep(K_MSEC(5));
 			}
+		}
+		if (err == 0) {
+			/* Wait up to 2s for Tag's ATT Write Response */
+			for (int i = 0; i < 200 && !gatt_write_done; ++i) {
+				k_sleep(K_MSEC(10));
+			}
+		} else {
+			printk("relay: data write err %d\n", err);
 		}
 
 	} else if (ft == FT::StatusReq) {
