@@ -745,11 +745,12 @@ static bool run_ota_boot_window(void)
 	 * MPSL calibration hasn't re-converged, and the first connection
 	 * after bt_enable() drops with supervision-timeout (reason=8)
 	 * within ~3 s — consistent with LFRC drift accumulating to a full
-	 * connection-interval miss. Giving MPSL a quiet 2 s before enabling
-	 * BLE lets the LF clock calibrate and any in-flight NVMC flash ops
-	 * from MCUboot swap finish. Cost is negligible vs. the 300 s OTA
-	 * boot window. */
-	k_sleep(K_MSEC(2000));
+	 * connection-interval miss. 2 s fixed 4/5 cycles; cycle 5 failed
+	 * the same way deterministically (including an automatic retry),
+	 * suggesting the die has warmed across prior OTAs and LFRC has
+	 * drifted further from the cold-boot calibration point. 4 s gives
+	 * MPSL enough time to re-converge even on a warm chip. */
+	k_sleep(K_MSEC(4000));
 
 	int err = bt_enable(nullptr);
 	if (err) {

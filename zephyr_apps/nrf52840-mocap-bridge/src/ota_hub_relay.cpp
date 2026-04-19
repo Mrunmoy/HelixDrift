@@ -539,18 +539,22 @@ bool ota_hub_relay_poll(void)
 		}
 		esb_stop_requested = false;
 
-		/* Send deferred InfoRsp now that ESB is stopped and CDC TX is clean */
+		/* Let LF clock / MPSL calibrate before bt_enable(). MUST run
+		 * BEFORE we ACK the uploader's InfoReq — otherwise the uploader
+		 * proceeds with its fixed 3 s post-InfoRsp sleep and sends
+		 * StatusReq while we're still in this delay, Hub rejects it
+		 * (relay_state != READY), and the uploader bails with
+		 * "StatusReq failed". The uploader's InfoRsp timeout is 15 s,
+		 * which easily covers this delay. */
+		k_sleep(K_MSEC(4000));
+
+		/* Send deferred InfoRsp now that ESB is stopped, CDC TX is clean,
+		 * and the LF clock has settled. */
 		{
 			using FT = UartOtaProtocol::FrameType;
 			uint8_t rsp = 0x00;
 			send_response(static_cast<uint8_t>(FT::InfoRsp), &rsp, 1);
 		}
-
-		/* Let LF clock / MPSL calibrate before bt_enable() — otherwise
-		 * the first connection after a fast reset can drop with
-		 * supervision-timeout (reason=8) within ~3 s. See equivalent
-		 * note in Tag's run_ota_boot_window(). */
-		k_sleep(K_MSEC(2000));
 
 		int err = bt_enable(nullptr);
 		if (err && err != -EALREADY) {
