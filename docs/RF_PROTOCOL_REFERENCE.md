@@ -479,12 +479,21 @@ synchronize its clock to the Hub (explained in Chapter 8).
 #### The C struct (from `main.cpp`, line 43):
 
 ```c
+/* v3 anchor — current wire format. 10 bytes.
+ *  Accepted sizes on a v3 Tag:
+ *   - 10 B (v3): full format, filters OTA trigger by ota_target_node_id
+ *   - 9 B  (v2): legacy, flags present but no target filter — Tag
+ *                treats any OTA_REQ as addressed to it
+ *   - 8 B  (v1): no flags at all, no OTA trigger path */
 struct __packed HelixSyncAnchor {
     uint8_t  type;                  // Always 0xA1
     uint8_t  central_id;            // Hub identity (for multi-Hub)
     uint8_t  anchor_sequence;       // Counter for missed anchor detection
     uint8_t  session_tag;           // Must match Tag's session
     uint32_t central_timestamp_us;  // Hub's clock when it received the frame
+    uint8_t  flags;                 // v2+: bit 0 = HELIX_ANCHOR_FLAG_OTA_REQ
+    uint8_t  ota_target_node_id;    // v3+: target for OTA trigger flood
+                                    //      (0xFF = broadcast)
 };
 ```
 
@@ -497,7 +506,9 @@ struct __packed HelixSyncAnchor {
 | 2 | `0F` | `anchor_sequence` | u8 | 15 |
 | 3 | `4D` | `session_tag` | u8 | 77 (`0x4D`) |
 | 4–7 | `48 43 0F 00` | `central_timestamp_us` | u32 | 1,000,232 µs |
-| | | | | **8 bytes total** |
+| 8 | `01` | `flags` | u8 | OTA_REQ set |
+| 9 | `03` | `ota_target_node_id` | u8 | target node_id = 3 |
+| | | | | **10 bytes total** (v3) |
 
 #### Field reference
 
@@ -508,6 +519,8 @@ struct __packed HelixSyncAnchor {
 | `anchor_sequence` | 2 | 1 | u8 | 0–255 | Wrapping counter. The Tag can detect missed anchors by checking for gaps, just like the Hub does with frame sequences. |
 | `session_tag` | 3 | 1 | u8 | 0–255 | Session filter. Must match the Tag's configured value. |
 | `central_timestamp_us` | 4 | 4 | u32 | 0 – 4,294,967,295 | The Hub's clock reading in microseconds at the exact moment the Hub received the Tag's frame. This is the reference the Tag uses to compute its clock offset. |
+| `flags` | 8 | 1 | u8 | bitmask | v2+ only. Bit 0 (`HELIX_ANCHOR_FLAG_OTA_REQ`) tells the target Tag to reboot into its BLE OTA window. Hub sets this on every anchor during an active trigger window (flood) — Tag filters by `ota_target_node_id` below. |
+| `ota_target_node_id` | 9 | 1 | u8 | 1–255 or 0xFF | v3+ only. `0xFF` = broadcast (all nodes reboot). Any other value = reboot only if it matches the Tag's flash-provisioned `node_id` at `0xFE000`. See [`NRF_HUB_RELAY_OTA.md`](NRF_HUB_RELAY_OTA.md) for the flood-trigger rationale. |
 
 #### How piggybacking works
 
@@ -612,7 +625,7 @@ sequenceDiagram
     Note over Hub: 6. Check session_tag=77
     Note over Hub: 7. Check sequence gaps
     Note over Hub: 8. Record rx_timestamp
-    Note over Hub: 9. Build 8-byte anchor
+    Note over Hub: 9. Build 10-byte anchor (v3)
     Hub->>Tag: ESB ACK + Anchor (8 bytes)
     Note over Tag: 10. Extract anchor
     Note over Tag: 11. Update clock offset

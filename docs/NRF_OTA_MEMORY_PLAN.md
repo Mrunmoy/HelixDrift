@@ -3,6 +3,24 @@
 This document defines the recommended flash layout and firmware update flow
 for the `nrf-xiao-nrf52840` branch.
 
+> **Update (2026-04-20):** The earlier "DK" layout in the tables below is
+> superseded on the ProPico-based mocap bridge by the Partition Manager
+> layout in `zephyr_apps/nrf52840-mocap-bridge/pm_static_promicro_nrf52840_nrf52840.yml`:
+>
+> | Region | Start | End | Size |
+> |---|---:|---:|---:|
+> | `mcuboot`           | `0x00000` | `0x0C000` | 48 KB |
+> | `mcuboot_primary`   | `0x0C000` | `0x85000` | 484 KB |
+> | `mcuboot_secondary` | `0x85000` | `0xFE000` | 484 KB |
+> | `settings_storage`  | `0xFE000` | `0x100000` | 8 KB (first word = Tag `node_id`) |
+>
+> MCUboot runs in **overwrite-only** mode. Swap-using-move is parked as
+> future work. OTA writes go to `mcuboot_secondary`; `settings_storage`
+> (where `node_id` lives) is never touched by OTA. See
+> [`NRF_HUB_RELAY_OTA.md`](NRF_HUB_RELAY_OTA.md) for the current Hub-relay
+> OTA flow; the rest of this document describes an earlier DK bring-up
+> planning pass and is kept for historical context.
+
 ## Goals
 
 - Keep OTA updates recoverable during development.

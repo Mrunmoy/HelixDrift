@@ -1,7 +1,17 @@
-# nRF BLE OTA Workflow
+# nRF BLE OTA Workflow (LEGACY — direct-BLE path)
 
-This is the supported HelixDrift over-the-air update workflow for the current
-`nrf-xiao-nrf52840` branch.
+> **Superseded (2026-04-20).** The current production OTA path is the
+> Hub-relay workflow: PC → USB CDC → Hub (nRF52840) → BLE → Tag.
+> See [`NRF_HUB_RELAY_OTA.md`](NRF_HUB_RELAY_OTA.md) for the end-to-end
+> flow, 4-fix history, and 10-Tag fleet verification.
+>
+> This doc remains for the earlier direct-BLE approach (PC BLE dongle
+> as central, standalone `zephyr_apps/nrf52dk-ota-ble` app) that was
+> used during nRF52 DK bring-up. It is not the path the merged
+> mocap-bridge firmware uses.
+
+This (legacy) workflow was the HelixDrift over-the-air update workflow for
+the current `nrf-xiao-nrf52840` branch during nRF52 DK bring-up.
 
 Current validated hardware:
 - target board: `nRF52 DK (nRF52832)`

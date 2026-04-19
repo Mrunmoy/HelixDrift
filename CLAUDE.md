@@ -60,12 +60,16 @@ bootloader extension.
 
 | App | Path | Role | Status |
 |-----|------|------|--------|
-| **Tag/Hub OTA** | `zephyr_apps/nrf52dk-ota-ble/` | Standalone BLE OTA app. Will be merged into Tag/Hub firmware. | **Proven — to be merged** |
-| **Tag/Hub Mocap Bridge** | `zephyr_apps/nrf52840-mocap-bridge/` | ESB mocap streaming. `node.conf` for Tag, `central.conf` for Hub. | **Active — 2-Tag 100Hz proven** |
-| **Tag ESB Link** | `zephyr_apps/nrf52840propico-esb-link/` | Earlier ESB smoke test. | Superseded |
+| **Tag + Hub Mocap Bridge with Hub-relay OTA** | `zephyr_apps/nrf52840-mocap-bridge/` | ESB mocap streaming + BLE OTA. Single firmware, role selected by `node.conf` (Tag) vs. `central.conf` (Hub). Each Tag's `node_id` is flash-provisioned at `0xFE000` so the one signed binary deploys across the fleet. | **Current — 10-Tag fleet OTA 100 % verified, see [`docs/NRF_HUB_RELAY_OTA.md`](docs/NRF_HUB_RELAY_OTA.md)** |
+| **Tag/Hub OTA (legacy)** | `zephyr_apps/nrf52dk-ota-ble/` | Standalone direct-BLE OTA app used during early bring-up. Superseded by the Hub-relay path. | Superseded |
+| **Tag ESB Link** | `zephyr_apps/nrf52840propico-esb-link/` | Earliest ESB smoke test. | Superseded |
 
-**Next step:** Merge OTA modules (`firmware/common/ota/`) into the mocap bridge
-app so each Tag has one firmware that does both ESB and BLE OTA.
+**OTA path:** PC → USB CDC → Hub (nRF52840 dongle, ESB PRX + BLE central)
+→ BLE → Tag (nRF52840 ProPico, ESB PTX normally, BLE peripheral during
+OTA window). The Hub's `ESB→BLE→ESB` radio hand-off uses
+`CONFIG_BT_UNINIT_MPSL_ON_DISABLE=y` for clean hardware cycling.
+See [`docs/NRF_HUB_RELAY_OTA.md`](docs/NRF_HUB_RELAY_OTA.md) for
+the end-to-end flow, failure-mode matrix, and fleet-test harness.
 
 ## Build Commands
 
