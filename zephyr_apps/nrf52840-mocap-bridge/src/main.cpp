@@ -623,14 +623,9 @@ static volatile bool ota_begin_pending;
 static uint8_t ota_begin_buf[16];
 static uint16_t ota_begin_len;
 
-/* DEBUG counters (fwd-declared for ota_write_ctrl) */
-extern volatile uint32_t helix_ota_data_calls;
-extern volatile uint32_t helix_ota_ctrl_calls;
-
 static ssize_t ota_write_ctrl(struct bt_conn *, const struct bt_gatt_attr *,
                               const void *buf, uint16_t len, uint16_t, uint8_t)
 {
-	helix_ota_ctrl_calls++;
 	const auto *data = static_cast<const uint8_t *>(buf);
 
 	/* Defer BEGIN (cmd=0x01) to the main loop — flash erase is too slow
@@ -667,14 +662,9 @@ static ssize_t ota_write_ctrl(struct bt_conn *, const struct bt_gatt_attr *,
 	       : BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 }
 
-/* DEBUG: count calls to data/ctrl write handlers */
-volatile uint32_t helix_ota_data_calls __attribute__((used));
-volatile uint32_t helix_ota_ctrl_calls __attribute__((used));
-
 static ssize_t ota_write_data(struct bt_conn *, const struct bt_gatt_attr *,
                               const void *buf, uint16_t len, uint16_t, uint8_t)
 {
-	helix_ota_data_calls++;
 	auto status = ota_service.handleDataWrite(static_cast<const uint8_t *>(buf), len);
 	return status == helix::OtaStatus::OK
 	       ? static_cast<ssize_t>(len)
@@ -749,6 +739,17 @@ static bool run_ota_boot_window(void)
 		return false;
 	}
 	g_helixMocapStatus.last_error = 0xBB03U; /* backend init ok */
+
+	/* Pre-bt_enable settle delay. On fast back-to-back reboots (OTA +
+	 * warm-ish NVIC reset), the SoftDevice Controller's LF clock /
+	 * MPSL calibration hasn't re-converged, and the first connection
+	 * after bt_enable() drops with supervision-timeout (reason=8)
+	 * within ~3 s — consistent with LFRC drift accumulating to a full
+	 * connection-interval miss. Giving MPSL a quiet 2 s before enabling
+	 * BLE lets the LF clock calibrate and any in-flight NVMC flash ops
+	 * from MCUboot swap finish. Cost is negligible vs. the 300 s OTA
+	 * boot window. */
+	k_sleep(K_MSEC(2000));
 
 	int err = bt_enable(nullptr);
 	if (err) {

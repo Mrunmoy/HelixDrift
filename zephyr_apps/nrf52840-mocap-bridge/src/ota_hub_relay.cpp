@@ -451,14 +451,21 @@ static void handle_relay_frame(const UartOtaMutableFrame &frame)
 				k_sleep(K_MSEC(5));
 			}
 		}
+		uint8_t dw_rsp;
 		if (err == 0) {
 			/* Wait up to 2s for Tag's ATT Write Response */
 			for (int i = 0; i < 200 && !gatt_write_done; ++i) {
 				k_sleep(K_MSEC(10));
 			}
+			dw_rsp = gatt_write_done ? static_cast<uint8_t>(gatt_write_err) : 0xFD;
 		} else {
-			printk("relay: data write err %d\n", err);
+			dw_rsp = 0xFE;
 		}
+		/* Send DataRsp so uploader waits for per-chunk ACK — this is the
+		 * back-pressure mechanism that prevents the Hub's USB CDC RX ring
+		 * buffer from overrunning (uploader sends chunks far faster than
+		 * the Hub can relay them over BLE). */
+		send_response(static_cast<uint8_t>(FT::DataRsp), &dw_rsp, 1);
 
 	} else if (ft == FT::StatusReq) {
 		/* Read Tag's OTA status */
@@ -538,6 +545,12 @@ bool ota_hub_relay_poll(void)
 			uint8_t rsp = 0x00;
 			send_response(static_cast<uint8_t>(FT::InfoRsp), &rsp, 1);
 		}
+
+		/* Let LF clock / MPSL calibrate before bt_enable() — otherwise
+		 * the first connection after a fast reset can drop with
+		 * supervision-timeout (reason=8) within ~3 s. See equivalent
+		 * note in Tag's run_ota_boot_window(). */
+		k_sleep(K_MSEC(2000));
 
 		int err = bt_enable(nullptr);
 		if (err && err != -EALREADY) {

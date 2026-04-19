@@ -191,7 +191,11 @@ def main():
         return 1
     print("BEGIN OK (erase complete, Tag ready to receive)")
 
-    # Step 4: Send data chunks
+    # Step 4: Send data chunks with per-chunk ACK flow control.
+    # Hub sends DATA_RSP after each chunk completes on BLE. Waiting for
+    # DATA_RSP before sending the next chunk prevents Hub USB CDC RX ring
+    # buffer overflow (uploader pushes bytes far faster than the Hub can
+    # relay them over BLE at ~5-30ms per chunk).
     offset = 0
     last_progress = 0
     print(f"\n--- Transferring {len(image)} bytes ---")
@@ -200,15 +204,19 @@ def main():
         chunk = image[offset:end]
         data_payload = struct.pack("<I", offset) + chunk
         ser.write(encode_frame(DATA_WRITE, data_payload))
+        rsp = read_response(ser, DATA_RSP, timeout=5.0)
+        if rsp is None:
+            print(f"\nERROR: DATA_RSP timeout at offset {offset}")
+            return 1
+        if rsp[0] != 0x00:
+            print(f"\nERROR: DATA_RSP err=0x{rsp[0]:02x} at offset {offset}")
+            return 1
         offset = end
 
         if offset - last_progress >= 4096:
             pct = offset * 100 // len(image)
             print(f"  progress: {offset}/{len(image)} ({pct}%)")
             last_progress = offset
-
-        # Small delay to avoid overwhelming the Hub's BLE write-no-rsp queue
-        time.sleep(0.002)
 
     print(f"  progress: {offset}/{len(image)} (100%)")
 
