@@ -602,8 +602,21 @@ static int esb_initialize(void)
 	config.protocol = ESB_PROTOCOL_ESB_DPL;
 	config.bitrate = ESB_BITRATE_2MBPS;
 	config.event_handler = event_handler;
+	/* Per-Tag retransmit_delay spread so when two Tags collide their
+	 * retries land at different times. 600 µs base + 50 µs × node_id
+	 * gives 650 µs (node 1) through 1100 µs (node 10) — 450 µs spread.
+	 * Hub (central) stays at the base value because PRX doesn't retry
+	 * on collision anyway. */
+#if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
+	config.retransmit_delay = static_cast<uint16_t>(600u + (uint16_t)g_node_id * 50u);
+#else
 	config.retransmit_delay = 600;
-	config.retransmit_count = 6;
+#endif
+	/* retransmit_count 6 → 10: with 10 Tags on pipe 0 a chunk is up
+	 * against ~9 other Tags for any given air slot; more retries
+	 * compensates for the elevated collision rate (Phase A baseline
+	 * showed 38-46 Hz / Tag vs 50 Hz target, i.e. 12-24 % loss). */
+	config.retransmit_count = 10;
 	config.selective_auto_ack = true;
 	config.payload_length = 32;
 	config.mode =
@@ -1125,6 +1138,20 @@ int main(void)
 #endif
 
 	host_write("HELIX_MOCAP_BRIDGE_READY\n");
+
+#if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
+	/* Per-Tag boot-time TX phase offset. All 10 Tags leaving the 300 s
+	 * BLE OTA window at slightly different wallclocks naturally spread
+	 * their TX phase, but when everyone reaches the main loop near the
+	 * same instant (e.g. after a synchronised Hub reset) they tend to
+	 * collide in lockstep. A one-off 200 µs × node_id sleep here gives
+	 * an initial spread of 200..2000 µs across the fleet. LF clock
+	 * differences will drift it over time, but this gets us started
+	 * clean. Measured Phase A baseline: 38-46 Hz/Tag; target is 50 Hz. */
+	if (g_node_id > 0u) {
+		k_usleep((uint32_t)g_node_id * 200u);
+	}
+#endif
 
 	static bool esb_running = true;
 
