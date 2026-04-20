@@ -24,21 +24,6 @@ using helix::UartOtaProtocol;
 using helix::UartOtaMutableFrame;
 using helix::UartOtaFrameParser;
 
-/* Binary semaphore for DATA_WRITE flow control.  bt_gatt_write_without_response()
- * returns 0 as soon as the write is queued locally, not when the PDU has been
- * ACKed on-air.  Without flow control the Hub queues faster than the Tag's
- * ACL RX buffers can absorb — PDUs get dropped silently (write-without-response
- * has no NACK).  The *_cb variant invokes our callback when the controller
- * reports the PDU was sent, giving us real per-chunk flow control. */
-static K_SEM_DEFINE(data_tx_sem, 1, 1);
-
-static void data_tx_complete_cb(struct bt_conn *conn, void *user_data)
-{
-	ARG_UNUSED(conn);
-	ARG_UNUSED(user_data);
-	k_sem_give(&data_tx_sem);
-}
-
 /* ── USB CDC RX ────────────────────────────────────────────────── */
 /* The new USB device stack (CONFIG_USB_DEVICE_STACK_NEXT) only primes
  * the bulk OUT endpoint when uart_irq_rx_enable() is called. Pure

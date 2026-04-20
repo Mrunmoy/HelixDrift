@@ -146,6 +146,10 @@ volatile struct HelixMocapStatus g_helixMocapStatus;
  * after provisioning.
  */
 static constexpr uint32_t kHelixConfigAddr = 0xFE000u;
+#if defined(PM_SETTINGS_STORAGE_ADDRESS)
+static_assert(kHelixConfigAddr == PM_SETTINGS_STORAGE_ADDRESS,
+              "node_id flash address must match settings_storage partition base");
+#endif
 static uint8_t g_node_id = (uint8_t)CONFIG_HELIX_MOCAP_NODE_ID;
 
 static uint8_t helix_load_node_id(void)
@@ -183,11 +187,22 @@ static volatile uint32_t ota_triggers_sent;
 
 /* Request an OTA trigger for a specific node (or 0xFF = broadcast).
  * Sends the trigger on the next few FRAMEs from the target, then clears.
- * Called from the Hub relay when the PC requests a remote OTA trigger. */
+ * Called from the Hub relay when the PC requests a remote OTA trigger.
+ *
+ * Tear-down first, then arm. The ESB RX ISR reads ota_trigger_target_node
+ * and ota_trigger_retries as an implicit pair; if we raced the two volatile
+ * writes in the wrong order, the ISR could read the new target against the
+ * old retries (or vice versa) and either send a stale flood or skip a new
+ * one. Gate on target_node=0, barrier, then arm retries + target. The DMBs
+ * force ordering on Cortex-M4 — cheap and sufficient since the ISR is on
+ * the same core. (Copilot code review, 2026-04-20.) */
 extern "C" void helix_request_ota_trigger(uint8_t node_id, uint8_t retries)
 {
+	ota_trigger_target_node = 0u;  /* gate: ISR ignores trigger during update */
+	__DMB();
 	ota_trigger_retries = retries;
-	ota_trigger_target_node = node_id;
+	__DMB();
+	ota_trigger_target_node = node_id;  /* arm */
 }
 #endif
 
@@ -501,9 +516,16 @@ static void node_handle_anchor(const struct esb_payload *payload)
 	const struct HelixSyncAnchor *anchor = (const struct HelixSyncAnchor *)payload->data;
 	const uint32_t local_us = now_us();
 
-	/* Accept both 8-byte (legacy, no flags) and 9-byte (flags) anchors.
-	 * sizeof(HelixSyncAnchor) is 9 in v2+, we check the legacy 8. */
+	/* Anchor wire format has evolved; accept the three sizes on the wire:
+	 *   v1 (8 B):  base fields only, no flags, no OTA trigger path.
+	 *   v2 (9 B):  + flags byte (OTA_REQ bit). Any OTA_REQ → reboot.
+	 *   v3 (10 B): + ota_target_node_id — filter by our node_id.
+	 * sizeof(HelixSyncAnchor) is 10 (v3) on this branch; the size gates
+	 * below dispatch to the right compat path. */
 	constexpr size_t kLegacyAnchorSize = 8u;
+	constexpr size_t kV2AnchorSize     = 9u;
+	static_assert(sizeof(HelixSyncAnchor) == 10u,
+	              "v3 anchor must be 10 bytes — update OTA trigger compat paths if this grows");
 	if (payload->length < kLegacyAnchorSize ||
 	    anchor->type != HELIX_PACKET_SYNC_ANCHOR ||
 	    anchor->session_tag != (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG) {
@@ -525,7 +547,7 @@ static void node_handle_anchor(const struct esb_payload *payload)
 		    anchor->ota_target_node_id == 0xFFu) {
 			atomic_set(&ota_reboot_pending, 1);
 		}
-	} else if (payload->length >= 9) {
+	} else if (payload->length >= kV2AnchorSize) {
 		/* legacy 9-byte anchor — no target field, legacy semantics */
 		atomic_set(&ota_reboot_pending, 1);
 	}
@@ -699,12 +721,23 @@ static ssize_t ota_write_ctrl(struct bt_conn *, const struct bt_gatt_attr *,
 		    len > sizeof(ota_begin_buf)) {
 			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 		}
-		/* Validate target_id before accepting. Layout: [cmd][size:4][crc:4][tid:4] */
-		uint32_t req_tid = (uint32_t)data[9]
-		                 | ((uint32_t)data[10] << 8)
-		                 | ((uint32_t)data[11] << 16)
-		                 | ((uint32_t)data[12] << 24);
+		/* Validate target_id before accepting.
+		 * Layout: [cmd:1][size:4][crc:4][tid:4] — target_id at offset 9..12.
+		 * kCtrlBeginMinLen is 13, so the len check above guarantees data[9..12]
+		 * are in bounds; static_assert pins the relationship so a future
+		 * refactor can't silently break it. */
+		static_assert(helix::BleOtaService::kCtrlBeginMinLen >= 13u,
+		              "BEGIN payload must be at least 13 bytes for target_id at offset 9..12");
+		uint32_t req_tid;
+		memcpy(&req_tid, &data[9], sizeof(req_tid));
 		if (req_tid != (uint32_t)CONFIG_HELIX_OTA_TARGET_ID) {
+			/* Audible failure. Previously this returned silently; if an
+			 * uploader ever targets a mixed-firmware fleet with the wrong
+			 * --target-id, the only symptom was a GATT NACK from here
+			 * with no clue which side was off. */
+			printk("ota: BEGIN rejected — target_id 0x%08x != expected 0x%08x\n",
+			       (unsigned)req_tid,
+			       (unsigned)CONFIG_HELIX_OTA_TARGET_ID);
 			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 		}
 		memcpy(ota_begin_buf, data, len);
@@ -866,7 +899,7 @@ static bool run_ota_boot_window(void)
 	 * Adv budget: flags(3) + name "HTag-XXXX"(11) + mfg(14) = 28 / 31 bytes. */
 	static uint8_t mfg_data[12];
 	mfg_data[0] = 0xFF; mfg_data[1] = 0xFF;  /* local-use company id */
-	mfg_data[2] = 'V';                        /* v4 marker byte changed H->V to prove swap */
+	mfg_data[2] = 'H';                        /* magic — 'H'elix advert marker */
 	mfg_data[3] = 0x01;                       /* payload version */
 	mfg_data[4] = app_major;
 	mfg_data[5] = app_minor;
@@ -910,10 +943,30 @@ static bool run_ota_boot_window(void)
 	/* Connected — run OTA until complete or disconnect.
 	 * Commit is deferred from the GATT callback to avoid flash writes
 	 * interfering with BLE timing. The ota_commit_pending flag signals
-	 * that commit succeeded and we should reboot. */
+	 * that commit succeeded and we should reboot.
+	 *
+	 * Three timeout guards:
+	 *   1. Stall detector (existing): 30 s of no byte progress while in
+	 *      RECEIVING state → force disconnect.
+	 *   2. Idle-connection timeout (new, 60 s): peer connected but never
+	 *      sent BEGIN (state stays IDLE). Prevents the Tag getting stuck
+	 *      forever when a phantom connection never sees its disconnect
+	 *      callback fire (observed on the J-Link-attached Tag where SWD
+	 *      halt events suppressed MPSL's link-layer teardown — but can
+	 *      also hit any Tag if the peer vanishes at the wrong moment).
+	 *   3. Hard session ceiling (new, 300 s): no single OTA session should
+	 *      ever exceed 5 minutes regardless of state. Belt-and-braces for
+	 *      the case where ota_connected is stuck true but neither the
+	 *      stall nor idle guard fires (e.g. oscillating between states).
+	 * Any of these triggers bt_conn_disconnect which clears ota_connected
+	 * via the disconnect callback; the loop then exits cleanly to ESB.
+	 * If the disconnect callback itself is ever suppressed, loop still
+	 * exits because we `break` immediately after issuing the disconnect. */
 	printk("ota: running OTA transfer\n");
+	const int64_t session_start = k_uptime_get();
 	uint32_t last_bytes = 0;
 	uint32_t stall_ticks = 0;
+	uint32_t idle_ticks = 0;
 	while (ota_connected) {
 		/* Deferred BEGIN: run flash erase in the main loop where it
 		 * won't block the BLE stack's connection event processing. */
@@ -928,8 +981,18 @@ static bool run_ota_boot_window(void)
 			k_sleep(K_MSEC(CONFIG_HELIX_OTA_REBOOT_DELAY_MS));
 			sys_reboot(SYS_REBOOT_COLD);
 		}
+		/* Hard session ceiling — 300 s max. */
+		if ((k_uptime_get() - session_start) > 300000LL) {
+			printk("ota: session ceiling (300s) hit, disconnecting\n");
+			if (ota_conn) {
+				bt_conn_disconnect(ota_conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+			}
+			break;
+		}
 		uint32_t bytes = ota_manager.bytesReceived();
-		if (ota_manager.state() == helix::OtaState::RECEIVING) {
+		const auto ota_state = ota_manager.state();
+		if (ota_state == helix::OtaState::RECEIVING) {
+			idle_ticks = 0;
 			if (bytes == last_bytes) {
 				stall_ticks++;
 			} else {
@@ -941,6 +1004,19 @@ static bool run_ota_boot_window(void)
 				bt_conn_disconnect(ota_conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
 				break;
 			}
+		} else if (ota_state == helix::OtaState::IDLE && !ota_begin_pending) {
+			/* Idle-connection guard — peer connected but never sent
+			 * a BEGIN (or disconnect callback never fired on a
+			 * phantom peer). */
+			if (++idle_ticks >= 1200) { /* 1200 * 50ms = 60s */
+				printk("ota: idle connection (60s no BEGIN), disconnecting\n");
+				if (ota_conn) {
+					bt_conn_disconnect(ota_conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+				}
+				break;
+			}
+		} else {
+			idle_ticks = 0;
 		}
 		led_set(((k_uptime_get() / 250) & 1) != 0); /* medium blink = OTA active */
 		k_sleep(K_MSEC(50));
