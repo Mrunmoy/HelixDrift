@@ -109,6 +109,89 @@ showed up in the tree suggest the user was already looking at the
 charge IC / schematic for a previous Tag 1 issue; Tag 5 is likely
 similar. Recommend pulling Tag 5 + checking the same circuit.
 
+## Sync metric — revisited (2026-04-21 session)
+
+After Phase C the `SYNC_SPAN_US` metric in the capture tool's summary
+was still showing p99 2.1 s / max 44 s on the v11 baseline and 122 s
+on the v12 Phase C rerun. That was initially alarming but turned out
+to be a **measurement artefact**, not a real sync failure.
+
+### The measurement bug
+
+The old `capture_mocap_bridge_window.py` computed span as the running
+`max(last_seen_sync_us) - min(last_seen_sync_us)` across all Tags.
+When any Tag stops transmitting, its `last_seen_sync_us` stays frozen
+while others keep updating. The reported span then reflects the lag
+between the stalest Tag and the most-recent Tag, not the instantaneous
+cross-Tag sync error. One slow / dead Tag (e.g. Tag 5) drags the
+whole metric into the seconds range even when the other 9 Tags are in
+lockstep.
+
+### Proper sync metric — two numbers
+
+New tool at `tools/analysis/sync_error_analysis.py`:
+
+1. **Per-Tag sync error** = `frame.sync_us - frame.rx_us` over every
+   frame. Tag's computed synced clock minus Hub's actual RX wall
+   clock. Bias tells you how far off Tag thinks it is; |err|
+   distribution tells you how noisy the single-frame estimate is.
+2. **Cross-Tag span in wall-clock bins** (default 50 ms, ≥ 5 Tags per
+   bin). Stale Tags simply don't contribute to bins where they didn't
+   transmit, so one dead Tag no longer skews the fleet number.
+
+### Actual numbers (v12 Phase C, 10-min capture, Tag 5 excluded)
+
+| Metric | p50 | p90 | p99 | Max |
+|---|---:|---:|---:|---:|
+| Cross-Tag span (50 ms bins, ≥5 Tags) | **19 ms** | 35 ms | **50 ms** | 64 ms |
+| Per-Tag \|err\| (node 1 ex.) | 13 ms | 18 ms | 22 ms | 30 ms |
+
+Per-Tag **mean bias: -14 ms systematic** across all 9 healthy Tags
+(range -13.4 to -14.5 ms, very tight). Each Tag thinks its synced
+clock is 14 ms earlier than when Hub actually receives the frame.
+
+**19 ms median / 50 ms p99 is usable for many mocap scenarios.** It
+is NOT the "2.1 s" disaster the old metric implied.
+
+### Where the -14 ms bias comes from
+
+Hypothesis (consistent with the data): **ESB ACK-payload TIFS race.**
+
+- Tag TXes frame at local time A.
+- Hub's RX ISR fires, `central_handle_frame` builds the anchor and
+  calls `esb_write_payload`. If that completes within the ~150 µs
+  TIFS window before ACK TX starts, the anchor rides on this frame's
+  ACK; Tag receives it ~500 µs after A (fast path).
+- If `esb_write_payload` misses the TIFS window, the anchor waits
+  in the payload FIFO and rides on the ACK for Tag's next frame
+  (slow path). Tag receives it ~ A + 20 ms + 500 µs.
+
+Current estimator `offset = local_at_anchor_rx - central_timestamp`
+bakes the full "TX to anchor RX" gap into the offset. Observed mean
+bias of −14 ms suggests ~70 % of frames hit the slow path.
+
+### Fixable, but requires a wire-format change
+
+To eliminate the bias properly, the anchor needs a second timestamp:
+`anchor_tx_us` (Hub's clock when it transmitted the anchor) in
+addition to `central_timestamp_us` (Hub's clock at frame RX). Then
+Tag can compute
+
+```
+offset = (local_at_tx + local_at_anchor_rx) / 2  -  anchor_tx_us
+```
+
+Midpoint of Tag's (TX, anchor_RX) is Tag's wall time at Hub's anchor
+TX, so subtracting `anchor_tx_us` gives the true clock offset,
+independent of fast/slow path.
+
+Cost: +4 bytes in the anchor (v4 anchor, 14 bytes), wire-format
+change with the same backward-compat story as v2→v3. Deferred —
+current 19/50 ms span is adequate for steady-state, and this
+change deserves its own design pass.
+
+---
+
 ## Phase D — Multi-reset stress (4 Hub resets in 10 min)
 
 Capture: `rf_phased_multireset_20260420_232415.{csv,summary}`, 10 min,
