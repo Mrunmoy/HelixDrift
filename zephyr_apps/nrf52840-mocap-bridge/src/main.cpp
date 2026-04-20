@@ -826,7 +826,6 @@ static bool run_ota_boot_window(void)
 	}
 	g_helixMocapStatus.last_error = 0xBB02U; /* img confirmed */
 
-
 	if (!ota_backend.init()) {
 		printk("ota: backend init failed\n");
 		g_helixMocapStatus.last_error = 0xBBFEU;
