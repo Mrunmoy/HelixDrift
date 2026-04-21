@@ -273,6 +273,71 @@ until measurement shows the need.
   Then rerun a 10-min capture to get unbiased distribution before
   deciding Stage 2 implementation detail.
 
+## Stage 1 / Stage 1' findings
+
+### Hub ack_lat (Stage 1' ring-buffer, live 60 s sample)
+
+| Bucket | Count | % |
+|---|---:|---:|
+| <2 ms (fast path) | 470 | **2.1 %** |
+| 2-10 ms | 6022 | 26.5 % |
+| 10-30 ms | 14362 | **63.1 %** |
+| >=30 ms | 1894 | **8.3 %** |
+
+Ring showed `pend_max = 88620` — far beyond the 16-slot ring capacity
+and incompatible with a clean 1-TX_SUCCESS-per-1-RX model. Investigation
+suggests **Hub RX count ≠ TX_SUCCESS count**: ACKs without a queued
+payload (or with the driver-provided "empty" fallback) don't fire
+TX_SUCCESS, so the consumer under-runs. Observed: 316321 anchors
+queued, ~227k TX_SUCCESS events over 10 min (~72 % ratio).
+
+So the absolute bucket magnitudes are distorted by the overflow. The
+**distribution shape is still directionally useful**: <2 % fast path,
+>70 % landing ≥ 10 ms late. Strongly supports the slow-path-dominance
+hypothesis and justifies the v5 midpoint-estimator path.
+
+### Tag 1 in-RAM histograms (SWD read, node_id=1)
+
+anchor_age (Tag's local time at anchor RX minus its own most recent TX):
+
+| Bucket | Count | % |
+|---|---:|---:|
+| <2 ms | 45172 | **76 %** |
+| 2-10 ms | 14265 | 24 % |
+| 10-30 ms | 5 | 0.0 % |
+| >=30 ms | 0 | 0 % |
+
+offset_step (|Δestimated_offset| on each anchor):
+
+| Bucket | Count | % |
+|---|---:|---:|
+| <2 ms | 40383 | **68 %** |
+| 2-10 ms | 18591 | 31 % |
+| 10-30 ms | 477 | 0.8 % |
+| >=30 ms | 11 | 0.02 % |
+
+**anchor_age on Tag is NOT a staleness measure.** It measures Tag-TX
+to Tag-ACK-RX round trip, which ESB hardware keeps fast (~1 ms)
+regardless of what anchor content got attached. So 76 % < 2 ms is
+just "ACK reaches Tag quickly" — an ESB property, not a sync
+property.
+
+**offset_step is the usable Tag-side signal.** The ~490 offset jumps
+≥ 10 ms (including 11 ≥ 30 ms) across 59 k anchors is direct
+evidence that cross-contaminated anchors are corrupting the
+estimator. This is what Stage 2 (`rx_node_id`) will filter out.
+
+### What this means for the roadmap
+
+Hub-side signal (biased) points to heavy slow-path anchor delivery;
+Tag-side signal confirms cross-contamination on the estimator. **Both
+findings point to the same v5 fix** (anchor_tx_us for proper
+timestamping + rx_frame_sequence for Tag-local TX correlation +
+rx_node_id for association).
+
+Staging unchanged: Stage 2 = rx_node_id first (cheap, correctness);
+Stage 3 = full v5 (sub-ms sync target).
+
 ## Requirements reality check
 
 `docs/rf-sync-requirements.md` (draft v0.1, 2026-03-29) lists
