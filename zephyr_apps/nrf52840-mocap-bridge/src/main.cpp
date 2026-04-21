@@ -175,6 +175,22 @@ static bool have_anchor;
 static int32_t estimated_offset_us;
 /* Set from ESB ISR when an OTA trigger arrives; main loop reboots. */
 static atomic_t ota_reboot_pending = ATOMIC_INIT(0);
+
+/* ── RF-sync instrumentation (Stage 1 per docs/RF_SYNC_DECISION_LOG.md) ──
+ * Tag side. Histograms stay in RAM and get emitted in the SUMMARY line.
+ * last_tx_local_us: local_us at the moment we queued the most recent
+ *   ESB TX frame. Pair it against anchor RX time to see how quickly
+ *   Hub's anchor came back.
+ * anchor_age_bucket: distribution of (local_at_anchor_rx - last_tx_local_us)
+ *   buckets [<2 ms, 2-10 ms, 10-30 ms, >=30 ms]. A bimodal distribution
+ *   with most weight in bucket 0 means anchors mostly hit Hub's TIFS
+ *   window; weight in buckets 2/3 means the slow-path is dominant.
+ * offset_step_bucket: distribution of |new_offset - old_offset| across
+ *   anchors — large jumps mean bad / stale anchors are corrupting the
+ *   estimator (a key symptom of the shared-pipe cross-contamination). */
+static volatile uint32_t last_tx_local_us;
+static volatile uint32_t anchor_age_bucket[4];
+static volatile uint32_t offset_step_bucket[4];
 #endif
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
 static struct NodeTrack tracked_nodes[CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES];
@@ -184,6 +200,19 @@ static uint8_t next_anchor_sequence;
 static volatile uint8_t ota_trigger_target_node;
 static volatile uint8_t ota_trigger_retries;
 static volatile uint32_t ota_triggers_sent;
+
+/* ── RF-sync instrumentation (Stage 1 per docs/RF_SYNC_DECISION_LOG.md) ──
+ * Hub side. Measures whether Hub's anchor write makes the ~150 µs TIFS
+ * window (fast path → anchor rides current frame's ACK, ~µs delay) or
+ * misses it (slow path → anchor stays queued in pipe-0 FIFO and rides
+ * the NEXT any-Tag frame's ACK, ~20 ms delay). This is the core
+ * measurement that turns our "~70% slow path" hypothesis into a number.
+ *
+ * last_anchor_queue_us: now_us() right before esb_write_payload().
+ * ack_tx_latency_bucket: (now_us_at_TX_SUCCESS - last_anchor_queue_us)
+ *   bucketed [<2 ms, 2-10 ms, 10-30 ms, >=30 ms]. Emitted in SUMMARY. */
+static volatile uint32_t last_anchor_queue_us;
+static volatile uint32_t ack_tx_latency_bucket[4];
 
 /* Request an OTA trigger for a specific node (or 0xFF = broadcast).
  * Sends the trigger on the next few FRAMEs from the target, then clears.
@@ -209,6 +238,21 @@ extern "C" void helix_request_ota_trigger(uint8_t node_id, uint8_t retries)
 static uint32_t now_us(void)
 {
 	return (uint32_t)(k_uptime_get() * 1000LL);
+}
+
+/* Bucket a µs-delta into 4 bins: [<2 ms, 2-10 ms, 10-30 ms, >=30 ms].
+ * Used by the RF-sync instrumentation. Bumps bucket_arr[idx] and returns
+ * the bucket index (0-3). Non-atomic — we accept occasional lost counts
+ * from RX-ISR vs. main-thread races; instrumentation, not invariants. */
+static inline uint32_t histo_bucket_us(uint32_t delta_us, volatile uint32_t *bucket_arr)
+{
+	uint32_t idx;
+	if (delta_us < 2000u) idx = 0u;
+	else if (delta_us < 10000u) idx = 1u;
+	else if (delta_us < 30000u) idx = 2u;
+	else idx = 3u;
+	bucket_arr[idx]++;
+	return idx;
 }
 
 static void status_set_error(int err)
@@ -287,30 +331,45 @@ static void host_write(const char *line)
 
 static void report_summary(void)
 {
-	char line[192];
+	/* SUMMARY line can reach ~260 chars on node role with the Stage-1
+	 * instrumentation buckets appended. Bump buffer accordingly. */
+	char line[320];
 
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
+	/* ack_lat counts anchors by "esb_write_payload → TX_SUCCESS" time:
+	 *   <2ms / 2-10ms / 10-30ms / >=30ms. See docs/RF_SYNC_DECISION_LOG.md */
 	snprintk(line,
 		 sizeof(line),
-		 "SUMMARY role=central rx=%u anchors=%u tracked=%u usb_lines=%u err=%u hb=%u trigs=%u\n",
+		 "SUMMARY role=central rx=%u anchors=%u tracked=%u usb_lines=%u err=%u hb=%u trigs=%u ack_lat=%u/%u/%u/%u\n",
 		 g_helixMocapStatus.rx_packets,
 		 g_helixMocapStatus.anchors_sent,
 		 g_helixMocapStatus.tracked_nodes,
 		 g_helixMocapStatus.usb_lines,
 		 g_helixMocapStatus.last_error,
 		 g_helixMocapStatus.heartbeat,
-		 ota_triggers_sent);
+		 ota_triggers_sent,
+		 ack_tx_latency_bucket[0], ack_tx_latency_bucket[1],
+		 ack_tx_latency_bucket[2], ack_tx_latency_bucket[3]);
 #else
+	/* anchor_age buckets: how stale the most-recent anchor is vs. Tag's
+	 * most-recent TX (proxy for Hub's ACK-path fast/slow distribution).
+	 * offset_step buckets: |Δoffset| on each anchor (detects stale/wrong-
+	 * Tag anchor corruption). See docs/RF_SYNC_DECISION_LOG.md */
 	snprintk(line,
 		 sizeof(line),
-		 "SUMMARY role=node id=%u tx_ok=%u tx_fail=%u anchors=%u offset_us=%d err=%u hb=%u\n",
+		 "SUMMARY role=node id=%u tx_ok=%u tx_fail=%u anchors=%u offset_us=%d err=%u hb=%u "
+		 "anchor_age=%u/%u/%u/%u offset_step=%u/%u/%u/%u\n",
 		 g_node_id,
 		 g_helixMocapStatus.tx_success,
 		 g_helixMocapStatus.tx_failed,
 		 g_helixMocapStatus.anchors_received,
 		 g_helixMocapStatus.estimated_offset_us,
 		 g_helixMocapStatus.last_error,
-		 g_helixMocapStatus.heartbeat);
+		 g_helixMocapStatus.heartbeat,
+		 anchor_age_bucket[0], anchor_age_bucket[1],
+		 anchor_age_bucket[2], anchor_age_bucket[3],
+		 offset_step_bucket[0], offset_step_bucket[1],
+		 offset_step_bucket[2], offset_step_bucket[3]);
 #endif
 
 	host_write(line);
@@ -446,6 +505,12 @@ static void central_handle_frame(const struct esb_payload *payload)
 	};
 	ack.length = sizeof(anchor);
 	memcpy(ack.data, &anchor, sizeof(anchor));
+	/* Stamp anchor-queue time just before esb_write_payload. Paired with
+	 * the now_us() captured in ESB_EVENT_TX_SUCCESS to measure the
+	 * TIFS race (fast path ≈ ACK carries this anchor on the next ~150 µs
+	 * vs. slow path ≈ anchor stays queued until a later frame's ACK).
+	 * See docs/RF_SYNC_DECISION_LOG.md Stage 1 instrumentation. */
+	last_anchor_queue_us = rx_timestamp_us;
 	if (esb_write_payload(&ack) == 0) {
 		g_helixMocapStatus.anchors_sent++;
 		if (flooding) {
@@ -552,10 +617,29 @@ static void node_handle_anchor(const struct esb_payload *payload)
 		atomic_set(&ota_reboot_pending, 1);
 	}
 
+	/* Stage 1 instrumentation (docs/RF_SYNC_DECISION_LOG.md):
+	 * Record how stale the anchor is vs. our most recent TX. A tight
+	 * distribution near 0 = Hub hits the TIFS fast path. A long tail
+	 * at 20 ms+ = Hub is mostly on the slow path (anchor rode a later
+	 * frame's ACK). Use last_tx_local_us captured in maybe_send_frame. */
+	const uint32_t tx_us_snapshot = last_tx_local_us;
+	if (tx_us_snapshot != 0u && local_us >= tx_us_snapshot) {
+		(void)histo_bucket_us(local_us - tx_us_snapshot, anchor_age_bucket);
+	}
+
+	const int32_t prev_offset = estimated_offset_us;
 	estimated_offset_us = (int32_t)(local_us - anchor->central_timestamp_us);
 	g_helixMocapStatus.estimated_offset_us = estimated_offset_us;
 	g_helixMocapStatus.anchors_received++;
 	have_anchor = true;
+
+	/* Bucket the magnitude of the offset jump on this anchor. Small steps
+	 * → clock is tracking smoothly; large steps → stale/wrong-Tag anchor
+	 * corrupted the estimator (the shared-pipe cross-contamination
+	 * symptom Stage 2 v4 anchor will fix). */
+	const int64_t diff = (int64_t)estimated_offset_us - (int64_t)prev_offset;
+	const uint32_t diff_abs = (uint32_t)((diff < 0) ? -diff : diff);
+	(void)histo_bucket_us(diff_abs, offset_step_bucket);
 }
 #endif
 
@@ -564,6 +648,22 @@ static void event_handler(struct esb_evt const *event)
 	switch (event->evt_id) {
 	case ESB_EVENT_TX_SUCCESS:
 		g_helixMocapStatus.tx_success++;
+#if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
+		/* Hub (PRX) TX_SUCCESS fires when a queued ACK payload (i.e. the
+		 * anchor we built in central_handle_frame) has been successfully
+		 * transmitted to a Tag. Bucket the "queue → TX done" latency
+		 * to distinguish fast-path (within TIFS) vs slow-path (waited
+		 * for a subsequent RX's ACK slot). See
+		 * docs/RF_SYNC_DECISION_LOG.md Stage 1. */
+		{
+			const uint32_t tx_done_us = now_us();
+			const uint32_t queue_us = last_anchor_queue_us;
+			if (queue_us != 0u && tx_done_us >= queue_us) {
+				const uint32_t delta_us = tx_done_us - queue_us;
+				(void)histo_bucket_us(delta_us, ack_tx_latency_bucket);
+			}
+		}
+#endif
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
 		atomic_set(&tx_ready, 1);
 #endif
@@ -680,6 +780,15 @@ static void maybe_send_frame(void)
 	if (err) {
 		status_set_error(err);
 		atomic_set(&tx_ready, 1);
+	} else {
+		/* Record the TX instant for later anchor-age pairing. Simple
+		 * "last TX" (not a seq-indexed ring) — sufficient for Stage 1
+		 * instrumentation because each Tag TXes at a known cadence and
+		 * anchors typically arrive within 1-2 TX periods. See
+		 * docs/RF_SYNC_DECISION_LOG.md. Stage 3 (v5 anchor) will move
+		 * to a seq-indexed ring so the midpoint estimator can pair a
+		 * delayed anchor with the correct TX event. */
+		last_tx_local_us = now_us();
 	}
 }
 #endif
