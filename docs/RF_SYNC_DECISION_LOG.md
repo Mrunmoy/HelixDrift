@@ -251,3 +251,50 @@ until measurement shows the need.
 
 - 2026-04-22 07:35 AEST: doc created, reflecting round-2 group
   consensus. Stage 1 firmware work kicking off.
+- 2026-04-22 07:50 AEST: Stage 1 firmware landed (commit `5f02792`).
+  First Hub capture showed `ack_lat=8619/13005/0/0`. Initially looked
+  like good news (40 % fast path, 60 % medium-slow, no true 20 ms
+  slow path). Round-3 review caught a measurement bias: the
+  single-slot `last_anchor_queue_us` is overwritten on every RX, so
+  the TX_SUCCESS for an older queued anchor is measured against the
+  newest queue time → either dropped by the "tx_done ≥ queue" guard
+  or compressed into small buckets. Exactly the slow-path cases we
+  care about are preferentially hidden. Conclusion: don't trust the
+  empty >10 ms buckets.
+- 2026-04-22 08:10 AEST: Stage 1' ring-buffer fix landed (commit
+  `0d9708a`). Ring of 16 queue timestamps, pushed on enqueue in
+  central_handle_frame, popped on TX_SUCCESS. Single-ISR context in
+  NCS v3.2.4, so no locking. Two new diagnostics in SUMMARY:
+  `pend_max` (peak FIFO depth) and `ack_drop` (TX_SUCCESS with empty
+  ring — should stay 0).
+- 2026-04-22 (in progress): v13 OTA round in flight to deploy the
+  Tag-side Stage-1 instrumentation to all 10 Tags. Hub Stage-1'
+  ring-buffer fix pending SWD re-flash after OTA round completes.
+  Then rerun a 10-min capture to get unbiased distribution before
+  deciding Stage 2 implementation detail.
+
+## Requirements reality check
+
+`docs/rf-sync-requirements.md` (draft v0.1, 2026-03-29) lists
+**"< 1 ms inter-node skew for multi-node kinematic chains"** as the
+explicit sync target for v1. Measured today (at v12 Phase C, Stage 1
+instrumentation, 9 healthy Tags, bin-based metric):
+
+- Cross-Tag span p50: **19 ms**
+- Cross-Tag span p99: **50 ms**
+- Per-Tag mean bias: **-14 ms** (-13.4 to -14.5 ms range)
+
+Gap to the requirement: **~20×** at p50, **~50×** at p99. The v5 anchor
+midpoint estimator fix is the biggest expected lever (removes the
+systematic bias, likely collapses p99 toward ms-scale). But < 1 ms
+may still be unachievable on a shared-pipe ESB design without some
+combination of:
+- per-Tag pipes (blocked by 8-pipe vs 10-Tag constraint)
+- TDMA scheduled slots
+- hardware-level TX/RX timestamping on both sides (bypass NCS ESB
+  driver's event-queue ISR latency)
+
+Recommendation: treat `< 1 ms` as an aspirational target worth
+re-evaluating after Stage 3 measurements. Body-mocap applications
+often work acceptably at 5-10 ms inter-node skew; hard-real-time
+sports biomechanics may need the lower number.
