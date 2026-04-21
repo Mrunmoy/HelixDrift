@@ -205,14 +205,34 @@ static volatile uint32_t ota_triggers_sent;
  * Hub side. Measures whether Hub's anchor write makes the ~150 µs TIFS
  * window (fast path → anchor rides current frame's ACK, ~µs delay) or
  * misses it (slow path → anchor stays queued in pipe-0 FIFO and rides
- * the NEXT any-Tag frame's ACK, ~20 ms delay). This is the core
- * measurement that turns our "~70% slow path" hypothesis into a number.
+ * a later frame's ACK, ~ms delay). Core measurement that turns the
+ * "~70% slow path" hypothesis into a number.
  *
- * last_anchor_queue_us: now_us() right before esb_write_payload().
- * ack_tx_latency_bucket: (now_us_at_TX_SUCCESS - last_anchor_queue_us)
- *   bucketed [<2 ms, 2-10 ms, 10-30 ms, >=30 ms]. Emitted in SUMMARY. */
-static volatile uint32_t last_anchor_queue_us;
+ * A naive single-slot last_queue_us has an asymmetric bias: when
+ * several RX events fire before the oldest queued anchor's TX_SUCCESS
+ * lands, the single slot gets overwritten and the oldest-anchor's
+ * latency is measured against the newest queue time — either dropped
+ * (negative delta) or compressed toward small buckets. That hides the
+ * exact "old anchor waited behind a burst of RX" pattern we care
+ * about. Fixed here with a FIFO ring matched against the ESB
+ * ACK-payload TX FIFO. Both head and tail are only touched from the
+ * ESB event-handler context (single-ISR execution in NCS v3.2.4), so
+ * no locking is needed.
+ *
+ * Ring size: ESB_TX_FIFO_SIZE defaults to 8 in NCS; 16 leaves
+ * headroom for any burst. Must be a power of 2 for the mask trick.
+ * anchor_pending_max: observed peak FIFO depth (head - tail). */
+#define HELIX_ANCHOR_QUEUE_RING   16u
+#define HELIX_ANCHOR_QUEUE_MASK   (HELIX_ANCHOR_QUEUE_RING - 1u)
+static_assert((HELIX_ANCHOR_QUEUE_RING & HELIX_ANCHOR_QUEUE_MASK) == 0u,
+              "HELIX_ANCHOR_QUEUE_RING must be a power of 2");
+
+static volatile uint32_t anchor_queue_ts_ring[HELIX_ANCHOR_QUEUE_RING];
+static volatile uint32_t anchor_queue_ring_head;   /* next slot to write */
+static volatile uint32_t anchor_queue_ring_tail;   /* next slot to consume */
+static volatile uint32_t anchor_pending_max;
 static volatile uint32_t ack_tx_latency_bucket[4];
+static volatile uint32_t ack_tx_dropped_no_queue;  /* TX_SUCCESS with ring empty — diagnostic */
 
 /* Request an OTA trigger for a specific node (or 0xFF = broadcast).
  * Sends the trigger on the next few FRAMEs from the target, then clears.
@@ -336,11 +356,16 @@ static void report_summary(void)
 	char line[320];
 
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
-	/* ack_lat counts anchors by "esb_write_payload → TX_SUCCESS" time:
-	 *   <2ms / 2-10ms / 10-30ms / >=30ms. See docs/RF_SYNC_DECISION_LOG.md */
+	/* ack_lat: per-anchor FIFO-ring latency histogram. Buckets:
+	 *   <2 ms / 2-10 ms / 10-30 ms / >=30 ms.
+	 * pend_max: peak observed ESB ACK-payload FIFO depth since boot —
+	 *   if this climbs, Hub is bursting queues beyond steady-state.
+	 * ack_drop: TX_SUCCESS events with an empty ring (shouldn't happen
+	 *   in principle; if nonzero we have a bookkeeping bug).
+	 * See docs/RF_SYNC_DECISION_LOG.md Stage 1. */
 	snprintk(line,
 		 sizeof(line),
-		 "SUMMARY role=central rx=%u anchors=%u tracked=%u usb_lines=%u err=%u hb=%u trigs=%u ack_lat=%u/%u/%u/%u\n",
+		 "SUMMARY role=central rx=%u anchors=%u tracked=%u usb_lines=%u err=%u hb=%u trigs=%u ack_lat=%u/%u/%u/%u pend_max=%u ack_drop=%u\n",
 		 g_helixMocapStatus.rx_packets,
 		 g_helixMocapStatus.anchors_sent,
 		 g_helixMocapStatus.tracked_nodes,
@@ -349,7 +374,9 @@ static void report_summary(void)
 		 g_helixMocapStatus.heartbeat,
 		 ota_triggers_sent,
 		 ack_tx_latency_bucket[0], ack_tx_latency_bucket[1],
-		 ack_tx_latency_bucket[2], ack_tx_latency_bucket[3]);
+		 ack_tx_latency_bucket[2], ack_tx_latency_bucket[3],
+		 anchor_pending_max,
+		 ack_tx_dropped_no_queue);
 #else
 	/* anchor_age buckets: how stale the most-recent anchor is vs. Tag's
 	 * most-recent TX (proxy for Hub's ACK-path fast/slow distribution).
@@ -505,12 +532,18 @@ static void central_handle_frame(const struct esb_payload *payload)
 	};
 	ack.length = sizeof(anchor);
 	memcpy(ack.data, &anchor, sizeof(anchor));
-	/* Stamp anchor-queue time just before esb_write_payload. Paired with
-	 * the now_us() captured in ESB_EVENT_TX_SUCCESS to measure the
-	 * TIFS race (fast path ≈ ACK carries this anchor on the next ~150 µs
-	 * vs. slow path ≈ anchor stays queued until a later frame's ACK).
-	 * See docs/RF_SYNC_DECISION_LOG.md Stage 1 instrumentation. */
-	last_anchor_queue_us = rx_timestamp_us;
+	/* Push this anchor's queue time onto the FIFO ring so the matching
+	 * ESB_EVENT_TX_SUCCESS can compute a per-anchor latency. See
+	 * docs/RF_SYNC_DECISION_LOG.md Stage 1 instrumentation. */
+	{
+		const uint32_t head = anchor_queue_ring_head;
+		anchor_queue_ts_ring[head & HELIX_ANCHOR_QUEUE_MASK] = rx_timestamp_us;
+		anchor_queue_ring_head = head + 1u;
+		const uint32_t pending = (head + 1u) - anchor_queue_ring_tail;
+		if (pending > anchor_pending_max) {
+			anchor_pending_max = pending;
+		}
+	}
 	if (esb_write_payload(&ack) == 0) {
 		g_helixMocapStatus.anchors_sent++;
 		if (flooding) {
@@ -649,18 +682,28 @@ static void event_handler(struct esb_evt const *event)
 	case ESB_EVENT_TX_SUCCESS:
 		g_helixMocapStatus.tx_success++;
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
-		/* Hub (PRX) TX_SUCCESS fires when a queued ACK payload (i.e. the
-		 * anchor we built in central_handle_frame) has been successfully
-		 * transmitted to a Tag. Bucket the "queue → TX done" latency
-		 * to distinguish fast-path (within TIFS) vs slow-path (waited
-		 * for a subsequent RX's ACK slot). See
-		 * docs/RF_SYNC_DECISION_LOG.md Stage 1. */
+		/* Hub (PRX) TX_SUCCESS fires when a queued ACK payload (the
+		 * anchor built in central_handle_frame) has been successfully
+		 * transmitted. Pull the OLDEST queue timestamp off the ring —
+		 * that's the anchor this TX_SUCCESS just delivered — and
+		 * bucket the latency. Ring semantics: head is bumped on each
+		 * enqueue in central_handle_frame; tail advances here on each
+		 * successful TX. Both run from the same ESB ISR context in
+		 * NCS v3.2.4, so no locking. */
 		{
 			const uint32_t tx_done_us = now_us();
-			const uint32_t queue_us = last_anchor_queue_us;
-			if (queue_us != 0u && tx_done_us >= queue_us) {
-				const uint32_t delta_us = tx_done_us - queue_us;
-				(void)histo_bucket_us(delta_us, ack_tx_latency_bucket);
+			const uint32_t tail = anchor_queue_ring_tail;
+			const uint32_t head = anchor_queue_ring_head;
+			if (tail != head) {
+				const uint32_t queue_us =
+					anchor_queue_ts_ring[tail & HELIX_ANCHOR_QUEUE_MASK];
+				anchor_queue_ring_tail = tail + 1u;
+				if (tx_done_us >= queue_us) {
+					(void)histo_bucket_us(tx_done_us - queue_us,
+					                      ack_tx_latency_bucket);
+				}
+			} else {
+				ack_tx_dropped_no_queue++;
 			}
 		}
 #endif
