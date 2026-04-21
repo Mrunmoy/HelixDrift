@@ -20,6 +20,8 @@ import sys
 from pathlib import Path
 
 ACK_LAT_RE = re.compile(r"ack_lat=(\d+)/(\d+)/(\d+)/(\d+)")
+PEND_MAX_RE = re.compile(r"pend_max=(\d+)")
+ACK_DROP_RE = re.compile(r"ack_drop=(\d+)")
 ANCHOR_AGE_RE = re.compile(r"anchor_age=(\d+)/(\d+)/(\d+)/(\d+)")
 OFFSET_STEP_RE = re.compile(r"offset_step=(\d+)/(\d+)/(\d+)/(\d+)")
 NODE_ID_RE = re.compile(r"SUMMARY role=node id=(\d+)")
@@ -49,6 +51,8 @@ def process_lines(lines):
     For node-role summaries, also track per-node_id first/last."""
     first_hub_ack_lat = None
     last_hub_ack_lat = None
+    last_hub_pend_max = None   # monotonic max — last sample is the peak so far
+    last_hub_ack_drop = None
     per_node_first = {}  # node_id → (anchor_age, offset_step)
     per_node_last = {}
 
@@ -61,6 +65,12 @@ def process_lines(lines):
                 if first_hub_ack_lat is None:
                     first_hub_ack_lat = vals
                 last_hub_ack_lat = vals
+            m_pm = PEND_MAX_RE.search(line)
+            if m_pm:
+                last_hub_pend_max = int(m_pm.group(1))
+            m_ad = ACK_DROP_RE.search(line)
+            if m_ad:
+                last_hub_ack_drop = int(m_ad.group(1))
         elif "SUMMARY role=node" in line:
             m_nid = NODE_ID_RE.search(line)
             if not m_nid:
@@ -76,6 +86,10 @@ def process_lines(lines):
 
     print("=== Hub (central) ack-TX latency distribution ===")
     report_deltas("ack_lat", first_hub_ack_lat, last_hub_ack_lat)
+    if last_hub_pend_max is not None:
+        print(f"  peak ESB ACK-payload FIFO depth: {last_hub_pend_max}")
+    if last_hub_ack_drop is not None:
+        print(f"  TX_SUCCESS with empty ring (should be 0): {last_hub_ack_drop}")
 
     print()
     print("=== Per-Tag (node) anchor-age distribution ===")
