@@ -479,12 +479,14 @@ synchronize its clock to the Hub (explained in Chapter 8).
 #### The C struct (from `main.cpp`, line 43):
 
 ```c
-/* v3 anchor — current wire format. 10 bytes.
- *  Accepted sizes on a v3 Tag:
- *   - 10 B (v3): full format, filters OTA trigger by ota_target_node_id
- *   - 9 B  (v2): legacy, flags present but no target filter — Tag
+/* v4 anchor — current wire format. 11 bytes.
+ *  Accepted sizes on a v4 Tag:
+ *   - 11 B (v4): full format, filters sync by rx_node_id AND
+ *                OTA trigger by ota_target_node_id
+ *   - 10 B (v3): legacy, no rx_node_id — estimator accepts all anchors
+ *   -  9 B (v2): legacy, flags present but no target filter — Tag
  *                treats any OTA_REQ as addressed to it
- *   - 8 B  (v1): no flags at all, no OTA trigger path */
+ *   -  8 B (v1): no flags at all, no OTA trigger path */
 struct __packed HelixSyncAnchor {
     uint8_t  type;                  // Always 0xA1
     uint8_t  central_id;            // Hub identity (for multi-Hub)
@@ -494,6 +496,12 @@ struct __packed HelixSyncAnchor {
     uint8_t  flags;                 // v2+: bit 0 = HELIX_ANCHOR_FLAG_OTA_REQ
     uint8_t  ota_target_node_id;    // v3+: target for OTA trigger flood
                                     //      (0xFF = broadcast)
+    uint8_t  rx_node_id;            // v4+: node_id of the Tag whose frame
+                                    //      produced this anchor. Tags MUST
+                                    //      drop the sync update if this
+                                    //      doesn't match their own node_id
+                                    //      (shared-pipe-0 cross-contamination
+                                    //      fix). 0xFF = broadcast/unset.
 };
 ```
 
@@ -508,7 +516,8 @@ struct __packed HelixSyncAnchor {
 | 4–7 | `48 43 0F 00` | `central_timestamp_us` | u32 | 1,000,232 µs |
 | 8 | `01` | `flags` | u8 | OTA_REQ set |
 | 9 | `03` | `ota_target_node_id` | u8 | target node_id = 3 |
-| | | | | **10 bytes total** (v3) |
+| 10 | `02` | `rx_node_id` | u8 | anchor built from Tag 2's frame |
+| | | | | **11 bytes total** (v4) |
 
 #### Field reference
 
@@ -521,6 +530,7 @@ struct __packed HelixSyncAnchor {
 | `central_timestamp_us` | 4 | 4 | u32 | 0 – 4,294,967,295 | The Hub's clock reading in microseconds at the exact moment the Hub received the Tag's frame. This is the reference the Tag uses to compute its clock offset. |
 | `flags` | 8 | 1 | u8 | bitmask | v2+ only. Bit 0 (`HELIX_ANCHOR_FLAG_OTA_REQ`) tells the target Tag to reboot into its BLE OTA window. Hub sets this on every anchor during an active trigger window (flood) — Tag filters by `ota_target_node_id` below. |
 | `ota_target_node_id` | 9 | 1 | u8 | 1–255 or 0xFF | v3+ only. `0xFF` = broadcast (all nodes reboot). Any other value = reboot only if it matches the Tag's flash-provisioned `node_id` at `0xFE000`. See [`NRF_HUB_RELAY_OTA.md`](NRF_HUB_RELAY_OTA.md) for the flood-trigger rationale. |
+| `rx_node_id` | 10 | 1 | u8 | 1–255 or 0xFF | v4+ only. The `node_id` of the Tag whose frame caused the Hub to build this anchor. Because all N Tags share ESB pipe 0 (and thus a single ACK-payload FIFO), an anchor built for Tag A can be delivered to Tag B if B's frame arrives before the FIFO drains. A Tag MUST drop the sync update when `rx_node_id != own node_id` (OTA flags are unaffected). `0xFF` = unset/broadcast, accepted by all. See [`RF_SYNC_DECISION_LOG.md`](RF_SYNC_DECISION_LOG.md) Stage 2. |
 
 #### How piggybacking works
 
@@ -861,6 +871,9 @@ struct HelixSyncAnchor anchor = {
     .anchor_sequence    = next_anchor_sequence++,
     .session_tag        = CONFIG_HELIX_MOCAP_SESSION_TAG,
     .central_timestamp_us = rx_timestamp_us,           // Hub's clock NOW
+    .flags              = flooding ? HELIX_ANCHOR_FLAG_OTA_REQ : 0,
+    .ota_target_node_id = flooding ? ota_trigger_target_node : 0,
+    .rx_node_id         = frame->node_id,              // v4: whose frame this is for
 };
 ```
 

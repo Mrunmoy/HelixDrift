@@ -25,6 +25,8 @@ ACK_DROP_RE = re.compile(r"ack_drop=(\d+)")
 ANCHOR_AGE_RE = re.compile(r"anchor_age=(\d+)/(\d+)/(\d+)/(\d+)")
 OFFSET_STEP_RE = re.compile(r"offset_step=(\d+)/(\d+)/(\d+)/(\d+)")
 NODE_ID_RE = re.compile(r"SUMMARY role=node id=(\d+)")
+ANCHORS_RE = re.compile(r"\banchors=(\d+)")
+WRONG_RX_RE = re.compile(r"\bwrong_rx=(\d+)")
 
 BUCKETS = ["<2ms", "2-10ms", "10-30ms", ">=30ms"]
 
@@ -53,7 +55,7 @@ def process_lines(lines):
     last_hub_ack_lat = None
     last_hub_pend_max = None   # monotonic max — last sample is the peak so far
     last_hub_ack_drop = None
-    per_node_first = {}  # node_id → (anchor_age, offset_step)
+    per_node_first = {}  # node_id → (anchor_age, offset_step, anchors, wrong_rx)
     per_node_last = {}
 
     for raw in lines:
@@ -78,11 +80,15 @@ def process_lines(lines):
             nid = int(m_nid.group(1))
             m_age = ANCHOR_AGE_RE.search(line)
             m_step = OFFSET_STEP_RE.search(line)
+            m_anchors = ANCHORS_RE.search(line)
+            m_wrong = WRONG_RX_RE.search(line)
             age = [int(m_age.group(i)) for i in range(1, 5)] if m_age else None
             step = [int(m_step.group(i)) for i in range(1, 5)] if m_step else None
+            anchors = int(m_anchors.group(1)) if m_anchors else None
+            wrong = int(m_wrong.group(1)) if m_wrong else None
             if nid not in per_node_first:
-                per_node_first[nid] = (age, step)
-            per_node_last[nid] = (age, step)
+                per_node_first[nid] = (age, step, anchors, wrong)
+            per_node_last[nid] = (age, step, anchors, wrong)
 
     print("=== Hub (central) ack-TX latency distribution ===")
     report_deltas("ack_lat", first_hub_ack_lat, last_hub_ack_lat)
@@ -94,8 +100,8 @@ def process_lines(lines):
     print()
     print("=== Per-Tag (node) anchor-age distribution ===")
     for nid in sorted(per_node_first):
-        age_f, _ = per_node_first[nid]
-        age_l, _ = per_node_last[nid]
+        age_f = per_node_first[nid][0]
+        age_l = per_node_last[nid][0]
         if age_f is None or age_l is None:
             continue
         print(f"Tag node_id={nid}:")
@@ -104,12 +110,30 @@ def process_lines(lines):
     print()
     print("=== Per-Tag (node) offset-step distribution ===")
     for nid in sorted(per_node_first):
-        _, step_f = per_node_first[nid]
-        _, step_l = per_node_last[nid]
+        step_f = per_node_first[nid][1]
+        step_l = per_node_last[nid][1]
         if step_f is None or step_l is None:
             continue
         print(f"Tag node_id={nid}:")
         report_deltas("offset_step", step_f, step_l)
+
+    print()
+    print("=== Per-Tag Stage-2 v4 sync-filter rejection ratio ===")
+    for nid in sorted(per_node_first):
+        anch_f = per_node_first[nid][2]
+        anch_l = per_node_last[nid][2]
+        wr_f = per_node_first[nid][3]
+        wr_l = per_node_last[nid][3]
+        if anch_f is None or anch_l is None or wr_f is None or wr_l is None:
+            continue
+        accepted = anch_l - anch_f
+        rejected = wr_l - wr_f
+        total = accepted + rejected
+        if total == 0:
+            continue
+        pct = 100.0 * rejected / total
+        print(f"Tag node_id={nid}: accepted={accepted}  "
+              f"rejected_wrong_rx={rejected}  rejection_rate={pct:.1f}%")
 
 
 def main():

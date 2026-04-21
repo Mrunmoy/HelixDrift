@@ -338,6 +338,37 @@ rx_node_id for association).
 Staging unchanged: Stage 2 = rx_node_id first (cheap, correctness);
 Stage 3 = full v5 (sub-ms sync target).
 
+## Stage 2 implementation (v4 anchor)
+
+**Change summary:** `HelixSyncAnchor` grows 10 → 11 bytes. The new
+byte carries `rx_node_id` — the `node_id` of the Tag whose frame
+produced this anchor. Tags drop the sync-estimator update whenever
+`rx_node_id != own node_id`, keeping OTA-flag processing unaffected.
+A new Tag-side counter `anchors_wrong_rx` is emitted in SUMMARY so
+we can measure the rejection ratio directly.
+
+**Backward compat:** size gates in `node_handle_anchor()` preserve
+v1/v2/v3 semantics. A v4 Tag on a v3 Hub keeps today's "accept all
+anchors" behaviour until the Hub is also on v4.
+
+**Expected effect on metrics:**
+- `offset_step` distribution on each Tag should collapse toward
+  bucket 0 (cross-contaminated anchors no longer feed the estimator).
+- `anchors_wrong_rx / (anchors + wrong_rx)` should approximate the
+  Hub's slow-path ratio — roughly 70-90 % based on Stage 1' Hub
+  histogram (most anchors landing on a later frame's ACK belong to a
+  different Tag).
+- `anchors_received` drops sharply — this is expected and correct:
+  we now *only* update on anchors truly built from our own frame.
+- Cross-Tag span p99 not expected to change dramatically — the
+  slow-path latency bias is still there. Stage 3 v5 fixes that.
+
+**Deployment plan:**
+1. SWD-flash Hub (single step, no OTA).
+2. OTA fleet to next version (fleet_ota.sh) — 10 Tags, ~40 min.
+3. 10-min SUMMARY capture, compare offset_step histograms.
+4. Compute per-Tag rejection ratio, verify ~70-90 %.
+
 ## Requirements reality check
 
 `docs/rf-sync-requirements.md` (draft v0.1, 2026-03-29) lists

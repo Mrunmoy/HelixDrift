@@ -65,6 +65,14 @@ struct __packed HelixSyncAnchor {
 	 * the OTA_REQ flag as broadcast — preserves legacy single-target
 	 * behaviour for fleets that haven't migrated to v3 anchors yet. */
 	uint8_t ota_target_node_id;
+	/* v4+: the Hub's view of which Tag's frame triggered this ACK
+	 * payload. With N Tags sharing pipe 0 (one ESB ACK-payload FIFO),
+	 * the anchor built for Tag A may well be delivered to Tag B — see
+	 * docs/RF_SYNC_DECISION_LOG.md Stage 2. Tags MUST filter anchors
+	 * where rx_node_id != own node_id out of the sync estimator (OTA
+	 * flags stay in effect — they're already filtered by
+	 * ota_target_node_id). 0xFF = unset/broadcast (accept). */
+	uint8_t rx_node_id;
 };
 
 static constexpr uint8_t HELIX_ANCHOR_FLAG_OTA_REQ = 0x01u;
@@ -191,6 +199,10 @@ static atomic_t ota_reboot_pending = ATOMIC_INIT(0);
 static volatile uint32_t last_tx_local_us;
 static volatile uint32_t anchor_age_bucket[4];
 static volatile uint32_t offset_step_bucket[4];
+/* Stage 2 (v4 anchor): count anchors filtered out because rx_node_id
+ * didn't match our own. Ratio of this to total anchors received tells
+ * us how much shared-pipe cross-contamination we're rejecting. */
+static volatile uint32_t anchors_wrong_rx;
 #endif
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
 static struct NodeTrack tracked_nodes[CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES];
@@ -384,12 +396,13 @@ static void report_summary(void)
 	 * Tag anchor corruption). See docs/RF_SYNC_DECISION_LOG.md */
 	snprintk(line,
 		 sizeof(line),
-		 "SUMMARY role=node id=%u tx_ok=%u tx_fail=%u anchors=%u offset_us=%d err=%u hb=%u "
+		 "SUMMARY role=node id=%u tx_ok=%u tx_fail=%u anchors=%u wrong_rx=%u offset_us=%d err=%u hb=%u "
 		 "anchor_age=%u/%u/%u/%u offset_step=%u/%u/%u/%u\n",
 		 g_node_id,
 		 g_helixMocapStatus.tx_success,
 		 g_helixMocapStatus.tx_failed,
 		 g_helixMocapStatus.anchors_received,
+		 anchors_wrong_rx,
 		 g_helixMocapStatus.estimated_offset_us,
 		 g_helixMocapStatus.last_error,
 		 g_helixMocapStatus.heartbeat,
@@ -529,6 +542,9 @@ static void central_handle_frame(const struct esb_payload *payload)
 		.central_timestamp_us = rx_timestamp_us,
 		.flags = static_cast<uint8_t>(flooding ? HELIX_ANCHOR_FLAG_OTA_REQ : 0),
 		.ota_target_node_id = flooding ? ota_trigger_target_node : (uint8_t)0,
+		/* v4: whose frame this anchor is built from. Tags check this
+		 * and drop the sync update if the anchor wasn't for them. */
+		.rx_node_id = frame->node_id,
 	};
 	ack.length = sizeof(anchor);
 	memcpy(ack.data, &anchor, sizeof(anchor));
@@ -614,16 +630,19 @@ static void node_handle_anchor(const struct esb_payload *payload)
 	const struct HelixSyncAnchor *anchor = (const struct HelixSyncAnchor *)payload->data;
 	const uint32_t local_us = now_us();
 
-	/* Anchor wire format has evolved; accept the three sizes on the wire:
+	/* Anchor wire format has evolved; accept the four sizes on the wire:
 	 *   v1 (8 B):  base fields only, no flags, no OTA trigger path.
 	 *   v2 (9 B):  + flags byte (OTA_REQ bit). Any OTA_REQ → reboot.
 	 *   v3 (10 B): + ota_target_node_id — filter by our node_id.
-	 * sizeof(HelixSyncAnchor) is 10 (v3) on this branch; the size gates
+	 *   v4 (11 B): + rx_node_id — filter non-matching anchors out of the
+	 *              sync estimator (shared-pipe cross-contamination fix).
+	 * sizeof(HelixSyncAnchor) is 11 (v4) on this branch; the size gates
 	 * below dispatch to the right compat path. */
 	constexpr size_t kLegacyAnchorSize = 8u;
 	constexpr size_t kV2AnchorSize     = 9u;
-	static_assert(sizeof(HelixSyncAnchor) == 10u,
-	              "v3 anchor must be 10 bytes — update OTA trigger compat paths if this grows");
+	constexpr size_t kV3AnchorSize     = 10u;
+	static_assert(sizeof(HelixSyncAnchor) == 11u,
+	              "v4 anchor must be 11 bytes — update OTA trigger compat paths if this grows");
 	if (payload->length < kLegacyAnchorSize ||
 	    anchor->type != HELIX_PACKET_SYNC_ANCHOR ||
 	    anchor->session_tag != (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG) {
@@ -639,7 +658,7 @@ static void node_handle_anchor(const struct esb_payload *payload)
 	 *    reboot. Any other value = not for us, ignore. */
 	if (!(anchor->flags & HELIX_ANCHOR_FLAG_OTA_REQ)) {
 		/* no trigger bit — fast path */
-	} else if (payload->length >= sizeof(*anchor)) {
+	} else if (payload->length >= kV3AnchorSize) {
 		/* v3+ anchor — filter by target */
 		if (anchor->ota_target_node_id == g_node_id ||
 		    anchor->ota_target_node_id == 0xFFu) {
@@ -660,6 +679,19 @@ static void node_handle_anchor(const struct esb_payload *payload)
 		(void)histo_bucket_us(local_us - tx_us_snapshot, anchor_age_bucket);
 	}
 
+	/* Stage 2 (v4 anchor): if this anchor was built from some other
+	 * Tag's frame (cross-contamination on the shared ACK-payload FIFO),
+	 * don't let it corrupt our sync estimator. Count for diagnostics
+	 * but skip the offset/anchors_received update. Pre-v4 anchors
+	 * (< 11 B) have no rx_node_id field — accept them unconditionally
+	 * to preserve backward compat with older Hubs during migration. */
+	if (payload->length >= sizeof(*anchor) &&
+	    anchor->rx_node_id != 0xFFu &&
+	    anchor->rx_node_id != g_node_id) {
+		anchors_wrong_rx++;
+		return;
+	}
+
 	const int32_t prev_offset = estimated_offset_us;
 	estimated_offset_us = (int32_t)(local_us - anchor->central_timestamp_us);
 	g_helixMocapStatus.estimated_offset_us = estimated_offset_us;
@@ -668,8 +700,9 @@ static void node_handle_anchor(const struct esb_payload *payload)
 
 	/* Bucket the magnitude of the offset jump on this anchor. Small steps
 	 * → clock is tracking smoothly; large steps → stale/wrong-Tag anchor
-	 * corrupted the estimator (the shared-pipe cross-contamination
-	 * symptom Stage 2 v4 anchor will fix). */
+	 * corrupted the estimator. After Stage 2 v4 gate above, only
+	 * matching-Tag anchors reach this point — distribution should
+	 * collapse toward bucket 0. */
 	const int64_t diff = (int64_t)estimated_offset_us - (int64_t)prev_offset;
 	const uint32_t diff_abs = (uint32_t)((diff < 0) ? -diff : diff);
 	(void)histo_bucket_us(diff_abs, offset_step_bucket);
