@@ -25,9 +25,9 @@ Repo files:
 - Tag + Hub firmware: `zephyr_apps/nrf52840-mocap-bridge/`
 - Hub-relay module: `zephyr_apps/nrf52840-mocap-bridge/src/ota_hub_relay.cpp`
 - PC uploader: `tools/nrf/hub_ota_upload.py`
-- Provisioning helper (SWD): `/tmp/helix_tag_log/flash_tag.sh`
-  (one-shot script — not committed, kept in scratch since it hard-codes
-  the J-Link serial used during bring-up)
+- Provisioning helper (SWD): `tools/nrf/flash_tag.sh`
+  (upstreamed from scratch in commit addressing `docs/RF_CLOSEOUT_HANDOFF.md`;
+  accepts env-var overrides for J-Link serial, artifact dir, merged-hex path)
 
 ## End-to-end flow
 
@@ -166,11 +166,11 @@ Expected wall time: ~240 s per Tag.
 
 ## Fleet OTA (all 10 Tags, one firmware version bump per round)
 
-The reliability harness at `/tmp/helix_tag_log/fleet_ota.sh` iterates
-across the 10 Tags, bumping `CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION` each
-round and rebuilding once per round. Logs to
-`/tmp/helix_tag_log/fleet_ota.log` and a summary to
-`/tmp/helix_tag_log/fleet_ota_summary.txt`.
+The reliability harness at `tools/nrf/fleet_ota.sh` iterates across the
+10 Tags, bumping `CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION` each round and
+rebuilding once per round. Logs to
+`${HELIX_RF_ARTIFACT_DIR:-/tmp/helix_tag_log}/fleet_ota.log` and a
+summary to `fleet_ota_summary.txt` in the same directory.
 
 Verified result (2026-04-20, branch `nrf-xiao-nrf52840` at `f2fd101`):
 
