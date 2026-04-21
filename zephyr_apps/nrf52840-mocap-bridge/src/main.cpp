@@ -73,6 +73,21 @@ struct __packed HelixSyncAnchor {
 	 * flags stay in effect — they're already filtered by
 	 * ota_target_node_id). 0xFF = unset/broadcast (accept). */
 	uint8_t rx_node_id;
+	/* v5+: echo of the Tag's frame->sequence that caused the Hub to
+	 * build this anchor. Tag uses it to look up its own TX timestamp
+	 * in a small ring buffer — necessary because NCS ESB doesn't tell
+	 * the Tag which of its retries got ACK'd, so "most recent TX" is
+	 * ambiguous by several retry slots. See docs/RF_STAGE3_DESIGN.md. */
+	uint8_t rx_frame_sequence;
+	/* v5+: Hub's local clock reading just before esb_write_payload.
+	 * Combined with rx_frame_sequence → tx_local_us lookup on Tag side
+	 * this enables a midpoint-RTT sync estimator that cancels the
+	 * systematic ACK-TX-latency bias observed in Stage 1'. Note: this
+	 * is a QUEUE-time stamp, not hardware-TX-time, because ESB doesn't
+	 * give user code a pre-TX callback. Tag's midpoint math treats it
+	 * as a best-effort TX time and measurements will reveal the
+	 * residual bias. */
+	uint32_t anchor_tx_us;
 };
 
 static constexpr uint8_t HELIX_ANCHOR_FLAG_OTA_REQ = 0x01u;
@@ -203,6 +218,36 @@ static volatile uint32_t offset_step_bucket[4];
  * didn't match our own. Ratio of this to total anchors received tells
  * us how much shared-pipe cross-contamination we're rejecting. */
 static volatile uint32_t anchors_wrong_rx;
+
+/* Stage 3 (v5 anchor): per-Tag ring buffer of recent TXs, indexed by
+ * Tag's own sequence number. On anchor RX, the Hub echoes back
+ * frame->sequence in rx_frame_sequence; we look it up here to recover
+ * the Tag-local TX timestamp for the midpoint estimator. Ring depth
+ * 16 is well past any realistic Hub ACK-TX latency at 50 Hz (16 slots
+ * × 20 ms per TX = 320 ms of history, vs. Stage 1' p99 ACK TX latency
+ * of ~60 ms). See docs/RF_STAGE3_DESIGN.md. */
+#define HELIX_TX_RING_SIZE   16u
+#define HELIX_TX_RING_MASK   (HELIX_TX_RING_SIZE - 1u)
+struct tx_stamp {
+	uint8_t  sequence;
+	uint8_t  valid;
+	uint32_t local_us;
+};
+static volatile struct tx_stamp tx_ring[HELIX_TX_RING_SIZE];
+/* Monotonic write index; index & MASK is slot. Producer:
+ * maybe_send_frame on successful esb_write_payload. Consumer:
+ * node_handle_anchor (ESB ISR) — single reader, single writer,
+ * no locking needed on nRF52 single-core. */
+static volatile uint32_t tx_ring_head;
+/* Count of v5 anchors whose echoed sequence wasn't in the ring —
+ * either too old (ring wrapped past it) or Hub echoed garbage.
+ * Should be near-zero in steady state. */
+static volatile uint32_t seq_lookup_miss;
+/* Bucket midpoint-estimator jitter: |new_offset - prev_offset| for
+ * the v5 midpoint estimator (separate from the old offset_step). */
+static volatile uint32_t midpoint_step_bucket[4];
+static volatile uint32_t midpoint_offset_valid;
+static int32_t midpoint_offset_us;
 #endif
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
 static struct NodeTrack tracked_nodes[CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES];
@@ -396,20 +441,26 @@ static void report_summary(void)
 	 * Tag anchor corruption). See docs/RF_SYNC_DECISION_LOG.md */
 	snprintk(line,
 		 sizeof(line),
-		 "SUMMARY role=node id=%u tx_ok=%u tx_fail=%u anchors=%u wrong_rx=%u offset_us=%d err=%u hb=%u "
-		 "anchor_age=%u/%u/%u/%u offset_step=%u/%u/%u/%u\n",
+		 "SUMMARY role=node id=%u tx_ok=%u tx_fail=%u anchors=%u wrong_rx=%u "
+		 "seq_miss=%u offset_us=%d mid_us=%d err=%u hb=%u "
+		 "anchor_age=%u/%u/%u/%u offset_step=%u/%u/%u/%u "
+		 "mid_step=%u/%u/%u/%u\n",
 		 g_node_id,
 		 g_helixMocapStatus.tx_success,
 		 g_helixMocapStatus.tx_failed,
 		 g_helixMocapStatus.anchors_received,
 		 anchors_wrong_rx,
+		 seq_lookup_miss,
 		 g_helixMocapStatus.estimated_offset_us,
+		 midpoint_offset_valid ? midpoint_offset_us : 0,
 		 g_helixMocapStatus.last_error,
 		 g_helixMocapStatus.heartbeat,
 		 anchor_age_bucket[0], anchor_age_bucket[1],
 		 anchor_age_bucket[2], anchor_age_bucket[3],
 		 offset_step_bucket[0], offset_step_bucket[1],
-		 offset_step_bucket[2], offset_step_bucket[3]);
+		 offset_step_bucket[2], offset_step_bucket[3],
+		 midpoint_step_bucket[0], midpoint_step_bucket[1],
+		 midpoint_step_bucket[2], midpoint_step_bucket[3]);
 #endif
 
 	host_write(line);
@@ -545,6 +596,12 @@ static void central_handle_frame(const struct esb_payload *payload)
 		/* v4: whose frame this anchor is built from. Tags check this
 		 * and drop the sync update if the anchor wasn't for them. */
 		.rx_node_id = frame->node_id,
+		/* v5: Tag's own sequence number echoed back so Tag can pair
+		 * this anchor with its own TX timestamp (Tag-side ring lookup). */
+		.rx_frame_sequence = frame->sequence,
+		/* v5: Hub's clock just before enqueue. Best-effort TX-time
+		 * stamp (see comment on the struct field). */
+		.anchor_tx_us = now_us(),
 	};
 	ack.length = sizeof(anchor);
 	memcpy(ack.data, &anchor, sizeof(anchor));
@@ -630,19 +687,22 @@ static void node_handle_anchor(const struct esb_payload *payload)
 	const struct HelixSyncAnchor *anchor = (const struct HelixSyncAnchor *)payload->data;
 	const uint32_t local_us = now_us();
 
-	/* Anchor wire format has evolved; accept the four sizes on the wire:
+	/* Anchor wire format has evolved; accept the five sizes on the wire:
 	 *   v1 (8 B):  base fields only, no flags, no OTA trigger path.
 	 *   v2 (9 B):  + flags byte (OTA_REQ bit). Any OTA_REQ → reboot.
 	 *   v3 (10 B): + ota_target_node_id — filter by our node_id.
 	 *   v4 (11 B): + rx_node_id — filter non-matching anchors out of the
 	 *              sync estimator (shared-pipe cross-contamination fix).
-	 * sizeof(HelixSyncAnchor) is 11 (v4) on this branch; the size gates
+	 *   v5 (16 B): + rx_frame_sequence + anchor_tx_us — enables midpoint
+	 *              RTT sync estimator with full Hub+Tag clock pairing.
+	 * sizeof(HelixSyncAnchor) is 16 (v5) on this branch; the size gates
 	 * below dispatch to the right compat path. */
 	constexpr size_t kLegacyAnchorSize = 8u;
 	constexpr size_t kV2AnchorSize     = 9u;
 	constexpr size_t kV3AnchorSize     = 10u;
-	static_assert(sizeof(HelixSyncAnchor) == 11u,
-	              "v4 anchor must be 11 bytes — update OTA trigger compat paths if this grows");
+	constexpr size_t kV4AnchorSize     = 11u;
+	static_assert(sizeof(HelixSyncAnchor) == 16u,
+	              "v5 anchor must be 16 bytes — update OTA trigger compat paths if this grows");
 	if (payload->length < kLegacyAnchorSize ||
 	    anchor->type != HELIX_PACKET_SYNC_ANCHOR ||
 	    anchor->session_tag != (uint8_t)CONFIG_HELIX_MOCAP_SESSION_TAG) {
@@ -659,7 +719,7 @@ static void node_handle_anchor(const struct esb_payload *payload)
 	if (!(anchor->flags & HELIX_ANCHOR_FLAG_OTA_REQ)) {
 		/* no trigger bit — fast path */
 	} else if (payload->length >= kV3AnchorSize) {
-		/* v3+ anchor — filter by target */
+		/* v3+ anchor (10, 11, 16 bytes all carry ota_target_node_id) */
 		if (anchor->ota_target_node_id == g_node_id ||
 		    anchor->ota_target_node_id == 0xFFu) {
 			atomic_set(&ota_reboot_pending, 1);
@@ -685,11 +745,65 @@ static void node_handle_anchor(const struct esb_payload *payload)
 	 * but skip the offset/anchors_received update. Pre-v4 anchors
 	 * (< 11 B) have no rx_node_id field — accept them unconditionally
 	 * to preserve backward compat with older Hubs during migration. */
-	if (payload->length >= sizeof(*anchor) &&
+	if (payload->length >= kV4AnchorSize &&
 	    anchor->rx_node_id != 0xFFu &&
 	    anchor->rx_node_id != g_node_id) {
 		anchors_wrong_rx++;
 		return;
+	}
+
+	/* Stage 3 (v5 anchor): midpoint RTT estimator. Look up our own
+	 * TX timestamp via the echoed rx_frame_sequence — that gives us
+	 * T_tx_us for the exact TX round-tripped through this anchor. The
+	 * midpoint math cancels TIFS variance on both sides:
+	 *   tag_mid = (T_tx_us + T_rx_us) / 2
+	 *   hub_mid = (H_rx_us + H_tx_us) / 2
+	 *   offset  = tag_mid - hub_mid
+	 * Where H_rx_us = central_timestamp_us (unchanged) and
+	 * H_tx_us = anchor_tx_us (new in v5). */
+	if (payload->length >= sizeof(*anchor)) {
+		const uint8_t want_seq = anchor->rx_frame_sequence;
+		uint32_t tx_us = 0u;
+		bool found = false;
+		/* Walk backward from head; bounded by ring size. Producer is
+		 * single-writer (maybe_send_frame), consumer is ESB ISR — a
+		 * new TX could happen mid-walk, but we just might miss the
+		 * newest entry which wouldn't have been ours anyway. */
+		const uint32_t head_snap = tx_ring_head;
+		for (uint32_t i = 0u; i < HELIX_TX_RING_SIZE; i++) {
+			const uint32_t idx = (head_snap - 1u - i) & HELIX_TX_RING_MASK;
+			const struct tx_stamp slot = {
+				.sequence = tx_ring[idx].sequence,
+				.valid    = tx_ring[idx].valid,
+				.local_us = tx_ring[idx].local_us,
+			};
+			if (slot.valid && slot.sequence == want_seq) {
+				tx_us = slot.local_us;
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			seq_lookup_miss++;
+		} else {
+			/* Midpoint — handles uint32 wraparound via signed diffs.
+			 * On nRF52 now_us() is a 64-bit k_uptime-derived counter
+			 * cast to uint32; wrap period is ~71 min, far longer than
+			 * a round trip. Use midpoint average to avoid overflow:
+			 *   mid = a + ((b - a) / 2)  (same as (a+b)/2 but safe). */
+			const uint32_t tag_mid = tx_us + ((local_us - tx_us) / 2u);
+			const uint32_t hub_mid = anchor->central_timestamp_us +
+			                        ((anchor->anchor_tx_us -
+			                          anchor->central_timestamp_us) / 2u);
+			const int32_t new_midpoint = (int32_t)(tag_mid - hub_mid);
+			if (midpoint_offset_valid) {
+				const int64_t mdiff = (int64_t)new_midpoint - (int64_t)midpoint_offset_us;
+				const uint32_t mdiff_abs = (uint32_t)((mdiff < 0) ? -mdiff : mdiff);
+				(void)histo_bucket_us(mdiff_abs, midpoint_step_bucket);
+			}
+			midpoint_offset_us = new_midpoint;
+			midpoint_offset_valid = 1u;
+		}
 	}
 
 	const int32_t prev_offset = estimated_offset_us;
@@ -857,14 +971,18 @@ static void maybe_send_frame(void)
 		status_set_error(err);
 		atomic_set(&tx_ready, 1);
 	} else {
-		/* Record the TX instant for later anchor-age pairing. Simple
-		 * "last TX" (not a seq-indexed ring) — sufficient for Stage 1
-		 * instrumentation because each Tag TXes at a known cadence and
-		 * anchors typically arrive within 1-2 TX periods. See
-		 * docs/RF_SYNC_DECISION_LOG.md. Stage 3 (v5 anchor) will move
-		 * to a seq-indexed ring so the midpoint estimator can pair a
-		 * delayed anchor with the correct TX event. */
-		last_tx_local_us = now_us();
+		/* Record the TX instant for Stage 1 anchor_age bucketing. */
+		const uint32_t tx_us = now_us();
+		last_tx_local_us = tx_us;
+		/* Stage 3: push into the seq-indexed ring so an anchor that
+		 * echoes this frame->sequence can be paired with this TX_us
+		 * in node_handle_anchor(). */
+		const uint32_t head = tx_ring_head;
+		const uint32_t idx = head & HELIX_TX_RING_MASK;
+		tx_ring[idx].sequence = frame.sequence;
+		tx_ring[idx].local_us = tx_us;
+		tx_ring[idx].valid    = 1u;
+		tx_ring_head = head + 1u;
 	}
 }
 #endif

@@ -27,6 +27,8 @@ OFFSET_STEP_RE = re.compile(r"offset_step=(\d+)/(\d+)/(\d+)/(\d+)")
 NODE_ID_RE = re.compile(r"SUMMARY role=node id=(\d+)")
 ANCHORS_RE = re.compile(r"\banchors=(\d+)")
 WRONG_RX_RE = re.compile(r"\bwrong_rx=(\d+)")
+SEQ_MISS_RE = re.compile(r"\bseq_miss=(\d+)")
+MID_STEP_RE = re.compile(r"mid_step=(\d+)/(\d+)/(\d+)/(\d+)")
 
 BUCKETS = ["<2ms", "2-10ms", "10-30ms", ">=30ms"]
 
@@ -82,13 +84,17 @@ def process_lines(lines):
             m_step = OFFSET_STEP_RE.search(line)
             m_anchors = ANCHORS_RE.search(line)
             m_wrong = WRONG_RX_RE.search(line)
+            m_seq = SEQ_MISS_RE.search(line)
+            m_mid = MID_STEP_RE.search(line)
             age = [int(m_age.group(i)) for i in range(1, 5)] if m_age else None
             step = [int(m_step.group(i)) for i in range(1, 5)] if m_step else None
+            mid = [int(m_mid.group(i)) for i in range(1, 5)] if m_mid else None
             anchors = int(m_anchors.group(1)) if m_anchors else None
             wrong = int(m_wrong.group(1)) if m_wrong else None
+            seq_miss = int(m_seq.group(1)) if m_seq else None
             if nid not in per_node_first:
-                per_node_first[nid] = (age, step, anchors, wrong)
-            per_node_last[nid] = (age, step, anchors, wrong)
+                per_node_first[nid] = (age, step, anchors, wrong, mid, seq_miss)
+            per_node_last[nid] = (age, step, anchors, wrong, mid, seq_miss)
 
     print("=== Hub (central) ack-TX latency distribution ===")
     report_deltas("ack_lat", first_hub_ack_lat, last_hub_ack_lat)
@@ -134,6 +140,22 @@ def process_lines(lines):
         pct = 100.0 * rejected / total
         print(f"Tag node_id={nid}: accepted={accepted}  "
               f"rejected_wrong_rx={rejected}  rejection_rate={pct:.1f}%")
+
+    print()
+    print("=== Per-Tag Stage-3 v5 midpoint-step distribution ===")
+    for nid in sorted(per_node_first):
+        if len(per_node_first[nid]) < 6:
+            continue
+        mid_f = per_node_first[nid][4]
+        mid_l = per_node_last[nid][4]
+        sm_f = per_node_first[nid][5]
+        sm_l = per_node_last[nid][5]
+        if mid_f is None or mid_l is None:
+            continue
+        print(f"Tag node_id={nid}:")
+        report_deltas("mid_step", mid_f, mid_l)
+        if sm_f is not None and sm_l is not None:
+            print(f"    seq_lookup_miss delta: {sm_l - sm_f}")
 
 
 def main():
