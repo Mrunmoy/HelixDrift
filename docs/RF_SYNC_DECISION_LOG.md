@@ -369,6 +369,56 @@ anchors" behaviour until the Hub is also on v4.
 3. 10-min SUMMARY capture, compare offset_step histograms.
 4. Compute per-Tag rejection ratio, verify ~70-90 %.
 
+## Stage 2 findings (v4 anchor, v14 firmware, 2026-04-22)
+
+Fleet OTA to v14 completed (10/10 PASS). 10-min capture, Tag 1 RAM
+histograms SWD-read:
+
+| Counter | Value |
+|---|---:|
+| anchors_received (v4-accepted, matched own node_id) | 494 |
+| anchors_wrong_rx (v4-rejected, built for another Tag) | 34,165 |
+| Total anchors delivered to Tag 1 | 34,659 |
+| **Rejection ratio** | **98.6 %** |
+
+**Reading:** far higher than the 70-90 % we predicted. Interpretation
+of what "rx_node_id" actually measures was subtly wrong. See below.
+
+**Revised mental model of ESB ACK-payload FIFO semantics.**
+In NCS's Enhanced ShockBurst, each Tag's TX causes the Hub's
+`central_handle_frame()` to call `esb_write_payload()` with a new
+anchor. Those anchors queue in a per-pipe FIFO inside the ESB
+driver. When the **next** frame arrives from any Tag on pipe 0
+(shared), the hardware returns the OLDEST queued ACK payload to
+whichever Tag just TXed.
+
+So `rx_node_id` (set to `frame->node_id` at queue time) labels
+"which Tag caused this anchor to be built," NOT "which Tag will
+receive it." Those coincide only when the FIFO depth is 1 at the
+moment your next frame arrives — which, with 10 Tags sharing pipe 0
+and FIFO depth up to 3, is rare.
+
+**Implications:**
+1. Stage 2's correctness property still holds — when `rx_node_id`
+   does match own node_id, we *know* the anchor genuinely traces to
+   our own RX time. No cross-contamination on those updates.
+2. Effective anchor-update rate dropped from ~60 Hz to ~0.8 Hz per
+   Tag. Sync estimator now ticks ~75× less often.
+3. Even when accepted, Tag's offset_step distribution stays wide:
+   53.2 % / 34.0 % / 11.1 % / 1.6 % across the 4 buckets. The
+   Hub-side ACK-TX latency bias (Stage 1' showed >70 % of ACK TXs
+   land 10-30 ms after Tag's frame) is still in play — we're seeing
+   queue latency as "sync error" on every accepted anchor.
+
+**Conclusion:** Stage 2 confirmed cross-contamination is near-total
+and is not the only bias — even correct-Tag anchors carry
+significant ACK-TX-latency bias. Stage 3 v5 (midpoint estimator
+with `rx_frame_sequence` and `anchor_tx_us`) is now urgent: it
+fixes BOTH the cross-contamination problem (via rx_frame_sequence
+ring lookup) AND the ACK-TX-latency problem (via anchor_tx_us
+direct TX-side timestamp). Stage 2 should stay in place as a
+correctness sanity check; Stage 3 builds on top.
+
 ## Requirements reality check
 
 `docs/rf-sync-requirements.md` (draft v0.1, 2026-03-29) lists
