@@ -3,7 +3,7 @@
 > How HelixDrift keeps multiple body-worn Tags aligned to a single Hub
 > clock, enabling coherent multi-node mocap reconstruction.
 >
-> **Prerequisites**: Read [RF Protocol Reference](RF_PROTOCOL_REFERENCE.md)
+> **Prerequisites**: Read [RF Protocol Reference](RF_PROTOCOL.md)
 > first for packet formats and system topology.
 
 ---
@@ -299,8 +299,9 @@ accuracy during packet loss periods by predicting drift.
 
 ## Related Documents
 
-- [RF Protocol Reference](RF_PROTOCOL_REFERENCE.md) — packet formats,
+- [RF Protocol Reference](RF_PROTOCOL.md) — packet formats,
   ESB config, USB output format
+- [RF](RF.md) — consolidated RF status, history, open questions
 - [RF/Sync Requirements](rf-sync-requirements.md) — latency budget
   derivation and use case analysis
 - [RF/Sync Architecture](rf-sync-architecture.md) — system-level design

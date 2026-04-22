@@ -15,7 +15,7 @@ Per-Tag sync error = frame.sync_us - frame.rx_us
    negative value means Tag thinks it's earlier than the Hub
    actually sees it. Observed systematic bias of ~-15 ms on the
    current wire protocol is a known artefact of ESB ACK-payload
-   TIFS timing; see docs/RF_ROBUSTNESS_REPORT.md.)
+   TIFS timing; see docs/RF.md.)
 
 Usage:
   sync_error_analysis.py <csv> [--bin-us N] [--min-tags-per-bin K]

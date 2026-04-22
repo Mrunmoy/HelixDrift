@@ -4,7 +4,7 @@
 # SWD-programs a Tag with the merged Hub-relay OTA firmware image,
 # then writes the node_id byte into the first word of the
 # settings_storage partition at 0xFE000. See docs/NRF_HUB_RELAY_OTA.md
-# and docs/RF_CLOSEOUT_HANDOFF.md for the full provisioning story.
+# and docs/RF.md for the full provisioning story.
 set -u
 SN="${1:?need jlink serial number}"
 NODE_ID="${2:?need node_id 1..255}"

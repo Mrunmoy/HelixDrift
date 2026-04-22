@@ -68,7 +68,7 @@ struct __packed HelixSyncAnchor {
 	/* v4+: the Hub's view of which Tag's frame triggered this ACK
 	 * payload. With N Tags sharing pipe 0 (one ESB ACK-payload FIFO),
 	 * the anchor built for Tag A may well be delivered to Tag B — see
-	 * docs/RF_SYNC_DECISION_LOG.md Stage 2. Tags MUST filter anchors
+	 * docs/RF.md Stage 2. Tags MUST filter anchors
 	 * where rx_node_id != own node_id out of the sync estimator (OTA
 	 * flags stay in effect — they're already filtered by
 	 * ota_target_node_id). 0xFF = unset/broadcast (accept). */
@@ -77,7 +77,7 @@ struct __packed HelixSyncAnchor {
 	 * build this anchor. Tag uses it to look up its own TX timestamp
 	 * in a small ring buffer — necessary because NCS ESB doesn't tell
 	 * the Tag which of its retries got ACK'd, so "most recent TX" is
-	 * ambiguous by several retry slots. See docs/RF_STAGE3_DESIGN.md. */
+	 * ambiguous by several retry slots. See docs/RF.md. */
 	uint8_t rx_frame_sequence;
 	/* v5+: Hub's local clock reading just before esb_write_payload.
 	 * Combined with rx_frame_sequence → tx_local_us lookup on Tag side
@@ -199,7 +199,7 @@ static int32_t estimated_offset_us;
 /* Set from ESB ISR when an OTA trigger arrives; main loop reboots. */
 static atomic_t ota_reboot_pending = ATOMIC_INIT(0);
 
-/* ── RF-sync instrumentation (Stage 1 per docs/RF_SYNC_DECISION_LOG.md) ──
+/* ── RF-sync instrumentation (Stage 1 per docs/RF.md) ──
  * Tag side. Histograms stay in RAM and get emitted in the SUMMARY line.
  * last_tx_local_us: local_us at the moment we queued the most recent
  *   ESB TX frame. Pair it against anchor RX time to see how quickly
@@ -225,7 +225,7 @@ static volatile uint32_t anchors_wrong_rx;
  * the Tag-local TX timestamp for the midpoint estimator. Ring depth
  * 16 is well past any realistic Hub ACK-TX latency at 50 Hz (16 slots
  * × 20 ms per TX = 320 ms of history, vs. Stage 1' p99 ACK TX latency
- * of ~60 ms). See docs/RF_STAGE3_DESIGN.md. */
+ * of ~60 ms). See docs/RF.md. */
 #define HELIX_TX_RING_SIZE   16u
 #define HELIX_TX_RING_MASK   (HELIX_TX_RING_SIZE - 1u)
 struct tx_stamp {
@@ -258,7 +258,7 @@ static volatile uint8_t ota_trigger_target_node;
 static volatile uint8_t ota_trigger_retries;
 static volatile uint32_t ota_triggers_sent;
 
-/* ── RF-sync instrumentation (Stage 1 per docs/RF_SYNC_DECISION_LOG.md) ──
+/* ── RF-sync instrumentation (Stage 1 per docs/RF.md) ──
  * Hub side. Measures whether Hub's anchor write makes the ~150 µs TIFS
  * window (fast path → anchor rides current frame's ACK, ~µs delay) or
  * misses it (slow path → anchor stays queued in pipe-0 FIFO and rides
@@ -419,7 +419,7 @@ static void report_summary(void)
 	 *   if this climbs, Hub is bursting queues beyond steady-state.
 	 * ack_drop: TX_SUCCESS events with an empty ring (shouldn't happen
 	 *   in principle; if nonzero we have a bookkeeping bug).
-	 * See docs/RF_SYNC_DECISION_LOG.md Stage 1. */
+	 * See docs/RF.md Stage 1. */
 	snprintk(line,
 		 sizeof(line),
 		 "SUMMARY role=central rx=%u anchors=%u tracked=%u usb_lines=%u err=%u hb=%u trigs=%u ack_lat=%u/%u/%u/%u pend_max=%u ack_drop=%u\n",
@@ -438,7 +438,7 @@ static void report_summary(void)
 	/* anchor_age buckets: how stale the most-recent anchor is vs. Tag's
 	 * most-recent TX (proxy for Hub's ACK-path fast/slow distribution).
 	 * offset_step buckets: |Δoffset| on each anchor (detects stale/wrong-
-	 * Tag anchor corruption). See docs/RF_SYNC_DECISION_LOG.md */
+	 * Tag anchor corruption). See docs/RF.md */
 	snprintk(line,
 		 sizeof(line),
 		 "SUMMARY role=node id=%u tx_ok=%u tx_fail=%u anchors=%u wrong_rx=%u "
@@ -607,7 +607,7 @@ static void central_handle_frame(const struct esb_payload *payload)
 	memcpy(ack.data, &anchor, sizeof(anchor));
 	/* Push this anchor's queue time onto the FIFO ring so the matching
 	 * ESB_EVENT_TX_SUCCESS can compute a per-anchor latency. See
-	 * docs/RF_SYNC_DECISION_LOG.md Stage 1 instrumentation. */
+	 * docs/RF.md Stage 1 instrumentation. */
 	{
 		const uint32_t head = anchor_queue_ring_head;
 		anchor_queue_ts_ring[head & HELIX_ANCHOR_QUEUE_MASK] = rx_timestamp_us;
@@ -737,7 +737,7 @@ static void node_handle_anchor(const struct esb_payload *payload)
 		atomic_set(&ota_reboot_pending, 1);
 	}
 
-	/* Stage 1 instrumentation (docs/RF_SYNC_DECISION_LOG.md):
+	/* Stage 1 instrumentation (docs/RF.md):
 	 * Record how stale the anchor is vs. our most recent TX. A tight
 	 * distribution near 0 = Hub hits the TIFS fast path. A long tail
 	 * at 20 ms+ = Hub is mostly on the slow path (anchor rode a later

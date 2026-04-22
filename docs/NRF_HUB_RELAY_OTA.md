@@ -26,7 +26,7 @@ Repo files:
 - Hub-relay module: `zephyr_apps/nrf52840-mocap-bridge/src/ota_hub_relay.cpp`
 - PC uploader: `tools/nrf/hub_ota_upload.py`
 - Provisioning helper (SWD): `tools/nrf/flash_tag.sh`
-  (upstreamed from scratch in commit addressing `docs/RF_CLOSEOUT_HANDOFF.md`;
+  (upstreamed from scratch in commit addressing `docs/RF.md`;
   accepts env-var overrides for J-Link serial, artifact dir, merged-hex path)
 
 ## End-to-end flow
