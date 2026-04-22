@@ -93,13 +93,23 @@ TEST_F(OtaManagerTest, BeginFailsWhenEraseFails) {
     EXPECT_EQ(mgr.state(), OtaState::IDLE);
 }
 
-TEST_F(OtaManagerTest, BeginFailsIfAlreadyReceiving) {
-    expectSuccessfulBegin();
-    ASSERT_EQ(mgr.begin(1024, 0), OtaStatus::OK);
+TEST_F(OtaManagerTest, BeginWhileReceivingImplicitlyAbortsAndRestarts) {
+    // OtaManager::begin() deliberately allows re-init from RECEIVING —
+    // a new BEGIN is an implicit ABORT of any in-flight session. This
+    // protects against stale state from a dropped BLE connection or a
+    // failed upload (commit 4c53235, "fix PM vs DTS partition mismatch").
+    // The second begin() therefore requires a second eraseSlot() call.
+    EXPECT_CALL(backend, slotSize()).WillRepeatedly(Return(kSlotSize));
+    EXPECT_CALL(backend, eraseSlot()).Times(2).WillRepeatedly(Return(true));
 
-    // Second begin() without abort() is rejected
-    EXPECT_EQ(mgr.begin(1024, 0), OtaStatus::ERROR_INVALID_STATE);
+    ASSERT_EQ(mgr.begin(1024, 0), OtaStatus::OK);
+    ASSERT_EQ(mgr.state(), OtaState::RECEIVING);
+
+    // Second begin() without an explicit abort() succeeds AND clears any
+    // partial in-flight state (bytesReceived() resets to 0).
+    EXPECT_EQ(mgr.begin(2048, 0), OtaStatus::OK);
     EXPECT_EQ(mgr.state(), OtaState::RECEIVING);
+    EXPECT_EQ(mgr.bytesReceived(), 0u);
 }
 
 // ---------------------------------------------------------------------------

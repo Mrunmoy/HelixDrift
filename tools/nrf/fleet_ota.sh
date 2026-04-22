@@ -79,16 +79,19 @@ for (( R=0; R<ROUNDS; R++ )); do
     sed -i "s/^CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION=.*/CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION=\"${VER}.0.0+0\"/" $NODE_CONF
     log "Building firmware v$VER..."
     BUILD_START=$(date +%s)
-    # Nuke the .signed.bin first so a FAILED build can't leave us deploying a
-    # stale image from the previous successful build (bit us on v19 when a
-    # brace error in main.cpp let fleet_ota silently flash v18 to all 10 Tags
-    # — see commit c7697da for the story).
-    rm -f "$BUILD_DIR/nrf52840-mocap-bridge/zephyr/zephyr.signed.bin"
-    rm -f "$BUILD_DIR/merged.hex"
+    # Move any prior artifact aside BEFORE starting the new build. Keeps a
+    # ".last-good" copy for operator recovery, while ensuring a mid-build
+    # Ctrl+C or compile failure can't silently ship stale bits (bit us on
+    # v19 — see commit c7697da). Copilot code review round 7.
+    ARTIFACT_SIGNED="$BUILD_DIR/nrf52840-mocap-bridge/zephyr/zephyr.signed.bin"
+    ARTIFACT_MERGED="$BUILD_DIR/merged.hex"
+    [ -f "$ARTIFACT_SIGNED" ] && mv "$ARTIFACT_SIGNED" "$ARTIFACT_SIGNED.last-good"
+    [ -f "$ARTIFACT_MERGED" ] && mv "$ARTIFACT_MERGED" "$ARTIFACT_MERGED.last-good"
     nix develop --command bash -lc "CCACHE_DISABLE=1 tools/nrf/build_mocap_bridge.sh node promicro_nrf52840/nrf52840 1" >> "$LOG" 2>&1
     BUILD_RC=$?
-    if [ $BUILD_RC -ne 0 ] || [ ! -f "$BUILD_DIR/nrf52840-mocap-bridge/zephyr/zephyr.signed.bin" ]; then
+    if [ $BUILD_RC -ne 0 ] || [ ! -f "$ARTIFACT_SIGNED" ]; then
         log "!! BUILD FAILED for v$VER (exit $BUILD_RC) — aborting round"
+        log "   previous artifact preserved at $ARTIFACT_SIGNED.last-good"
         continue
     fi
     log "Build done in $(( $(date +%s) - BUILD_START ))s"

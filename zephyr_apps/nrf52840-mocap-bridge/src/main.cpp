@@ -258,7 +258,13 @@ static volatile uint32_t seq_lookup_miss;
  * the v5 midpoint estimator (separate from the old offset_step). */
 static volatile uint32_t midpoint_step_bucket[4];
 static volatile uint32_t midpoint_offset_valid;
-static int32_t midpoint_offset_us;
+/* volatile because this is published from the ESB ISR (node_handle_anchor)
+ * and read from main thread in node_fill_frame() + maybe_send_frame().
+ * On Cortex-M4 the 32-bit load/store is naturally atomic, but the
+ * `volatile` qualifier pins the compiler-level contract. Always publish
+ * `midpoint_offset_us` first, then `midpoint_offset_valid` (readers check
+ * valid first, then the offset). */
+static volatile int32_t midpoint_offset_us;
 /* Retry-count distribution on ACCEPTED anchors (those that pass the
  * v4 rx_node_id gate). Buckets: 1, 2-3, 4-6, 7+. Answers "did the
  * Hub ACK on the first attempt or did we retry?"
@@ -672,10 +678,14 @@ static void central_handle_frame(const struct esb_payload *payload)
 	};
 	ack.length = sizeof(anchor);
 	memcpy(ack.data, &anchor, sizeof(anchor));
-	/* Push this anchor's queue time onto the FIFO ring so the matching
-	 * ESB_EVENT_TX_SUCCESS can compute a per-anchor latency. See
-	 * docs/RF.md Stage 1 instrumentation. */
-	{
+	/* Only push the queue timestamp AFTER esb_write_payload() succeeds.
+	 * With CONFIG_ESB_TX_FIFO_SIZE=1 on the Hub (the FIFO=1 fix from
+	 * docs/RF_FIFO1_DISCOVERY.md), enqueue failure becomes expected
+	 * when a previous anchor is still in-flight. Pushing a phantom
+	 * queue-time in that case would leave stale entries that the next
+	 * TX_SUCCESS pops, corrupting ack_lat / pend_max telemetry.
+	 * (Codex + Copilot code review round 7, 2026-04-23.) */
+	if (esb_write_payload(&ack) == 0) {
 		const uint32_t head = anchor_queue_ring_head;
 		anchor_queue_ts_ring[head & HELIX_ANCHOR_QUEUE_MASK] = rx_timestamp_us;
 		anchor_queue_ring_head = head + 1u;
@@ -683,8 +693,6 @@ static void central_handle_frame(const struct esb_payload *payload)
 		if (pending > anchor_pending_max) {
 			anchor_pending_max = pending;
 		}
-	}
-	if (esb_write_payload(&ack) == 0) {
 		g_helixMocapStatus.anchors_sent++;
 		if (flooding) {
 			ota_triggers_sent++;
@@ -903,7 +911,12 @@ static void node_handle_anchor(const struct esb_payload *payload)
 				 * — meaning Stage 3.5 won't help. */
 				mid_step_by_retry[r_bucket][m_bucket]++;
 			}
+			/* Publish offset BEFORE valid flag so a main-thread reader
+			 * either sees "not valid" (uses v3 fallback) or a fully
+			 * populated midpoint offset. __DMB() ensures compiler +
+			 * hardware don't reorder. */
 			midpoint_offset_us = new_midpoint;
+			__DMB();
 			midpoint_offset_valid = 1u;
 
 #if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
@@ -1101,6 +1114,15 @@ static void maybe_send_frame(void)
 	}
 
 #if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
+	/* Compile-time invariant: with 10 Tags sharing pipe 0, the fleet
+	 * must fit inside one cycle. CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES
+	 * is the Hub-side limit; we use it as the authoritative Tag count.
+	 * If the user misconfigures, the build fails rather than producing
+	 * runtime slot overlaps. (Codex code review round 7.) */
+	static_assert(CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES *
+	              CONFIG_HELIX_STAGE4_SLOT_US
+	              <= CONFIG_HELIX_STAGE4_CYCLE_US,
+	              "Stage 4: N_Tags * SLOT_US must fit in one CYCLE_US");
 	/* Stage 4 Path X1: if we're LOCKED, align TX to our TDMA slot.
 	 * Hub-time "now" = Tag local_us - midpoint_offset_us. Slot start
 	 * = (node_id - 1) × SLOT_US in Hub-time. ALWAYS wait for the
@@ -1108,7 +1130,9 @@ static void maybe_send_frame(void)
 	 * 20 ms cadence equals the cycle period, so if we land just past
 	 * our slot once we'd skip forever. Always sleep forward 0..CYCLE
 	 * µs and TX at the slot instant. */
-	if (stage4_state_val == STAGE4_LOCKED) {
+	if (stage4_state_val == STAGE4_LOCKED &&
+	    g_node_id >= 1u &&
+	    g_node_id <= CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES) {
 		const uint32_t now_tag = now_us();
 		const uint32_t now_hub = now_tag - (uint32_t)midpoint_offset_us;
 		const uint32_t cycle_phase = now_hub % (uint32_t)CONFIG_HELIX_STAGE4_CYCLE_US;

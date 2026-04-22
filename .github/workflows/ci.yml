@@ -24,6 +24,30 @@ jobs:
       - name: Enable Nix cache
         uses: DeterminateSystems/magic-nix-cache-action@main
 
+      - name: Verify submodule SHAs are reachable on remote
+        # Prevents the "stale submodule pointer" class of CI breakage — when
+        # a superproject commit references a submodule commit that was only
+        # local, the standard `git submodule update --init` fails obscurely
+        # with "not our ref". Do an explicit ls-remote check first so the
+        # error message is clear.
+        run: |
+          set -euo pipefail
+          while read -r mode sha kind path; do
+            [ "$kind" = "commit" ] || continue
+            url=$(git config -f .gitmodules "submodule.$path.url")
+            echo "Checking $path @ $sha on $url..."
+            if ! git ls-remote "$url" "$sha" 2>/dev/null | grep -q "$sha" &&
+               ! git ls-remote "$url" | awk '{print $1}' | grep -q "^$sha$"; then
+              # Fetch all branches and grep the returned SHAs; if that doesn't
+              # find it either, bail with a helpful message.
+              if ! git ls-remote --tags --heads "$url" | awk '{print $1}' | grep -q "^$sha$"; then
+                echo "::error::Submodule $path references commit $sha which is not reachable on $url"
+                echo "::error::Push the missing commits to the submodule remote before merging."
+                exit 1
+              fi
+            fi
+          done < <(git ls-tree HEAD external/SensorFusion)
+
       - name: Configure host build
         run: |
           git submodule update --init external/SensorFusion
@@ -50,6 +74,30 @@ jobs:
 
       - name: Enable Nix cache
         uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Verify submodule SHAs are reachable on remote
+        # Prevents the "stale submodule pointer" class of CI breakage — when
+        # a superproject commit references a submodule commit that was only
+        # local, the standard `git submodule update --init` fails obscurely
+        # with "not our ref". Do an explicit ls-remote check first so the
+        # error message is clear.
+        run: |
+          set -euo pipefail
+          while read -r mode sha kind path; do
+            [ "$kind" = "commit" ] || continue
+            url=$(git config -f .gitmodules "submodule.$path.url")
+            echo "Checking $path @ $sha on $url..."
+            if ! git ls-remote "$url" "$sha" 2>/dev/null | grep -q "$sha" &&
+               ! git ls-remote "$url" | awk '{print $1}' | grep -q "^$sha$"; then
+              # Fetch all branches and grep the returned SHAs; if that doesn't
+              # find it either, bail with a helpful message.
+              if ! git ls-remote --tags --heads "$url" | awk '{print $1}' | grep -q "^$sha$"; then
+                echo "::error::Submodule $path references commit $sha which is not reachable on $url"
+                echo "::error::Push the missing commits to the submodule remote before merging."
+                exit 1
+              fi
+            fi
+          done < <(git ls-tree HEAD external/SensorFusion)
 
       - name: Configure host build
         run: |
