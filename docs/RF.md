@@ -657,18 +657,33 @@ pipe 0 somehow?
 
 ---
 
-## 9. Stage 4 proposal — TDMA scheduled slots
+## 9. Stage 4 — DELETED in v22
 
-**Status: IMPLEMENTED in v19/v20, DEFAULT-DISABLED in v21.** After
-the FIFO=1 discovery (§7.13) delivered sub-ms per-Tag sync without
-Stage 4, the v21 A/B (§7.14) showed Stage 4 costs 28 % throughput
-for no measurable sync gain. Code lives in the tree under
-`CONFIG_HELIX_STAGE4_TDMA_ENABLE` (default `n`).
+**Status: DELETED (commit `0ae662f`).** Both Codex + Copilot
+"team of experts" brainstorms returned **unanimous DELETE**
+after v21 A/B (§7.14) showed Stage 4 adds zero sync value at
+28 % throughput cost once `FIFO=1` (§7.13) was in place.
 
-The original design rationale below still applies if we ever
-need to revive Stage 4 — e.g., if PC fusion demands tighter than
-the current 42.5 ms cross-Tag span p99. See §7.13–§7.16 for the
-history and task #51 for the "delete vs keep" decision.
+Where the Stage 4 artifacts live now:
+- **Design rationale:** `docs/archive/rf/RF_STAGE4_EXPLORATORY.md`
+- **Implementation reference:** git tag
+  `stage4-tdma-path-x1-reference` (commit `c442eb7`, the last
+  state with Stage 4 code active in the tree).
+- **Findings:** `docs/RF_V19_FINDINGS.md`,
+  `docs/RF_V20_FINDINGS.md`, `docs/RF_FIFO1_DISCOVERY.md`.
+- **Brainstorm artefacts:**
+  `docs/reviews/{codex,copilot}_2026-04-23_stage4_fate.md`.
+
+**If future scaling forces us back to TDMA** (>10 Tags on one
+Hub, or PC fusion demands < 5 ms cross-Tag span that FIFO=1
+can't deliver), don't resurrect Path X1. Both reviewers agreed
+the next TDMA design should be:
+- Beacon-based (Hub broadcasts time reference on a separate ESB
+  pipe), not estimator-self-referential.
+- Hardware TX timestamping via PPI + nRF52 TIMER compare, not
+  `now_us()` in an ISR.
+- Explicit acquisition / loss semantics and measured air-slot
+  guarantees.
 
 ### 9.1 Why TDMA
 
