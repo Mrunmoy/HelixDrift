@@ -647,7 +647,15 @@ static void node_fill_frame(struct HelixMocapFrame *frame)
 {
 	const uint8_t sequence = (uint8_t)(g_helixMocapStatus.tx_attempts & 0xFF);
 	const uint32_t local_us = now_us();
-	const uint32_t synced_us = local_us - (uint32_t)estimated_offset_us;
+	/* Stage 3.5: prefer the v5 midpoint offset when it's locked. The
+	 * midpoint estimator cancels the Hub ACK-TX queue-latency bias
+	 * that dominates the old one-way estimator (Stage 3 findings
+	 * showed ~30x reduction in 10-30ms offset_step bucket). Fall
+	 * back to the v3 one-way estimator until we have our first
+	 * midpoint lock — relevant in the first ~second after boot. */
+	const int32_t sync_offset =
+		midpoint_offset_valid ? midpoint_offset_us : estimated_offset_us;
+	const uint32_t synced_us = local_us - (uint32_t)sync_offset;
 
 	frame->type = HELIX_PACKET_MOCAP_FRAME;
 	frame->node_id = g_node_id;
