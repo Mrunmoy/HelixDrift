@@ -2,7 +2,55 @@
 
 Single-page status for anyone picking up the RF sprint. For the full
 debate and measurements, see
-[RF_SYNC_DECISION_LOG.md](RF_SYNC_DECISION_LOG.md).
+[RF_SYNC_DECISION_LOG.md](RF_SYNC_DECISION_LOG.md). For reviewer
+round-by-round feedback see `docs/reviews/` (rounds 1–3 are dialog
+captures, rounds 4–5 are prompts stashed for onward review).
+
+## User-answered questions (2026-04-22)
+
+These are the user's direct answers to the open design questions
+raised during the sprint. Any future agent should treat these as
+binding unless the user explicitly overrides.
+
+| # | Question | User's answer |
+|---|---|---|
+| 1 | v1 motion-profile target — slow mocap (rehab/VR) only, or fast mocap (sports/dance)? | **Both.** Both use cases are on the road-map; sync fix has to cover the fast side too. |
+| 2 | Is PC-side fusion depending on the current wire format? | **Not started yet.** Wire-format changes have zero downstream cost — free to evolve the anchor struct. |
+| 3 | Multi-Hub needed soon? | **No**, not expected in the next 6 months. Task #35 (per-Hub pipe derivation) can stay deferred. |
+| 4 | What does the NCS ESB driver give us for TX-done timestamps? | Investigation task handed to Claude — answered in `RF_SYNC_DECISION_LOG.md`: the event handler only carries `{evt_id, tx_attempts}`; no hardware TX timestamp, `now_us()` inside the handler gives sub-ms jitter. This is why Stage 3's `anchor_tx_us` is a queue-time estimate, not a TX-time one. |
+| 5 | Tag-5 physical identification | Logical mapping: **Tag 5 = HTag-0126**, `node_id=5`. Physical-unit ID left to the user. Not currently blocking. |
+| 6 | Write all findings/investigations/assumptions somewhere an agent can learn from | This doc + `RF_SYNC_DECISION_LOG.md` + `docs/reviews/` collectively satisfy this. Keep extending. |
+
+## Assumptions currently baked in
+
+- **10 Tags, 1 Hub**, all on ESB pipe 0 (shared ACK-payload FIFO
+  is the whole reason Stages 2 and 3 exist).
+- **No per-Tag pipe addresses** — blocked by 8-pipe hardware limit
+  vs. 10-Tag fleet. Revisit if fleet drops to ≤ 8 Tags/Hub or
+  multi-Hub becomes real.
+- **50 Hz per-Tag TX rate** target, 500 Hz aggregate. Current
+  achievable = 428 Hz (87 %).
+- **Retransmit delay is per-node-id** (`600 + 50 · node_id µs`).
+  This creates a small systematic bias clustering (Tags 1-3 are
+  ~2 ms more negative than Tags 4-10 in the v17 long-run) — noted,
+  not yet equalised.
+- **Clock drift is ~1 ppm** (nRF52 HF internal oscillator). At
+  1 Hz anchor-accept rate, drift between updates is < 1 µs.
+- **MCUboot is OVERWRITE_ONLY**. Swap mode is parked (separate
+  project work).
+
+## Reviewer rounds (for context on past decisions)
+
+| Round | Prompt | Reviewers' responses |
+|---|---|---|
+| 1 | RF next-steps design brief (2026-04-21) | `docs/reviews/{copilot,codex}_2026-04-21.md` |
+| 2 | Follow-up on round-1 + Stage 1 implementation | `docs/reviews/{copilot,codex}_2026-04-22_followup.md` |
+| 3 | Stage 1 measurement-bias interpretation | `docs/reviews/{copilot,codex}_2026-04-22_round3.md` |
+| 4 | Stage 2 rejection-ratio surprise (98.6 %) | `docs/reviews/round4_stage2_measurement_prompt_2026-04-22.md` (prompt only — not yet reviewed) |
+| 5 | Stage 3 midpoint results + Stage 4 ask | `docs/reviews/round5_stage3_results_prompt_2026-04-22.md` (prompt only — not yet reviewed) |
+
+Rounds 4 and 5 are **unreviewed** — these were drafted while the
+user was at work and need their onward-forward to Copilot/Codex.
 
 ## What's on the fleet right now
 
