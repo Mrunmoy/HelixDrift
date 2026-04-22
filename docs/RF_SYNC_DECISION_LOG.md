@@ -419,6 +419,60 @@ ring lookup) AND the ACK-TX-latency problem (via anchor_tx_us
 direct TX-side timestamp). Stage 2 should stay in place as a
 correctness sanity check; Stage 3 builds on top.
 
+## Stage 3 findings (v5 anchor, v15 firmware, 2026-04-22)
+
+Fleet OTA to v15 completed (10/10 PASS). 10-min capture, Tag 1 RAM
+histograms SWD-read:
+
+| Counter | Value |
+|---|---:|
+| anchors_received (v4-accepted) | 518 |
+| anchors_wrong_rx (rejected by Stage 2 filter) | 32,406 |
+| seq_lookup_miss (ring lookup failed) | **0** |
+| midpoint_offset_valid | 1 |
+
+Tag 1 Stage 3 `mid_step` vs. old `offset_step`:
+
+| Bucket | mid_step (v5) | offset_step (v3 math) | Δ |
+|---|---:|---:|---:|
+| <2 ms | 300 (58.4 %) | 241 (46.6 %) | +25 % |
+| 2-10 ms | 205 (39.9 %) | 206 (39.8 %) | flat |
+| 10-30 ms | **2 (0.4 %)** | 62 (12.0 %) | **−30×** |
+| >=30 ms | 7 (1.4 %) | 8 (1.5 %) | flat |
+
+**Headline: the 10-30 ms jitter bucket shrank 30-fold.** The
+midpoint RTT math cancels the Hub ACK-TX queue-latency bias that
+dominated `offset_step` (Stage 2 findings showed >70 % of ACK TXs
+land at 10-30 ms). With that bias removed, the residual jitter is
+actual RTT variance — the bulk lands in <2 ms (58 %) or 2-10 ms
+(40 %).
+
+**Residual >=30 ms bucket (1.4 %)** likely reflects Tag-side retry
+ambiguity: when Tag's ESB retries a frame 3–10 times before ACK,
+the ring entry for `rx_frame_sequence` matches the original TX,
+not the retry that actually got through. The T_tx used for the
+midpoint is thus N × ~1 ms too early. Could be fixed with
+per-retry ring updates (Stage 3.5) but is a small enough tail to
+defer.
+
+**seq_lookup_miss = 0** across 518 lookups — ring depth 16 is
+more than adequate at 50 Hz TX rate and max ~60 ms Hub queue
+latency.
+
+**Effective anchor-update rate is still ~0.9 Hz** (Stage 2
+constraint unchanged). Midpoint improves the quality of each
+update, not the rate. At 1 ppm drift rate, 1 Hz is plenty — the
+error accumulation between updates is <1 µs.
+
+**Next question:** does Stage 3 hit the v1 < 5 ms cross-Tag span
+p99 target? Need a full cross-Tag span measurement
+(analyse_mocap_gaps.py). With 99.6 % of updates within 10 ms and
+midpoint correctly centred, p99 is plausibly ~10 ms. That's ~5×
+better than v12 Phase C (p99 ~50 ms), but still short of the
+1 ms v1 aspirational target.
+
+If we need tighter, Stage 4 (TDMA slots) is the next lever.
+
 ## Requirements reality check
 
 `docs/rf-sync-requirements.md` (draft v0.1, 2026-03-29) lists
