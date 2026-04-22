@@ -473,6 +473,54 @@ better than v12 Phase C (p99 ~50 ms), but still short of the
 
 If we need tighter, Stage 4 (TDMA slots) is the next lever.
 
+## Stage 3.5 findings (v16, midpoint wired into frame sync, 2026-04-22)
+
+Fleet OTA to v16 completed (10/10 PASS). 5-min frame capture through
+capture_mocap_bridge_robust.py, analyzed by sync_error_analysis.py:
+
+**7 healthy Tags (excluded: 3, 9, 10):**
+
+| Tag | n frames | mean bias | p50 \|err\| | p90 \|err\| | p99 \|err\| | max \|err\| |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 14683 | -7453 µs | 9.0 ms | 11.0 ms | 15.5 ms | 20.5 ms |
+| 2 | 13784 | -8218 µs | 9.5 ms | 11.0 ms | 13.5 ms | 20.0 ms |
+| 4 | 14099 | -7998 µs | 9.5 ms | 12.0 ms | 17.5 ms | 20.5 ms |
+| 5 | 14409 | -7693 µs | 9.0 ms | 11.5 ms | 17.5 ms | 22.0 ms |
+| 6 | 14204 | -7859 µs | 9.0 ms | 12.0 ms | 18.5 ms | 22.5 ms |
+| 7 | 15127 | -7805 µs | 8.5 ms | 13.0 ms | 19.0 ms | 23.0 ms |
+| 8 | 14239 | -7684 µs | 9.0 ms | 13.5 ms | 19.0 ms | 24.0 ms |
+
+**Fleet mean per-Tag bias: -7816 µs (range -8218 .. -7453 µs)** —
+remarkably consistent, ±0.4 ms across Tags. This shows Stage 3's
+midpoint math is working cleanly — the residual -7.8 ms fleet-wide
+bias is a **systematic offset** (likely propagation + ISR latency
+asymmetry between Tag-TX and Hub-RX paths), easy to subtract at the
+PC fusion layer.
+
+**Cross-Tag instantaneous span (50 ms bins, ≥ 5 Tags per bin):**
+p50 = 19.5 ms, p90 = 35.0 ms, p99 = 46.5 ms, max = 59.5 ms.
+
+Compared to v12 Phase C baseline (p50=19ms, p99=50ms), cross-Tag
+span is marginally better. The per-Tag jitter (still ±15 ms p99)
+is the dominant span contributor — ~40 % of accepted updates land
+in the 2-10 ms mid_step bucket from independent RTT variance.
+
+**Degraded Tags:**
+- Tag 3: |err| p99 = 1.38 **seconds** (~23 min offset). Likely never
+  locked midpoint cleanly on boot.
+- Tag 9: |err| p99 = 2 sec. Similar class of issue.
+- Tag 10: TX rate 2.14 Hz — nearly silent. Hardware/link issue,
+  not a sync issue.
+
+Tags 3/9/10 need per-Tag diagnostic (SWD-read RAM state) — defer
+to follow-up. Fleet-wide sync quality is evaluable from the 7
+healthy Tags.
+
+**Gap to the v1 target (< 1 ms p99 cross-Tag):** still ~46× off at
+p99 with 7-Tag fleet. Stage 4 (TDMA slots) is the architectural
+lever. Alternative: per-Hub pipe address separation (requires <= 8
+Tags and multi-Hub support, both blocked today).
+
 ## Requirements reality check
 
 `docs/rf-sync-requirements.md` (draft v0.1, 2026-03-29) lists
