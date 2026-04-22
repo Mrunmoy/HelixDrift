@@ -118,55 +118,11 @@ config HELIX_OTA_REBOOT_DELAY_MS
 	int "Reboot delay after OTA commit (ms)"
 	default 300
 
-menu "Stage 4 TDMA (Path X1)"
-	depends on HELIX_MOCAP_BRIDGE_ROLE_NODE
-
-config HELIX_STAGE4_TDMA_ENABLE
-	bool "Enable Stage 4 Tag-side TDMA slot scheduling"
-	default n
-	help
-	  When enabled, each Tag aligns its ESB TX to its dedicated TDMA
-	  slot once the Stage 3 midpoint sync estimator has locked.
-	  Before lock, the Tag runs free-running Stage 3.6 mode. See
-	  docs/RF_STAGE4_EXPLORATORY.md for the Path X1 design rationale.
-
-config HELIX_STAGE4_CYCLE_US
-	int "TDMA cycle length (microseconds)"
-	default 20000
-	range 5000 100000
-	depends on HELIX_STAGE4_TDMA_ENABLE
-	help
-	  Total cycle length. Should match SEND_PERIOD_MS × 1000. With 10
-	  slots default, cycle 20000 us gives 2 ms per slot.
-
-config HELIX_STAGE4_SLOT_US
-	int "Per-Tag slot width (microseconds)"
-	default 2000
-	range 500 20000
-	depends on HELIX_STAGE4_TDMA_ENABLE
-	help
-	  Width of each Tag's TX window. Slot start = (node_id - 1) *
-	  SLOT_US within each cycle.
-
-config HELIX_STAGE4_GUARD_US
-	int "Slot guard band (microseconds)"
-	default 400
-	range 0 10000
-	depends on HELIX_STAGE4_TDMA_ENABLE
-	help
-	  Safety margin around the slot start. If Tag arrives within
-	  GUARD_US of its slot, it TXes; otherwise skips this cycle.
-
-config HELIX_STAGE4_LOCK_N
-	int "Consecutive stable midpoints before locking into TDMA"
-	default 5
-	range 1 50
-	depends on HELIX_STAGE4_TDMA_ENABLE
-	help
-	  Number of back-to-back midpoint updates with mid_step <500 us
-	  required before transitioning from Stage 3 free-running to
-	  Stage 4 slot-aligned TX.
-
-endmenu
+# Stage 4 TDMA (Path X1) Kconfig was removed in v22 after the FIFO=1
+# Hub config change (docs/RF_FIFO1_DISCOVERY.md) superseded Stage 4's
+# value proposition. See git tag stage4-tdma-path-x1-reference for
+# the implementation, docs/archive/rf/RF_STAGE4_EXPLORATORY.md for
+# the design rationale, and docs/reviews/*stage4_fate* for the
+# delete decision.
 
 endmenu

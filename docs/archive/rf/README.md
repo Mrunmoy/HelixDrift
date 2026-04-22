@@ -14,5 +14,6 @@ longer the source of truth.
 | `RF_STAGE4_TDMA_DESIGN.md` | `RF.md` §9 (Stage 4 proposal) |
 | `RF_NEXT_STEPS_DESIGN_BRIEF.md` | `RF.md` §8 (open decisions) |
 | `RF_ROBUSTNESS_REPORT.md` | `RF.md` §7.1–§7.4 (Phase A-D summary) |
+| `RF_STAGE4_EXPLORATORY.md` | `RF.md` §7.12 + §9. **Stage 4 code was deleted in v22** after `FIFO=1` superseded it (see `docs/RF_FIFO1_DISCOVERY.md`). Implementation lives at git tag `stage4-tdma-path-x1-reference`. |
 
 Do not edit these archived files. Update `RF.md` instead.
