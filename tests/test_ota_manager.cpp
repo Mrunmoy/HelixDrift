@@ -105,8 +105,18 @@ TEST_F(OtaManagerTest, BeginWhileReceivingImplicitlyAbortsAndRestarts) {
     ASSERT_EQ(mgr.begin(1024, 0), OtaStatus::OK);
     ASSERT_EQ(mgr.state(), OtaState::RECEIVING);
 
-    // Second begin() without an explicit abort() succeeds AND clears any
-    // partial in-flight state (bytesReceived() resets to 0).
+    // Write a partial chunk so we can prove the second begin() CLEARS it,
+    // not just resets the mocked erase count. (Copilot review round 8:
+    // test body needs to actually exercise the "clears partial state"
+    // contract, not just restate it in a comment.)
+    const uint8_t chunk[] = {0xAA, 0xBB, 0xCC, 0xDD};
+    EXPECT_CALL(backend, writeChunk(0, chunk, 4)).WillOnce(Return(true));
+    ASSERT_EQ(mgr.writeChunk(0, chunk, 4), OtaStatus::OK);
+    ASSERT_EQ(mgr.bytesReceived(), 4u);
+
+    // Second begin() without an explicit abort() succeeds AND clears the
+    // partial in-flight state (bytesReceived() resets to 0, next offset
+    // expected = 0).
     EXPECT_EQ(mgr.begin(2048, 0), OtaStatus::OK);
     EXPECT_EQ(mgr.state(), OtaState::RECEIVING);
     EXPECT_EQ(mgr.bytesReceived(), 0u);

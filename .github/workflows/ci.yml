@@ -28,25 +28,34 @@ jobs:
         # Prevents the "stale submodule pointer" class of CI breakage — when
         # a superproject commit references a submodule commit that was only
         # local, the standard `git submodule update --init` fails obscurely
-        # with "not our ref". Do an explicit ls-remote check first so the
-        # error message is clear.
+        # with "not our ref". Do an explicit `git fetch --depth=1 <url> <sha>`
+        # for each submodule so the error is clear and actionable.
+        #
+        # Why not `git ls-remote`: that only enumerates ref tips (branches +
+        # tags). A perfectly valid submodule pointer to a non-tip ancestor
+        # commit would fail ls-remote while `git submodule update` would
+        # succeed. `git fetch <sha>` is the only way to verify the exact
+        # commit is reachable from the remote. (Codex review round 8.)
         run: |
           set -euo pipefail
-          while read -r mode sha kind path; do
-            [ "$kind" = "commit" ] || continue
+          git config --global --add safe.directory '*'
+          fail=0
+          while IFS= read -r path; do
+            [ -n "$path" ] || continue
+            sha=$(git ls-tree HEAD "$path" | awk '{print $3}')
             url=$(git config -f .gitmodules "submodule.$path.url")
             echo "Checking $path @ $sha on $url..."
-            if ! git ls-remote "$url" "$sha" 2>/dev/null | grep -q "$sha" &&
-               ! git ls-remote "$url" | awk '{print $1}' | grep -q "^$sha$"; then
-              # Fetch all branches and grep the returned SHAs; if that doesn't
-              # find it either, bail with a helpful message.
-              if ! git ls-remote --tags --heads "$url" | awk '{print $1}' | grep -q "^$sha$"; then
-                echo "::error::Submodule $path references commit $sha which is not reachable on $url"
-                echo "::error::Push the missing commits to the submodule remote before merging."
-                exit 1
-              fi
+            tmp=$(mktemp -d)
+            (cd "$tmp" && git init -q && \
+              git fetch --depth=1 "$url" "$sha" 2>/dev/null) && ok=1 || ok=0
+            rm -rf "$tmp"
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::Submodule $path references commit $sha which is not reachable on $url"
+              echo "::error::Push the missing commits to the submodule remote before merging."
+              fail=1
             fi
-          done < <(git ls-tree HEAD external/SensorFusion)
+          done < <(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
+          exit $fail
 
       - name: Configure host build
         run: |
@@ -79,25 +88,34 @@ jobs:
         # Prevents the "stale submodule pointer" class of CI breakage — when
         # a superproject commit references a submodule commit that was only
         # local, the standard `git submodule update --init` fails obscurely
-        # with "not our ref". Do an explicit ls-remote check first so the
-        # error message is clear.
+        # with "not our ref". Do an explicit `git fetch --depth=1 <url> <sha>`
+        # for each submodule so the error is clear and actionable.
+        #
+        # Why not `git ls-remote`: that only enumerates ref tips (branches +
+        # tags). A perfectly valid submodule pointer to a non-tip ancestor
+        # commit would fail ls-remote while `git submodule update` would
+        # succeed. `git fetch <sha>` is the only way to verify the exact
+        # commit is reachable from the remote. (Codex review round 8.)
         run: |
           set -euo pipefail
-          while read -r mode sha kind path; do
-            [ "$kind" = "commit" ] || continue
+          git config --global --add safe.directory '*'
+          fail=0
+          while IFS= read -r path; do
+            [ -n "$path" ] || continue
+            sha=$(git ls-tree HEAD "$path" | awk '{print $3}')
             url=$(git config -f .gitmodules "submodule.$path.url")
             echo "Checking $path @ $sha on $url..."
-            if ! git ls-remote "$url" "$sha" 2>/dev/null | grep -q "$sha" &&
-               ! git ls-remote "$url" | awk '{print $1}' | grep -q "^$sha$"; then
-              # Fetch all branches and grep the returned SHAs; if that doesn't
-              # find it either, bail with a helpful message.
-              if ! git ls-remote --tags --heads "$url" | awk '{print $1}' | grep -q "^$sha$"; then
-                echo "::error::Submodule $path references commit $sha which is not reachable on $url"
-                echo "::error::Push the missing commits to the submodule remote before merging."
-                exit 1
-              fi
+            tmp=$(mktemp -d)
+            (cd "$tmp" && git init -q && \
+              git fetch --depth=1 "$url" "$sha" 2>/dev/null) && ok=1 || ok=0
+            rm -rf "$tmp"
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::Submodule $path references commit $sha which is not reachable on $url"
+              echo "::error::Push the missing commits to the submodule remote before merging."
+              fail=1
             fi
-          done < <(git ls-tree HEAD external/SensorFusion)
+          done < <(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
+          exit $fail
 
       - name: Configure host build
         run: |

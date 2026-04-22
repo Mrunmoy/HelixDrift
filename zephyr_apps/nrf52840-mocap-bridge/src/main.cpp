@@ -1123,6 +1123,11 @@ static void maybe_send_frame(void)
 	              CONFIG_HELIX_STAGE4_SLOT_US
 	              <= CONFIG_HELIX_STAGE4_CYCLE_US,
 	              "Stage 4: N_Tags * SLOT_US must fit in one CYCLE_US");
+	/* GUARD_US must be strictly smaller than SLOT_US; otherwise every
+	 * TX falls inside its own guard and slot alignment is meaningless.
+	 * Round-8 reviewer nit from Codex + Copilot. */
+	static_assert(CONFIG_HELIX_STAGE4_GUARD_US < CONFIG_HELIX_STAGE4_SLOT_US,
+	              "Stage 4: GUARD_US must be < SLOT_US");
 	/* Stage 4 Path X1: if we're LOCKED, align TX to our TDMA slot.
 	 * Hub-time "now" = Tag local_us - midpoint_offset_us. Slot start
 	 * = (node_id - 1) × SLOT_US in Hub-time. ALWAYS wait for the
