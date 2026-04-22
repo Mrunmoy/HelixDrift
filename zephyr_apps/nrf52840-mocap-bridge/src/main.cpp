@@ -231,6 +231,12 @@ static volatile uint32_t anchors_wrong_rx;
 struct tx_stamp {
 	uint8_t  sequence;
 	uint8_t  valid;
+	/* Stage 3.x retry instrumentation (v18): total TX attempts the
+	 * ESB driver consumed before ACK. 0 on push; updated on
+	 * TX_SUCCESS from esb_evt.tx_attempts. Tag has one frame in
+	 * flight at a time (tx_ready), so the "just-ACK'd" frame is
+	 * always the one most recently pushed into pending_tx_idx. */
+	uint8_t  retry_count;
 	uint32_t local_us;
 };
 static volatile struct tx_stamp tx_ring[HELIX_TX_RING_SIZE];
@@ -239,6 +245,11 @@ static volatile struct tx_stamp tx_ring[HELIX_TX_RING_SIZE];
  * node_handle_anchor (ESB ISR) — single reader, single writer,
  * no locking needed on nRF52 single-core. */
 static volatile uint32_t tx_ring_head;
+/* Ring slot of the most recent TX waiting on TX_SUCCESS / TX_FAILED.
+ * Updated by maybe_send_frame; read by event_handler to back-fill
+ * retry_count when the driver reports how many attempts it used. */
+static volatile uint32_t pending_tx_idx;
+static volatile uint8_t  pending_tx_valid;
 /* Count of v5 anchors whose echoed sequence wasn't in the ring —
  * either too old (ring wrapped past it) or Hub echoed garbage.
  * Should be near-zero in steady state. */
@@ -248,6 +259,16 @@ static volatile uint32_t seq_lookup_miss;
 static volatile uint32_t midpoint_step_bucket[4];
 static volatile uint32_t midpoint_offset_valid;
 static int32_t midpoint_offset_us;
+/* Retry-count distribution on ACCEPTED anchors (those that pass the
+ * v4 rx_node_id gate). Buckets: 1, 2-3, 4-6, 7+. Answers "did the
+ * Hub ACK on the first attempt or did we retry?"
+ * And mid_step_by_retry[R][B] = count of accepted anchors where the
+ * retry bucket was R and the midpoint-step bucket was B. Answers
+ * "does the >=30ms residual tail correlate with high retry counts?"
+ * (Round-6 reviewer consensus: prove or refute the retry-ambiguity
+ * hypothesis with data before landing Stage 3.5.) */
+static volatile uint32_t retry_count_bucket[4];
+static volatile uint32_t mid_step_by_retry[4][4];
 #endif
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
 static struct NodeTrack tracked_nodes[CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES];
@@ -444,7 +465,8 @@ static void report_summary(void)
 		 "SUMMARY role=node id=%u tx_ok=%u tx_fail=%u anchors=%u wrong_rx=%u "
 		 "seq_miss=%u offset_us=%d mid_us=%d err=%u hb=%u "
 		 "anchor_age=%u/%u/%u/%u offset_step=%u/%u/%u/%u "
-		 "mid_step=%u/%u/%u/%u\n",
+		 "mid_step=%u/%u/%u/%u "
+		 "retry=%u/%u/%u/%u\n",
 		 g_node_id,
 		 g_helixMocapStatus.tx_success,
 		 g_helixMocapStatus.tx_failed,
@@ -460,7 +482,9 @@ static void report_summary(void)
 		 offset_step_bucket[0], offset_step_bucket[1],
 		 offset_step_bucket[2], offset_step_bucket[3],
 		 midpoint_step_bucket[0], midpoint_step_bucket[1],
-		 midpoint_step_bucket[2], midpoint_step_bucket[3]);
+		 midpoint_step_bucket[2], midpoint_step_bucket[3],
+		 retry_count_bucket[0], retry_count_bucket[1],
+		 retry_count_bucket[2], retry_count_bucket[3]);
 #endif
 
 	host_write(line);
@@ -777,16 +801,19 @@ static void node_handle_anchor(const struct esb_payload *payload)
 		 * single-writer (maybe_send_frame), consumer is ESB ISR — a
 		 * new TX could happen mid-walk, but we just might miss the
 		 * newest entry which wouldn't have been ours anyway. */
+		uint8_t matched_retry_count = 0u;
 		const uint32_t head_snap = tx_ring_head;
 		for (uint32_t i = 0u; i < HELIX_TX_RING_SIZE; i++) {
 			const uint32_t idx = (head_snap - 1u - i) & HELIX_TX_RING_MASK;
 			const struct tx_stamp slot = {
-				.sequence = tx_ring[idx].sequence,
-				.valid    = tx_ring[idx].valid,
-				.local_us = tx_ring[idx].local_us,
+				.sequence    = tx_ring[idx].sequence,
+				.valid       = tx_ring[idx].valid,
+				.retry_count = tx_ring[idx].retry_count,
+				.local_us    = tx_ring[idx].local_us,
 			};
 			if (slot.valid && slot.sequence == want_seq) {
 				tx_us = slot.local_us;
+				matched_retry_count = slot.retry_count;
 				found = true;
 				break;
 			}
@@ -804,10 +831,25 @@ static void node_handle_anchor(const struct esb_payload *payload)
 			                        ((anchor->anchor_tx_us -
 			                          anchor->central_timestamp_us) / 2u);
 			const int32_t new_midpoint = (int32_t)(tag_mid - hub_mid);
+			/* Bucket the retry-count of the TX that round-tripped
+			 * through this anchor. Buckets: 1, 2-3, 4-6, 7+. */
+			uint32_t r_bucket;
+			if (matched_retry_count <= 1u)       r_bucket = 0u;
+			else if (matched_retry_count <= 3u)  r_bucket = 1u;
+			else if (matched_retry_count <= 6u)  r_bucket = 2u;
+			else                                 r_bucket = 3u;
+			retry_count_bucket[r_bucket]++;
 			if (midpoint_offset_valid) {
 				const int64_t mdiff = (int64_t)new_midpoint - (int64_t)midpoint_offset_us;
 				const uint32_t mdiff_abs = (uint32_t)((mdiff < 0) ? -mdiff : mdiff);
-				(void)histo_bucket_us(mdiff_abs, midpoint_step_bucket);
+				const uint32_t m_bucket = histo_bucket_us(mdiff_abs, midpoint_step_bucket);
+				/* 2D histogram — joint distribution of retry_count and
+				 * mid_step. If retry-ambiguity is driving the >=30ms
+				 * tail, mid_step_by_retry[3][3] (7+ retries × >=30ms)
+				 * will dominate mid_step_by_retry[0][3] (1 retry ×
+				 * >=30ms). If not, mid_step is independent of retries
+				 * — meaning Stage 3.5 won't help. */
+				mid_step_by_retry[r_bucket][m_bucket]++;
 			}
 			midpoint_offset_us = new_midpoint;
 			midpoint_offset_valid = 1u;
@@ -863,6 +905,14 @@ static void event_handler(struct esb_evt const *event)
 		}
 #endif
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
+		/* Tag side — the ACK just came back. Back-fill the retry_count
+		 * into the tx_ring entry that matched this TX so the matching
+		 * anchor (which we may have already or may be about to handle)
+		 * can be bucketed by retry count. See mid_step_by_retry. */
+		if (pending_tx_valid) {
+			tx_ring[pending_tx_idx].retry_count = event->tx_attempts;
+			pending_tx_valid = 0u;
+		}
 		atomic_set(&tx_ready, 1);
 #endif
 		break;
@@ -870,6 +920,13 @@ static void event_handler(struct esb_evt const *event)
 		g_helixMocapStatus.tx_failed++;
 		(void)esb_flush_tx();
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_NODE)
+		/* Same logic as TX_SUCCESS — but TX_FAILED means we exhausted
+		 * retries without an ACK, so the retry_count goes to max.
+		 * Anchor will never arrive for this sequence; clear pending. */
+		if (pending_tx_valid) {
+			tx_ring[pending_tx_idx].retry_count = event->tx_attempts;
+			pending_tx_valid = 0u;
+		}
 		atomic_set(&tx_ready, 1);
 #endif
 		break;
@@ -982,12 +1039,18 @@ static void maybe_send_frame(void)
 	const uint32_t tx_us = now_us();
 	const uint32_t head_pre = tx_ring_head;
 	const uint32_t idx = head_pre & HELIX_TX_RING_MASK;
-	tx_ring[idx].sequence = frame.sequence;
-	tx_ring[idx].local_us = tx_us;
+	tx_ring[idx].sequence    = frame.sequence;
+	tx_ring[idx].local_us    = tx_us;
+	tx_ring[idx].retry_count = 0u;  /* filled in from TX_SUCCESS */
 	__DMB(); /* ensure sequence/local_us are visible before valid=1 */
 	tx_ring[idx].valid    = 1u;
 	tx_ring_head = head_pre + 1u;
 	last_tx_local_us = tx_us;
+	/* Record the in-flight ring slot so TX_SUCCESS can back-fill the
+	 * retry_count (esb_evt.tx_attempts). Only one frame in flight at
+	 * a time (tx_ready atomic), so we just remember the most recent. */
+	pending_tx_idx = idx;
+	pending_tx_valid = 1u;
 
 	err = esb_write_payload(&tx_payload);
 	if (err) {
@@ -999,6 +1062,7 @@ static void maybe_send_frame(void)
 		 * the same sequence byte (seq wraps every 256). */
 		tx_ring[idx].valid = 0u;
 		tx_ring_head = head_pre;
+		pending_tx_valid = 0u;
 	}
 }
 #endif
