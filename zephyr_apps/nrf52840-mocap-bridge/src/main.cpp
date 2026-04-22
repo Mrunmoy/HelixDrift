@@ -1103,42 +1103,31 @@ static void maybe_send_frame(void)
 #if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
 	/* Stage 4 Path X1: if we're LOCKED, align TX to our TDMA slot.
 	 * Hub-time "now" = Tag local_us - midpoint_offset_us. Slot start
-	 * = (node_id - 1) × SLOT_US. Compute how long to wait; skip if
-	 * the slot is too far away (> half a cycle). */
+	 * = (node_id - 1) × SLOT_US in Hub-time. ALWAYS wait for the
+	 * next slot — NEVER skip. Skipping is a trap: the main loop's
+	 * 20 ms cadence equals the cycle period, so if we land just past
+	 * our slot once we'd skip forever. Always sleep forward 0..CYCLE
+	 * µs and TX at the slot instant. */
 	if (stage4_state_val == STAGE4_LOCKED) {
 		const uint32_t now_tag = now_us();
 		const uint32_t now_hub = now_tag - (uint32_t)midpoint_offset_us;
 		const uint32_t cycle_phase = now_hub % (uint32_t)CONFIG_HELIX_STAGE4_CYCLE_US;
 		const uint32_t my_slot_start =
 			(uint32_t)(g_node_id - 1u) * (uint32_t)CONFIG_HELIX_STAGE4_SLOT_US;
+		/* Current-cycle delay: if we're before slot, delta > 0; if
+		 * past the slot end, wrap to next cycle's slot. */
 		uint32_t delay_us;
-		if (cycle_phase <= my_slot_start) {
-			delay_us = my_slot_start - cycle_phase;
+		if (cycle_phase <= my_slot_start + (uint32_t)CONFIG_HELIX_STAGE4_GUARD_US) {
+			delay_us = (my_slot_start > cycle_phase)
+				? (my_slot_start - cycle_phase) : 0u;
 		} else {
 			delay_us = (uint32_t)CONFIG_HELIX_STAGE4_CYCLE_US
 			         - cycle_phase + my_slot_start;
 		}
-		/* If we're within GUARD of slot start OR already slightly past,
-		 * TX immediately. If > SLOT_US into cycle, skip (don't TX
-		 * outside our slot). If further away, wait for the right moment. */
-		if (delay_us <= (uint32_t)CONFIG_HELIX_STAGE4_GUARD_US) {
-			stage4_tx_in_slot++;
-			/* proceed to TX */
-		} else if (delay_us >= (uint32_t)CONFIG_HELIX_STAGE4_CYCLE_US
-		           - (uint32_t)CONFIG_HELIX_STAGE4_GUARD_US) {
-			/* just past slot start due to small negative offset —
-			 * also treat as "in slot". */
-			stage4_tx_in_slot++;
-		} else if (delay_us <= (uint32_t)CONFIG_HELIX_STAGE4_SLOT_US) {
-			/* short wait, still within one slot width. k_usleep. */
+		if (delay_us > 0u) {
 			k_usleep(delay_us);
-			stage4_tx_in_slot++;
-		} else {
-			/* too far — skip this iteration, main loop will retry. */
-			stage4_tx_skipped++;
-			atomic_set(&tx_ready, 1);
-			return;
 		}
+		stage4_tx_in_slot++;
 	}
 #endif
 
