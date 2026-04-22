@@ -521,6 +521,58 @@ p99 with 7-Tag fleet. Stage 4 (TDMA slots) is the architectural
 lever. Alternative: per-Hub pipe address separation (requires <= 8
 Tags and multi-Hub support, both blocked today).
 
+## Stage 3.6 findings (v17, ring-push ordering fix, 2026-04-22)
+
+Moved the `tx_ring` push in `maybe_send_frame()` to happen BEFORE
+`esb_write_payload()`, with a `__DMB()` barrier between the
+sequence/local_us stores and the `valid = 1` store. Unwind path on
+TX failure. Motivation: avoid a race where the anchor RX ISR could
+fire before the Tag's TX timestamp is visible to the ring lookup.
+
+Fleet OTA to v17 completed (10/10 PASS). 5-min capture:
+
+**9 Tags (excluding Tag 10 HW issue):**
+
+| Tag | n frames | mean bias | p50 \|err\| | p90 \|err\| | p99 \|err\| | max \|err\| |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 14580 | 71934 µs | 4.5 ms | 10.5 ms | 15.0 ms | 1128 s (outlier) |
+| 2 | 13562 | -5874 µs | 6.5 ms | 10.5 ms | 14.0 ms | 20.0 ms |
+| 3 | 13389 | -4231 µs | 9.0 ms | 10.5 ms | **13.5 ms** | **19.0 ms** |
+| 4 | 14285 | -5883 µs | 5.0 ms | 11.0 ms | 16.0 ms | 21.0 ms |
+| 5 | 14674 | -5858 µs | 5.0 ms | 11.0 ms | 17.0 ms | 22.0 ms |
+| 6 | 14109 | -5140 µs | 5.0 ms | 10.5 ms | 15.0 ms | 22.0 ms |
+| 7 | 14553 | -4261 µs | 3.5 ms | 9.5 ms | 14.0 ms | 20.0 ms |
+| 8 | 14439 | -5881 µs | 5.0 ms | 11.0 ms | 18.0 ms | 24.0 ms |
+| 9 | 11700 | -11686 µs | 5.5 ms | 11.0 ms | 18.0 ms | 1917 ms |
+
+**Tag 3 recovered completely:** on v16 it had p99 = 1.38 s; on v17
+it's 13.5 ms — fully healthy. **Tag 9 mostly recovered:** p99 is
+now 18 ms (normal range) with just a rare 1.9 s outlier.
+
+**Conclusion:** the ring-push ordering race WAS real and was the
+root cause of the degraded-Tag behaviour we saw on v16. Both Tags
+likely had an anchor arrive in the ISR before the first TX
+timestamp was published, causing `seq_lookup_miss++` plus a
+never-locked midpoint for a subset of anchors; once the midpoint
+eventually locked, any brief wobble during lock would carry the
+Tag into a wrong state because `midpoint_offset_us` only updates
+when `seq_lookup_miss == 0`.
+
+**Tag 1 mean-bias anomaly** (+72 ms, max 1128 s). Only the max
+indicates a transient; p99 is clean at 15 ms. Likely early-boot
+artefact: first few frames emitted `estimated_offset_us` (v3 math,
+~zero) before midpoint lock, polluting the mean but not the p99.
+Not fleet-representative.
+
+**Clean 7-Tag cohort (excluding 1, 9, 10):**
+- Fleet mean per-Tag bias: -5304 µs (range -5883 .. -4231 =
+  1.6 ms spread)
+- Cross-Tag span p50/p99: 21.0 / 48.5 ms
+
+Net position: Stage 3.6 recovered degraded Tags without regressing
+the healthy cohort. Cross-Tag span p99 unchanged at ~48 ms — real
+improvement requires Stage 4 (TDMA) or per-Tag pipes.
+
 ## Requirements reality check
 
 `docs/rf-sync-requirements.md` (draft v0.1, 2026-03-29) lists

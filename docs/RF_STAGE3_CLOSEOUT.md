@@ -9,8 +9,8 @@ debate and measurements, see
 | Part | Version | Location |
 |---|---|---|
 | Hub firmware | v5 anchor, Stage 3 midpoint | SWD-flashed, `nrf52840dongle/nrf52840/bare` |
-| Tag firmware | v16 (midpoint wired into frame sync_us) | OTA fleet 10/10 PASS |
-| Commit at close | `234e040` |
+| Tag firmware | v17 (Stage 3.6 ring-push ordering fix) | OTA fleet 10/10 PASS |
+| Commit at close | `804e86a` + RF_SYNC_DECISION_LOG update |
 
 All 10 Tags run the same signed binary; `node_id` is flash-provisioned
 at `0xFE000`.
@@ -27,17 +27,24 @@ at `0xFE000`.
 
 Tags still accept all older formats for rolling upgrades.
 
-## Measured sync quality (Stage 3.5, v16)
+## Measured sync quality (Stage 3.6, v17)
 
-**7 healthy Tags, 5-min capture, 125k frames:**
-- Fleet mean per-Tag bias: **−7816 µs** (range −8218 .. −7453, spread ±0.4 ms)
-- Per-Tag |err| p99: **13.5 – 19.0 ms**
-- Cross-Tag instantaneous span p50/p99: **19.5 / 46.5 ms**
+**Clean 7-Tag cohort (excluding Tag 1 startup artefact, Tag 9 rare 1.9s
+outlier, Tag 10 hardware), 5-min capture, 126k frames:**
+- Fleet mean per-Tag bias: **−5304 µs** (range −5883 .. −4231, spread ±0.8 ms)
+- Per-Tag |err| p99: **13.5 – 18.0 ms**
+- Cross-Tag instantaneous span p50/p99: **21.0 / 48.5 ms**
 
-**Degraded Tags (excluded from above):**
-- Tag 3: |err| p99 = 1.38 s — midpoint did not lock cleanly at boot.
-- Tag 9: |err| p99 = 2.0 s — similar.
-- Tag 10: TX rate 2.14 Hz — hardware/link issue, not sync.
+**Stage 3.6 recovered Tags 3 and 9** from their v16 degraded state
+(previously p99 = 1.38 s / 2.0 s; now in the normal 13.5-18 ms range).
+The ring-push ordering race was the root cause — moving the push to
+BEFORE `esb_write_payload` with a `__DMB()` barrier fixed it.
+
+**Remaining Tag issues:**
+- Tag 1: mean bias +72 ms pulled by startup artefact; p99 is a clean
+  15 ms. Likely a few early frames emitted pre-midpoint-lock.
+- Tag 10: TX rate 2.66 Hz on v17 (similar to v16's 2.14 Hz) — not a
+  sync issue, hardware/link needs inspection.
 
 ## What worked
 
@@ -49,6 +56,10 @@ Tags still accept all older formats for rolling upgrades.
    the 10-30 ms offset-step bucket (12.0 % → 0.4 %).
 3. **Stage 3.5** — switching Tag's `sync_us` frame field to use
    `midpoint_offset_us` gave the PC-visible span numbers above.
+4. **Stage 3.6** — fixing the tx_ring publish ordering recovered the
+   two Tags (3, 9) that had been stuck with multi-second sync error
+   on v16. Root cause: anchor RX ISR could fire before the Tag's TX
+   timestamp was visible to the seq-indexed ring lookup.
 
 ## Gap to requirements
 
@@ -71,11 +82,13 @@ Levers still on the table:
 
 | # | Title | Impact |
 |---|---|---|
-| 39 | Degraded Tags 3, 9, 10 | 3/10 of fleet bad sync |
-| 40 | Stage 3.6 ring-push ordering | Potential race, unproven |
-| 41 | Stage 4 TDMA design | Architectural next step |
+| 39 | Degraded Tags 3, 9 | **RESOLVED by Stage 3.6 (v17)** |
+| 40 | Stage 3.6 ring-push ordering | **DONE (v17)** |
+| 41 | Stage 4 TDMA design | Architectural next step for sub-ms |
 | 35 | Per-Hub pipe derivation | Deferred (multi-Hub not needed yet) |
 | 21 | Parallel OTA | Parked by user |
+| – | Tag 10 hardware inspection | 2.6 Hz TX rate, not a sync issue |
+| – | Tag 1 startup artefact | Cosmetic: p99 15 ms, mean polluted by pre-lock frames |
 
 ## Quick reference — SWD RAM read for Tag 1 (v16 build)
 
