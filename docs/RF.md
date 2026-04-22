@@ -437,6 +437,141 @@ a post-OTA transient, not a persistent hardware issue.
 **Clean baseline.** Cross-Tag span p99 53.5 ms — the architectural
 limit of shared pipe 0.
 
+### 7.11 Stage 3.7 — retry-count instrumentation (v18 firmware)
+
+Reviewer hypothesis (round 5, Codex + Copilot): the residual 1.4 %
+`≥30 ms` bucket in `mid_step` might be driven by Tag-side retry
+ambiguity (TX ring records original TX time; successful retry
+happens N × retransmit_delay later). Rather than land Stage 3.5
+speculatively, instrument first.
+
+v18 added a `retry_count` byte to `tx_stamp`, back-filled at
+TX_SUCCESS from `esb_evt.tx_attempts`. A 2D histogram
+`mid_step_by_retry[4][4]` on Tag records joint distribution.
+
+**Measurement (Tag 1 SWD readout after 20-min v18 capture):**
+
+|  | <2 ms | 2–10 ms | 10–30 ms | ≥30 ms | row tot |
+|---|---:|---:|---:|---:|---:|
+| Retry=1 | 287 | 98 | 1 | 0 | 386 |
+| Retry=2–3 | 95 | 56 | 3 | 1 | 155 |
+| Retry=4–6 | 103 | 109 | 0 | 3 | 216 |
+| Retry=7+ | 241 | 232 | 1 | 4 | 478 |
+
+**Conclusion:** retries are NOT the driver. Even retry-1 (first
+attempt) produces 25 % 2–10 ms jitter. The ≥30 ms column has only
+8 events, spread across retry buckets. **Skip Stage 3.5**; go to
+Stage 4. Full doc: `docs/RF_V18_FINDINGS.md`.
+
+### 7.12 Stage 4 — Tag-side TDMA Path X1 (v19 → v20)
+
+Design goal: give each Tag its own 2 ms TDMA slot within a 20 ms
+cycle (10 Tags × 2 ms). Path X1 = no separate broadcast beacon
+(anchors already carry `anchor_tx_us`); Tag uses its own Stage 3
+midpoint as the time reference, schedules TX via `k_usleep`.
+Design in `docs/RF_STAGE4_EXPLORATORY.md`.
+
+Three bumps happened:
+- **v19** had a syntax error that `fleet_ota.sh` didn't detect
+  (stale `zephyr.signed.bin` deployed instead). Caught via SWD
+  readout — no `stage4_*` symbols in the flashed ELF. Hardened
+  `fleet_ota.sh` to nuke artifacts before rebuild + check
+  build exit code.
+- **v19 (real)** had a "skip-forever" bug: `maybe_send_frame()`
+  skipped the current iteration when `delay_us > SLOT_US`. But
+  main loop's 20 ms k_sleep equals the cycle period, so the next
+  iteration lands at the same cycle_phase and skips again. TX
+  rate collapsed to < 1 Hz.
+- **v20** fixed the skip-forever: always `k_usleep(delay_us)` to
+  the next slot (0–20 ms). TX rate recovered to ~30 Hz (down
+  from 43 Hz free-run — the `k_usleep` cost).
+
+v20 measurement surprise: despite TDMA active (47 promotions on
+Tag 1), cross-Tag span p99 stayed at 49.5 ms (same as v17). Fleet
+mean per-Tag bias tightened from ±1.8 ms to ±0.2 ms (real Stage 4
+win) but span didn't improve. Root cause discovered next →
+Stage 3.7-FIFO1 (§7.13). Full doc: `docs/RF_V20_FINDINGS.md`.
+
+### 7.13 The FIFO=1 discovery — architectural root cause
+
+Traced the Stage 4 v20 no-improvement surprise to a **+10 ms
+bias baked into the Stage 3 midpoint estimator** under
+`CONFIG_ESB_TX_FIFO_SIZE=8` (the NCS default).
+
+**Mechanism:** midpoint math assumes symmetric RTT. With a deep
+FIFO, the Hub→Tag leg includes 0–30 ms of queue time (Stage 1'
+showed >70 % of ACK TXs land 10–30 ms late). `anchor_tx_us` was
+stamped at `esb_write_payload` call time (queue enter), not at
+radio TX time. So `hub_mid = (central_ts + anchor_tx_us)/2` sits
+near Hub RX (early), while `tag_mid = (T_tx + T_rx)/2` sits
+past physical mid-RTT (late, because T_rx is FIFO-delayed). The
+offset baked ~10 ms of one-sided queue latency.
+
+**Fix: one line.** Added `CONFIG_ESB_TX_FIFO_SIZE=1` to Hub's
+`central.conf`. Hub can only queue ONE anchor at a time; if TIFS
+is missed, the anchor simply doesn't queue (Stage 2 `rx_node_id`
+filter absorbs the resulting empty ACKs for other Tags). With
+depth 1, round-trip is symmetric, midpoint math is accurate.
+
+**Result (Tag 1, same v20 fleet, just Hub rebuild):**
+
+| Metric | Before FIFO=1 | After FIFO=1 | Δ |
+|---|---:|---:|---|
+| Mean bias | -10128 µs | -308 µs | −97 % |
+| `\|err\|` p50 | 10 ms | 500 µs | −95 % |
+| `\|err\|` p99 | 16.5 ms | 4.0 ms | −76 % |
+| `\|err\|` max | 24.5 ms | 12.5 ms | −49 % |
+
+**Fleet mean bias centered near zero** (spread ±0.6 ms). Full
+doc: `docs/RF_FIFO1_DISCOVERY.md`.
+
+**Cost:** aggregate throughput 428 → 306 Hz (−28 %). Fine for
+sync (at 1 ppm drift, 1 Hz is enough) but notable for frame rate.
+
+### 7.14 v21 A/B — Stage 4 TDMA disabled (FIFO=1 alone)
+
+A/B test: does Stage 4 TDMA add anything on top of FIFO=1?
+Disabled Stage 4 (`CONFIG_HELIX_STAGE4_TDMA_ENABLE=n`), kept Hub
+FIFO=1. Fleet-OTA'd 8/10 Tags to v21 (Tags 8 and 10 stuck on
+v19 — ESB trigger can't reach them at <1 Hz TX rate).
+
+| Metric | v20 (Stage 4 ON) | v21 (Stage 4 OFF) |
+|---|---:|---:|
+| TX rate / Tag | 30 Hz | **49 Hz** |
+| Mean bias spread | ±0.6 ms | ±0.5 ms |
+| `\|err\|` p99 | 4–9.5 ms | 6.5–9 ms |
+| Cross-Tag span p99 | 49.5 ms | **42.5 ms** |
+
+**v21 wins** — recovered the 28 % throughput loss, similar sync
+quality, slightly tighter cross-Tag span. Stage 4 TDMA code
+preserved in the tree but `default n` in Kconfig.
+
+### 7.15 Overnight soak validation (v20 fleet + Hub FIFO=1)
+
+4-hour soak, 4.2 M rows. Per-Tag `|err|` p99 stable at 9–15 ms
+across the soak (no thermal drift, no stuck states). Sparse
+outlier events (Tag 6 one 24.6-s event, Tag 1 one 84-s event)
+do NOT accumulate. Cross-Tag span p99 49.5 ms stable. Full doc:
+`docs/RF_OVERNIGHT_2026-04-23_SUMMARY.md`.
+
+### 7.16 Cross-Tag span fat-tail investigation
+
+Per-Tag `|err|` p99 ~10 ms but fleet cross-Tag span p99 ~42 ms —
+a 5× gap. Tool `tools/analysis/find_span_outliers.py` finds
+4 184 bins with span > 30 ms (4.9 %, matches p99). Outliers
+distributed uniformly across 8 healthy Tags (~500 each).
+
+**Diagnosis:** Stage 3 midpoint occasionally takes a 10–30 ms
+step (1.8 % of accepted anchors — see `mid_step_by_retry` row
+totals in §7.11). Over 4 h × 0.9 Hz = ~233 large jumps/Tag.
+Likely cause: residual cross-contamination bleed-through where an
+anchor built from Tag A's frame reaches Tag B AND happens to
+have `rx_node_id` byte matching B by chance (1/10 probability).
+
+**Proposed fix (not yet landed):** glitch-reject single-sample
+midpoint jumps > 10 ms. Full doc:
+`docs/RF_CROSS_TAG_SPAN_INVESTIGATION.md`.
+
 ---
 
 ## 8. Open decisions (for reviewer proposals)
@@ -524,7 +659,16 @@ pipe 0 somehow?
 
 ## 9. Stage 4 proposal — TDMA scheduled slots
 
-**Status: design draft, gated on D1 + D2.** Not implemented.
+**Status: IMPLEMENTED in v19/v20, DEFAULT-DISABLED in v21.** After
+the FIFO=1 discovery (§7.13) delivered sub-ms per-Tag sync without
+Stage 4, the v21 A/B (§7.14) showed Stage 4 costs 28 % throughput
+for no measurable sync gain. Code lives in the tree under
+`CONFIG_HELIX_STAGE4_TDMA_ENABLE` (default `n`).
+
+The original design rationale below still applies if we ever
+need to revive Stage 4 — e.g., if PC fusion demands tighter than
+the current 42.5 ms cross-Tag span p99. See §7.13–§7.16 for the
+history and task #51 for the "delete vs keep" decision.
 
 ### 9.1 Why TDMA
 
