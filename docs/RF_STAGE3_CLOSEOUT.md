@@ -27,24 +27,27 @@ at `0xFE000`.
 
 Tags still accept all older formats for rolling upgrades.
 
-## Measured sync quality (Stage 3.6, v17)
+## Measured sync quality (Stage 3.6, v17, validated 20-min run)
 
-**Clean 7-Tag cohort (excluding Tag 1 startup artefact, Tag 9 rare 1.9s
-outlier, Tag 10 hardware), 5-min capture, 126k frames:**
-- Fleet mean per-Tag bias: **−5304 µs** (range −5883 .. −4231, spread ±0.8 ms)
-- Per-Tag |err| p99: **13.5 – 18.0 ms**
-- Cross-Tag instantaneous span p50/p99: **21.0 / 48.5 ms**
+**Full 10-Tag fleet, 20-min capture, 30-s settle, 514k frames:**
+- Fleet mean per-Tag bias: **-6567 µs** (range -9094 .. -5474, spread 3.6 ms)
+- Per-Tag |err| p99: **13.5 - 17.5 ms** (every Tag)
+- Cross-Tag instantaneous span p50/p90/p99/max: **25.5 / 42.5 / 53.5 / 65 ms**
 
 **Stage 3.6 recovered Tags 3 and 9** from their v16 degraded state
-(previously p99 = 1.38 s / 2.0 s; now in the normal 13.5-18 ms range).
+(previously p99 = 1.38 s / 2.0 s; now in the normal 13.5-17 ms range).
 The ring-push ordering race was the root cause — moving the push to
 BEFORE `esb_write_payload` with a `__DMB()` barrier fixed it.
 
-**Remaining Tag issues:**
-- Tag 1: mean bias +72 ms pulled by startup artefact; p99 is a clean
-  15 ms. Likely a few early frames emitted pre-midpoint-lock.
-- Tag 10: TX rate 2.66 Hz on v17 (similar to v16's 2.14 Hz) — not a
-  sync issue, hardware/link needs inspection.
+**Tag 10 recovered on its own** during the long run — now TXing at
+42.77 Hz with sync p99 = 17 ms. Earlier 2.14 Hz rate was transient
+(post-OTA settling / handling artefact), not a persistent hardware
+issue. Worth a reliability probe in a future session.
+
+**Bias clustering:** Tags 1-3 cluster around -8 ms mean bias; Tags
+4-10 cluster around -6 ms. Likely retransmit_delay asymmetry
+(`config.retransmit_delay = 600 + 50 × node_id` µs) — low-node-id
+Tags get an ACK back faster so the midpoint leans different.
 
 ## What worked
 

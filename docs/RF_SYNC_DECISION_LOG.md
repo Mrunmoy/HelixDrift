@@ -573,6 +573,39 @@ Net position: Stage 3.6 recovered degraded Tags without regressing
 the healthy cohort. Cross-Tag span p99 unchanged at ~48 ms — real
 improvement requires Stage 4 (TDMA) or per-Tag pipes.
 
+### 20-min long-run validation (v17, 30-s settle)
+
+Full 10-Tag fleet, 514k frames, 30-s settle pruned startup
+artefacts:
+
+| Tag | n frames | mean bias | p99 \|err\| | max \|err\| |
+|---:|---:|---:|---:|---:|
+| 1 | 51688 | -6759 µs | 14.5 ms | 20.5 ms |
+| 2 | 49259 | -8923 µs | 13.5 ms | 20.0 ms |
+| 3 | 48908 | -9094 µs | 14.0 ms | 20.0 ms |
+| 4 | 53490 | -5795 µs | 15.5 ms | 21.5 ms |
+| 5 | 51350 | -6108 µs | 16.5 ms | 24.0 ms |
+| 6 | 51623 | -5978 µs | 16.5 ms | 22.5 ms |
+| 7 | 53185 | -5841 µs | 16.5 ms | 22.5 ms |
+| 8 | 51701 | -5822 µs | 17.5 ms | 28.0 ms |
+| 9 | 52263 | -5877 µs | 17.0 ms | 24.0 ms |
+| 10 | 51319 | -5474 µs | 17.0 ms | 25.0 ms |
+
+**Tag 10 recovered** on its own — now 42.77 Hz (was 2.14 Hz on
+v16). Looks like the earlier low-rate was transient (post-OTA
+settling, ESB state, or physical handling). Worth a follow-up
+reliability probe but no longer a current problem.
+
+- **Fleet mean bias range:** -9094 to -5474 µs (3.6 ms spread).
+  Tags 1-3 cluster at ~-8 ms, Tags 4-10 at ~-6 ms — likely
+  retransmit_delay asymmetry (per-node: 600 + 50 × node_id µs).
+- **Per-Tag |err| p99 range:** 13.5 - 17.5 ms.
+- **Cross-Tag instantaneous span p50/p90/p99/max: 25.5 / 42.5 / 53.5 / 65 ms**
+  (23k bins with ≥ 5 Tags each).
+
+Stable over 20 min: no drift, no degradation, max |err| capped at
+28 ms (Tag 8). This is the **clean baseline for Stage 3.6**.
+
 ## Requirements reality check
 
 `docs/rf-sync-requirements.md` (draft v0.1, 2026-03-29) lists
