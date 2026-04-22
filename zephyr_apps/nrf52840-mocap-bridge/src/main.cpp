@@ -269,6 +269,36 @@ static int32_t midpoint_offset_us;
  * hypothesis with data before landing Stage 3.5.) */
 static volatile uint32_t retry_count_bucket[4];
 static volatile uint32_t mid_step_by_retry[4][4];
+
+/* Stage 4 Path X1 — Tag-side TDMA slot scheduling.
+ *
+ * States:
+ *   STAGE4_FREE      — free-running (no slot alignment). Default.
+ *                      Transitions to CANDIDATE on first valid midpoint.
+ *   STAGE4_CANDIDATE — midpoint is valid; counting consecutive stable
+ *                      updates. Transitions to LOCKED after LOCK_N
+ *                      updates where mid_step landed in bucket 0
+ *                      (<2 ms). Any instability resets to FREE.
+ *   STAGE4_LOCKED    — TX is slot-aligned. Dropped back to FREE on
+ *                      seq_lookup_miss OR mid_step landing in bucket
+ *                      2 or 3 (>=10 ms).
+ *
+ * See docs/RF_STAGE4_EXPLORATORY.md for the Path X1 rationale
+ * (no separate broadcast beacon — anchors ARE beacons). */
+#if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
+enum stage4_state {
+	STAGE4_FREE      = 0,
+	STAGE4_CANDIDATE = 1,
+	STAGE4_LOCKED    = 2,
+};
+static volatile uint8_t stage4_state_val = STAGE4_FREE;
+static volatile uint32_t stage4_stable_count;
+/* Telemetry — counted per event: */
+static volatile uint32_t stage4_promotions;     /* FREE/CANDIDATE -> LOCKED */
+static volatile uint32_t stage4_demotions;      /* LOCKED -> FREE */
+static volatile uint32_t stage4_tx_in_slot;     /* TXed within slot guard */
+static volatile uint32_t stage4_tx_skipped;     /* deferred; too far from slot */
+#endif
 #endif
 #if defined(CONFIG_HELIX_MOCAP_BRIDGE_ROLE_CENTRAL)
 static struct NodeTrack tracked_nodes[CONFIG_HELIX_MOCAP_MAX_TRACKED_NODES];
@@ -466,7 +496,11 @@ static void report_summary(void)
 		 "seq_miss=%u offset_us=%d mid_us=%d err=%u hb=%u "
 		 "anchor_age=%u/%u/%u/%u offset_step=%u/%u/%u/%u "
 		 "mid_step=%u/%u/%u/%u "
-		 "retry=%u/%u/%u/%u\n",
+		 "retry=%u/%u/%u/%u "
+#if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
+		 "s4=%u/%u/%u/%u/%u"
+#endif
+		 "\n",
 		 g_node_id,
 		 g_helixMocapStatus.tx_success,
 		 g_helixMocapStatus.tx_failed,
@@ -484,7 +518,16 @@ static void report_summary(void)
 		 midpoint_step_bucket[0], midpoint_step_bucket[1],
 		 midpoint_step_bucket[2], midpoint_step_bucket[3],
 		 retry_count_bucket[0], retry_count_bucket[1],
-		 retry_count_bucket[2], retry_count_bucket[3]);
+		 retry_count_bucket[2], retry_count_bucket[3]
+#if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
+		 ,
+		 (uint32_t)stage4_state_val,
+		 stage4_promotions,
+		 stage4_demotions,
+		 stage4_tx_in_slot,
+		 stage4_tx_skipped
+#endif
+		 );
 #endif
 
 	host_write(line);
@@ -839,10 +882,11 @@ static void node_handle_anchor(const struct esb_payload *payload)
 			else if (matched_retry_count <= 6u)  r_bucket = 2u;
 			else                                 r_bucket = 3u;
 			retry_count_bucket[r_bucket]++;
+			uint32_t m_bucket = 0u;
 			if (midpoint_offset_valid) {
 				const int64_t mdiff = (int64_t)new_midpoint - (int64_t)midpoint_offset_us;
 				const uint32_t mdiff_abs = (uint32_t)((mdiff < 0) ? -mdiff : mdiff);
-				const uint32_t m_bucket = histo_bucket_us(mdiff_abs, midpoint_step_bucket);
+				m_bucket = histo_bucket_us(mdiff_abs, midpoint_step_bucket);
 				/* 2D histogram — joint distribution of retry_count and
 				 * mid_step. If retry-ambiguity is driving the >=30ms
 				 * tail, mid_step_by_retry[3][3] (7+ retries × >=30ms)
@@ -853,7 +897,44 @@ static void node_handle_anchor(const struct esb_payload *payload)
 			}
 			midpoint_offset_us = new_midpoint;
 			midpoint_offset_valid = 1u;
+
+#if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
+			/* Stage 4 lock tracker: only advance when the new midpoint
+			 * landed in bucket 0 (<2 ms drift from the previous). Any
+			 * larger jump resets the counter and demotes if LOCKED. */
+			if (!midpoint_offset_valid || m_bucket == 0u) {
+				stage4_stable_count++;
+				if (stage4_stable_count >= (uint32_t)CONFIG_HELIX_STAGE4_LOCK_N) {
+					if (stage4_state_val != STAGE4_LOCKED) {
+						stage4_state_val = STAGE4_LOCKED;
+						stage4_promotions++;
+					}
+				} else if (stage4_state_val == STAGE4_FREE) {
+					stage4_state_val = STAGE4_CANDIDATE;
+				}
+			} else if (m_bucket >= 2u) {
+				/* ≥ 10 ms jump — drop lock. */
+				if (stage4_state_val == STAGE4_LOCKED) {
+					stage4_demotions++;
+				}
+				stage4_state_val = STAGE4_FREE;
+				stage4_stable_count = 0u;
+			} else {
+				/* 2-10 ms jump — hold state, reset counter. */
+				if (stage4_stable_count > 0u) stage4_stable_count--;
+			}
+#endif
 		}
+#if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
+		else {
+			/* seq_lookup_miss — drop lock. */
+			if (stage4_state_val == STAGE4_LOCKED) {
+				stage4_demotions++;
+			}
+			stage4_state_val = STAGE4_FREE;
+			stage4_stable_count = 0u;
+		}
+#endif
 	}
 
 	const int32_t prev_offset = estimated_offset_us;
@@ -1020,6 +1101,48 @@ static void maybe_send_frame(void)
 	if (!atomic_cas(&tx_ready, 1, 0)) {
 		return;
 	}
+
+#if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
+	/* Stage 4 Path X1: if we're LOCKED, align TX to our TDMA slot.
+	 * Hub-time "now" = Tag local_us - midpoint_offset_us. Slot start
+	 * = (node_id - 1) × SLOT_US. Compute how long to wait; skip if
+	 * the slot is too far away (> half a cycle). */
+	if (stage4_state_val == STAGE4_LOCKED) {
+		const uint32_t now_tag = now_us();
+		const uint32_t now_hub = now_tag - (uint32_t)midpoint_offset_us;
+		const uint32_t cycle_phase = now_hub % (uint32_t)CONFIG_HELIX_STAGE4_CYCLE_US;
+		const uint32_t my_slot_start =
+			(uint32_t)(g_node_id - 1u) * (uint32_t)CONFIG_HELIX_STAGE4_SLOT_US;
+		uint32_t delay_us;
+		if (cycle_phase <= my_slot_start) {
+			delay_us = my_slot_start - cycle_phase;
+		} else {
+			delay_us = (uint32_t)CONFIG_HELIX_STAGE4_CYCLE_US
+			         - cycle_phase + my_slot_start;
+		}
+		/* If we're within GUARD of slot start OR already slightly past,
+		 * TX immediately. If > SLOT_US into cycle, skip (don't TX
+		 * outside our slot). If further away, wait for the right moment. */
+		if (delay_us <= (uint32_t)CONFIG_HELIX_STAGE4_GUARD_US) {
+			stage4_tx_in_slot++;
+			/* proceed to TX */
+		} else if (delay_us >= (uint32_t)CONFIG_HELIX_STAGE4_CYCLE_US
+		           - (uint32_t)CONFIG_HELIX_STAGE4_GUARD_US) {
+			/* just past slot start due to small negative offset —
+			 * also treat as "in slot". */
+			stage4_tx_in_slot++;
+		} else if (delay_us <= (uint32_t)CONFIG_HELIX_STAGE4_SLOT_US) {
+			/* short wait, still within one slot width. k_usleep. */
+			k_usleep(delay_us);
+			stage4_tx_in_slot++;
+		} else {
+			/* too far — skip this iteration, main loop will retry. */
+			stage4_tx_skipped++;
+			atomic_set(&tx_ready, 1);
+			return;
+		}
+	}
+#endif
 
 	node_fill_frame(&frame);
 	tx_payload.pipe = CONFIG_HELIX_MOCAP_PIPE;
