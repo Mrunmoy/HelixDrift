@@ -974,23 +974,31 @@ static void maybe_send_frame(void)
 	g_helixMocapStatus.last_node_id = frame.node_id;
 	g_helixMocapStatus.tx_attempts++;
 
+	/* Stage 3.6: push to the seq-indexed ring BEFORE esb_write_payload
+	 * so the anchor ISR (which can fire as soon as Hub's ACK returns)
+	 * always sees the matching TX entry. Publishing order matters on
+	 * single-core nRF52 — valid=1 store must come last so a racing
+	 * reader sees either "not here yet" or "fully populated." */
+	const uint32_t tx_us = now_us();
+	const uint32_t head_pre = tx_ring_head;
+	const uint32_t idx = head_pre & HELIX_TX_RING_MASK;
+	tx_ring[idx].sequence = frame.sequence;
+	tx_ring[idx].local_us = tx_us;
+	__DMB(); /* ensure sequence/local_us are visible before valid=1 */
+	tx_ring[idx].valid    = 1u;
+	tx_ring_head = head_pre + 1u;
+	last_tx_local_us = tx_us;
+
 	err = esb_write_payload(&tx_payload);
 	if (err) {
 		status_set_error(err);
 		atomic_set(&tx_ready, 1);
-	} else {
-		/* Record the TX instant for Stage 1 anchor_age bucketing. */
-		const uint32_t tx_us = now_us();
-		last_tx_local_us = tx_us;
-		/* Stage 3: push into the seq-indexed ring so an anchor that
-		 * echoes this frame->sequence can be paired with this TX_us
-		 * in node_handle_anchor(). */
-		const uint32_t head = tx_ring_head;
-		const uint32_t idx = head & HELIX_TX_RING_MASK;
-		tx_ring[idx].sequence = frame.sequence;
-		tx_ring[idx].local_us = tx_us;
-		tx_ring[idx].valid    = 1u;
-		tx_ring_head = head + 1u;
+		/* Unwind the ring entry — the anchor for this seq will never
+		 * come back because the TX failed. Leaving it valid could
+		 * give a false-match to a later anchor that happens to echo
+		 * the same sequence byte (seq wraps every 256). */
+		tx_ring[idx].valid = 0u;
+		tx_ring_head = head_pre;
 	}
 }
 #endif
