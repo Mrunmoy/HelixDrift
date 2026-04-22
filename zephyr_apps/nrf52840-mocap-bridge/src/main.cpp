@@ -863,6 +863,14 @@ static void node_handle_anchor(const struct esb_payload *payload)
 		}
 		if (!found) {
 			seq_lookup_miss++;
+#if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
+			/* Lost pairing — demote if we were LOCKED. */
+			if (stage4_state_val == STAGE4_LOCKED) {
+				stage4_demotions++;
+			}
+			stage4_state_val = STAGE4_FREE;
+			stage4_stable_count = 0u;
+#endif
 		} else {
 			/* Midpoint — handles uint32 wraparound via signed diffs.
 			 * On nRF52 now_us() is a 64-bit k_uptime-derived counter
@@ -925,16 +933,6 @@ static void node_handle_anchor(const struct esb_payload *payload)
 			}
 #endif
 		}
-#if defined(CONFIG_HELIX_STAGE4_TDMA_ENABLE)
-		else {
-			/* seq_lookup_miss — drop lock. */
-			if (stage4_state_val == STAGE4_LOCKED) {
-				stage4_demotions++;
-			}
-			stage4_state_val = STAGE4_FREE;
-			stage4_stable_count = 0u;
-		}
-#endif
 	}
 
 	const int32_t prev_offset = estimated_offset_us;
