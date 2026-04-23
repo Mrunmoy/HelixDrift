@@ -672,15 +672,31 @@ short "known RF limits" doc for the fusion team.
 
 ### Bucket 3 — Architecture change for sub-ms
 
-Three reviewer-validated paths (pick at most one):
+**This bucket has been expanded into a full product-architecture
+roadmap.** See [`PRODUCT_ARCHITECTURE_ROADMAP.md`](PRODUCT_ARCHITECTURE_ROADMAP.md)
+for the complete phased plan.
 
-| Option | What | Effort |
-|---|---|---|
-| **3a Hardware TX timestamping** | PPI + TIMER capture on `RADIO.EVENTS_END`; removes ISR jitter. | 3–5 days fw |
-| **3b Per-Tag ESB pipes** | Dedicated pipe per Tag; fleet capped at 8 Tags/Hub. | 1–2 days fw + product decision |
-| **3c TDMA with hardware Hub beacon** | Real TDMA (not the deleted Path X1). Requires 3a first. | 5–7 days fw |
+Summary: the earlier options (3a hardware TX timestamp, 3b per-Tag
+pipes, 3c TDMA-with-beacon) all appear **together** in the
+recommended Phase B design, not as separate alternatives. Plus the
+roadmap addresses broader product questions the original Bucket 3
+didn't: silicon choice (nRF52 → nRF54L15?), UWB (default or
+tier-2?), 500 Hz (requirement or stretch?), and two-SKU tiering
+(Studio / Pro).
 
-All three need ~1 day of on-fleet validation after.
+After the 4-panel Avengers brainstorm (Agent + hardware-tester +
+Codex + Copilot — all raw responses in `docs/reviews/`), the
+consensus architectural target:
+
+- **Hub beacon + no-ACK TDMA + hardware TX/RX timestamps**
+  (expected cross-Tag span p99 < 200 µs — a 200× improvement).
+- **ICM-42688-P IMU upgrade** (3× lower gyro noise than current).
+- **Migration via parallel radio stack**, not rewrite in place.
+
+Three user-facing decision paths (see roadmap §"Next concrete action"):
+- **Ship-first** — merge to main as v1.0 now, build Phase B in parallel.
+- **Architecture-first** — skip v1.0 ship, commit to TDMA redesign now.
+- **Conservative** — Phase A then Phase B, same silicon.
 
 ### Cross-bucket: firmware hygiene (round-10 reviewer unanimous)
 
