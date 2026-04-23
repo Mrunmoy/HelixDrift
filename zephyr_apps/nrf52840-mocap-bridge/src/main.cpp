@@ -276,6 +276,25 @@ static volatile int32_t midpoint_offset_us;
 static volatile uint32_t retry_count_bucket[4];
 static volatile uint32_t mid_step_by_retry[4][4];
 
+/* Stage 4.x glitch-reject (v22): when a v5 midpoint update would
+ * jump by more than GLITCH_REJECT_US from the current locked value,
+ * discard it. This filters out the ~1.8 % of anchors that carry
+ * bleed-through cross-contamination (even with Stage 2 rx_node_id
+ * filter + FIFO=1 — see docs/RF_CROSS_TAG_SPAN_INVESTIGATION.md).
+ *
+ * Safety valve: if N_CONSECUTIVE_REJECT rejects in a row, the
+ * underlying clock has genuinely drifted (Hub reboot, LFCLK glitch,
+ * long TX starvation) — accept the new baseline rather than
+ * staying locked to a stale offset.
+ *
+ * Initial boot: midpoint_offset_valid starts 0, first update ALWAYS
+ * accepted (seeds the lock). Subsequent updates gated by this check. */
+#define HELIX_MIDPOINT_GLITCH_REJECT_US        10000u  /* 10 ms */
+#define HELIX_MIDPOINT_GLITCH_CONSECUTIVE_MAX  5u
+static volatile uint32_t midpoint_glitch_rejected;
+static volatile uint32_t midpoint_glitch_resync;       /* after N rejects in a row */
+static volatile uint8_t  midpoint_glitch_streak;       /* consecutive reject count */
+
 /* Stage 4 Path X1 (Tag-side TDMA slot scheduling) was implemented
  * in v19/v20 then DELETED in v22 after the FIFO=1 discovery
  * superseded it. See docs/archive/rf/RF_STAGE4_EXPLORATORY.md and
@@ -477,7 +496,8 @@ static void report_summary(void)
 		 "seq_miss=%u offset_us=%d mid_us=%d err=%u hb=%u "
 		 "anchor_age=%u/%u/%u/%u offset_step=%u/%u/%u/%u "
 		 "mid_step=%u/%u/%u/%u "
-		 "retry=%u/%u/%u/%u\n",
+		 "retry=%u/%u/%u/%u "
+		 "glitch=%u/%u\n",
 		 g_node_id,
 		 g_helixMocapStatus.tx_success,
 		 g_helixMocapStatus.tx_failed,
@@ -495,7 +515,8 @@ static void report_summary(void)
 		 midpoint_step_bucket[0], midpoint_step_bucket[1],
 		 midpoint_step_bucket[2], midpoint_step_bucket[3],
 		 retry_count_bucket[0], retry_count_bucket[1],
-		 retry_count_bucket[2], retry_count_bucket[3]);
+		 retry_count_bucket[2], retry_count_bucket[3],
+		 midpoint_glitch_rejected, midpoint_glitch_resync);
 #endif
 
 	host_write(line);
@@ -853,6 +874,7 @@ static void node_handle_anchor(const struct esb_payload *payload)
 			else                                 r_bucket = 3u;
 			retry_count_bucket[r_bucket]++;
 			uint32_t m_bucket = 0u;
+			bool accept_update = true;
 			if (midpoint_offset_valid) {
 				const int64_t mdiff = (int64_t)new_midpoint - (int64_t)midpoint_offset_us;
 				const uint32_t mdiff_abs = (uint32_t)((mdiff < 0) ? -mdiff : mdiff);
@@ -864,14 +886,35 @@ static void node_handle_anchor(const struct esb_payload *payload)
 				 * >=30ms). If not, mid_step is independent of retries
 				 * — meaning Stage 3.5 won't help. */
 				mid_step_by_retry[r_bucket][m_bucket]++;
+				/* Glitch reject (v22): single-sample jumps ≥ 10 ms are
+				 * almost certainly bleed-through cross-contamination or
+				 * radio outliers, not real clock drift. Drop them.
+				 * After N_CONSECUTIVE rejects in a row, ACCEPT the new
+				 * baseline — assumes the underlying clock has moved
+				 * (Hub reboot etc.) and we need to resync. */
+				if (mdiff_abs >= HELIX_MIDPOINT_GLITCH_REJECT_US) {
+					if (midpoint_glitch_streak < HELIX_MIDPOINT_GLITCH_CONSECUTIVE_MAX - 1u) {
+						midpoint_glitch_streak++;
+						midpoint_glitch_rejected++;
+						accept_update = false;
+					} else {
+						/* Streak hit limit → force re-baseline. */
+						midpoint_glitch_streak = 0u;
+						midpoint_glitch_resync++;
+					}
+				} else {
+					midpoint_glitch_streak = 0u;
+				}
 			}
-			/* Publish offset BEFORE valid flag so a main-thread reader
-			 * either sees "not valid" (uses v3 fallback) or a fully
-			 * populated midpoint offset. __DMB() ensures compiler +
-			 * hardware don't reorder. */
-			midpoint_offset_us = new_midpoint;
-			__DMB();
-			midpoint_offset_valid = 1u;
+			if (accept_update) {
+				/* Publish offset BEFORE valid flag so a main-thread reader
+				 * either sees "not valid" (uses v3 fallback) or a fully
+				 * populated midpoint offset. __DMB() ensures compiler +
+				 * hardware don't reorder. */
+				midpoint_offset_us = new_midpoint;
+				__DMB();
+				midpoint_offset_valid = 1u;
+			}
 		}
 	}
 
