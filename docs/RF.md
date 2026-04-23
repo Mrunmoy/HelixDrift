@@ -568,92 +568,151 @@ Likely cause: residual cross-contamination bleed-through where an
 anchor built from Tag A's frame reaches Tag B AND happens to
 have `rx_node_id` byte matching B by chance (1/10 probability).
 
-**Proposed fix (not yet landed):** glitch-reject single-sample
-midpoint jumps > 10 ms. Full doc:
+**Proposed fix (landed in v22, refuted in §7.17 below):**
+glitch-reject single-sample midpoint jumps > 10 ms. Full doc:
 `docs/RF_CROSS_TAG_SPAN_INVESTIGATION.md`.
+
+### 7.17 Stage 3.8 — glitch-reject experiment (v22, REFUTED)
+
+Implemented per §7.16 proposal: drop single-sample midpoint jumps
+≥ 10 ms, with a 5-consecutive safety valve for legitimate big
+shifts (Hub reboot, etc.). Fleet-OTA'd 9/10 Tags to v22.
+
+**Result (clean 7-Tag cohort, 15-min capture):**
+
+| Metric | v21 baseline | v22 glitch-reject | Δ |
+|---|---:|---:|---|
+| Per-Tag \|err\| p99 | 6.5–9 ms | 6–10.5 ms | wash |
+| Cross-Tag span p99 | 42.5 ms | **47.5 ms** | **worse** |
+| Tag 1 mean bias | -296 µs | -14.6 ms | **stuck** |
+| Tag 3 mean bias | still +1.5 s | **+2.57 s** | **stuck** |
+
+**Hypothesis refuted.** Cross-Tag span got WORSE (+5 ms), and
+Tags 1 and 3 locked onto bad initial midpoint baselines that
+glitch-reject actively prevented from recovering (every correct
+update after the bad baseline looked like a "big jump" → rejected
+→ 5-consecutive safety valve never triggered because interleaved
+near-baseline samples reset the streak).
+
+**Takeaway:** the fat-tail is NOT single-sample outlier driven.
+Reverted glitch-reject in commit `07531ad` (v23 source = v21
+behaviour + Stage 4 cleanup). Full doc: `docs/RF_V22_FINDINGS.md`.
+
+### 7.18 Drift hypothesis — offline replay (REFUTED too)
+
+Reviewer round-10 consensus (Codex + Copilot × 2 experts) after
+v22 failure: the fat-tail is DRIFT-driven. Each Tag has a
+systematic bias that slowly wanders relative to the fleet; at any
+instant one Tag is +8 ms and another -10 ms from fleet median.
+Proposed test: offline replay with PC-side bias correction —
+if span p99 collapses, drift architecture validated.
+
+Built `tools/analysis/offline_bias_replay.py`, ran on 200k-row
+subset of overnight v20 soak:
+
+| Correction strategy | Cross-Tag span p99 |
+|---|---:|
+| Raw (none) | **42.5 ms** |
+| Fixed per-Tag bias (mean subtracted) | **41.5 ms** |
+| Rolling-10s bias vs fleet median | **41.0 ms** |
+
+**Only 1.5 ms improvement.** PC-side bias correction does NOT
+collapse the fat-tail. The drift hypothesis is also refuted.
+
+**Revised-revised working hypothesis:** the fat-tail is
+**per-Tag single-Tag tail events** — each Tag's individual `|err|`
+distribution extends beyond p99 up to tens of ms due to rare
+per-frame issues (retry storms, radio glitches, ISR jitter). Not
+inter-Tag bias drift.
+
+Evidence: per-Tag `|err|` p99 is 4–11.5 ms but per-Tag `|err|`
+MAX extends to 84 s (Tag 1), 24.6 s (Tag 6). Any one Tag in its
+own tail in a given bin drives span, regardless of others. With
+8 Tags × 1 % tail-event rate, many bins have one Tag in its tail.
+
+**Implication:** cross-Tag span fat-tail is likely **irreducible
+on shared-pipe ESB without architecture change.** No
+firmware-estimator trick catches rare-event tails without also
+breaking recovery from normal transients.
+
+Full doc: `docs/RF_DRIFT_HYPOTHESIS_REFUTED.md`.
 
 ---
 
-## 8. Open decisions (for reviewer proposals)
+## 8. Open decisions (as of 2026-04-23 checkpoint `rf-sprint-checkpoint-v1`)
 
-These are the decisions we need Copilot / Codex / user input on.
-Please respond per decision in your review.
+After 10 reviewer rounds + 2 expert-team brainstorms + two firmware
+experiments that both refuted their hypotheses (v22 glitch-reject
+→ §7.17, offline drift replay → §7.18), the remaining open
+decisions have collapsed into three buckets.
 
-### D1. Is sub-ms cross-Tag span (< 1 ms p99) a **hard** v1 requirement?
+### Bucket 1 — Quick fleet hygiene (autonomous-safe)
 
-- If yes → Stage 4 (TDMA) or per-Tag pipes are the path. Both are
-  multi-day and architecturally disruptive.
-- If no (≤ 10 ms p99 acceptable) → we're essentially done. Stage 3.6
-  at 53 ms p99 span / ~15 ms |err| p99 per-Tag is usable for many
-  mocap scenarios, especially after PC-side fusion subtracts the
-  ~-7 ms systematic bias.
+- **B1a Fleet OTA to v23.** Source is already Stage-4-removed +
+  glitch-reject-reverted. Fleet currently runs v22 (with the
+  dead-code glitch-reject counters). Cost: ~50 min; fully
+  automatable with `tools/nrf/fleet_ota.sh 1 23`.
+- **B1b Tag 3 power-cycle + Tags 8, 10 SWD recovery** (task #45).
+  Needs physical access to the bench.
 
-The user-confirmed requirement (rf-sync-requirements.md §TBD) says
-< 1 ms. But the motion-capture fusion code hasn't been built yet —
-so the real-world tolerance is not yet measured. **We need a call
-on whether to invest days in TDMA now or ship Stage 3.6 and tighten
-later if downstream fusion says we need to.**
+### Bucket 2 — Ship v1 at current spec
 
-### D2. If D1 is "hard yes": TDMA slots (§9) or per-Tag pipes?
+Accept the current measured sync quality (7-Tag clean cohort):
+- Per-Tag `|err|` p50 / p99: **~1 ms / 6–10 ms**
+- Fleet mean bias spread: **±0.5 ms**
+- Cross-Tag span p50 / p99: **17.5 / 42.5 ms**
+- Aggregate rate: **429 Hz** of 500 nominal (86 %)
 
-**TDMA** (§9): 20 ms major cycle, 10× 2 ms slots, Hub beacon for
-bootstrap sync, Tag uses TIMER for slot alignment. Eliminates FIFO
-queuing entirely. 2–3 days implementation + 1 day tuning.
+Usable for slow mocap (rehab, VR avatar). Marginal for fast motion
+(dance, sports) — would need PC-side fusion to absorb the 42 ms
+or a Bucket 3 investment.
 
-**Per-Tag pipes** (task #35): give each Tag a dedicated ESB pipe
-address, so ACK payloads are directed. BLOCKED by 8-pipe hardware
-limit vs. 10-Tag fleet. Would require dropping to ≤ 8 Tags/Hub, or
-a two-pipe grouping where pairs of Tags share a pipe (but then the
-FIFO problem returns within each pair).
+Work: merge `nrf-xiao-nrf52840` → `main`, tag `v1.0`, write a
+short "known RF limits" doc for the fusion team.
 
-**Our leaning:** TDMA is the only clean architectural fix for 10+
-Tags. But we want reviewer opinions — is there a third option we're
-missing? Multi-frequency? Compressed sensing with irregular slots?
+### Bucket 3 — Architecture change for sub-ms
 
-### D3. Retransmit_delay asymmetry — equalise?
+Three reviewer-validated paths (pick at most one):
 
-Current `config.retransmit_delay = 600 + 50·node_id µs` gives a
-bias clustering: Tags 1–3 at ~-8 ms mean, Tags 4–10 at ~-6 ms.
-Equalising (all Tags same delay) would shrink the fleet bias spread
-from 3.6 ms to ~1 ms — tightens cross-Tag span by ~3 ms.
+| Option | What | Effort |
+|---|---|---|
+| **3a Hardware TX timestamping** | PPI + TIMER capture on `RADIO.EVENTS_END`; removes ISR jitter. | 3–5 days fw |
+| **3b Per-Tag ESB pipes** | Dedicated pipe per Tag; fleet capped at 8 Tags/Hub. | 1–2 days fw + product decision |
+| **3c TDMA with hardware Hub beacon** | Real TDMA (not the deleted Path X1). Requires 3a first. | 5–7 days fw |
 
-But the per-node-id spread was Phase C's collision-hardening
-feature (+16 % throughput). Removing it might re-introduce
-collisions.
+All three need ~1 day of on-fleet validation after.
 
-**Experiment proposal:** A/B test on the fleet — 5 Tags at fixed
-delay (say 650 µs), 5 Tags at staggered. Compare sync bias spread
-AND throughput. Low effort (~50 min measurement cycle), could give
-a tighter fleet without TDMA.
+### Cross-bucket: firmware hygiene (round-10 reviewer unanimous)
 
-### D4. What's the test bar for "RF is done"?
+Both Codex and Copilot round-10 flagged these as valuable even
+without sub-ms goals. Low risk, low cost:
 
-Currently untested:
-- **Multi-hour soak** (20 min is our longest run)
-- **Thermal drift** (die heats up over hours; LF clock aging)
-- **2.4 GHz coexistence** (Wi-Fi router, BT headphones, LTE-U)
-- **Battery sag / brownout** (Tags on USB today; LiPo 4.2→3.2 V)
-- **Charge-while-streaming** (TP4054 at 2.4 GHz cross-talk?)
-- **Body shadowing** (Tags on desk ≠ Tags on limbs)
-- **Tag mid-stream reset recovery** (only Hub reset tested)
+- **Initial-lock qualification.** Require N=5 consecutive midpoint
+  samples within ±3 ms before committing baseline. Prevents
+  Tag 3-style stuck-state (the +2.57 s lock we saw on v22).
+  Estimated: 2–3 h firmware.
+- **Lock-health telemetry** in SUMMARY: acquisition age, candidate
+  spread, distance-from-fleet-median. Makes future debugging
+  cheaper. ~2 h.
 
-These could each surface a regression our current data doesn't
-see. Which are blockers for declaring "RF done" vs. deferrable
-to a later "RF hardening pass"?
+### Why the earlier D1–D6 list is obsolete
 
-### D5. What to do with `/tmp/helix_tag_log/` scratch tooling?
-
-Some harness scripts still live in `/tmp/` (cleared on reboot).
-`tools/nrf/` has canonical copies of most; one or two are still
-scratch-only. Propose: sweep `/tmp/` and either upstream or delete.
-
-### D6. Stage 4 pipe budget
-
-Stage 4 design uses 1 additional ESB pipe for the Hub→Tag beacon.
-That's 2 pipes total (pipe 0 for Tag→Hub data, pipe 1 for beacon).
-Of the 8 total pipes we'd have 6 left for future uses (per-Hub
-isolation, etc.). Acceptable trade-off, or should the beacon share
-pipe 0 somehow?
+- **D1/D2** — resolved by Stage 4 brainstorm (unanimous DELETE) +
+  FIFO=1 discovery + both hypothesis refutations. Bucket 3
+  replaces D1/D2.
+- **D3 retransmit_delay equalise** — superseded. Data shows
+  cross-Tag span fat-tail is NOT driven by the ~3 ms bias
+  clustering; it's driven by per-Tag single-Tag tail events
+  (§7.18). Equalising would give ~1 ms bias improvement, not
+  the ~30 ms needed.
+- **D4 test bar for "RF done"** — mostly captured by the 4-h
+  overnight soak (§7.15). Multi-hour thermal / coexistence /
+  battery-sag / body-shadow remain, now under Bucket 2 /
+  Bucket 3 as part of shipping decisions.
+- **D5 `/tmp/` tooling** — `tools/nrf/` has canonical versions.
+  Remaining `/tmp/` files are scratch captures not source.
+  Done.
+- **D6 Stage 4 pipe budget** — moot (Stage 4 deleted).
 
 ---
 

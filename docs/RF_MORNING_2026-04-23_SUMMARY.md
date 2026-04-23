@@ -91,41 +91,106 @@ copilot teams of experts before final decision."
 - Brainstorm artefacts:
   `docs/reviews/{codex,copilot}_2026-04-23_stage4_fate.md`.
 
-## Fleet state
+## 6. Glitch-reject experiment (v22, task #52) — hypothesis REFUTED
+
+After morning wrap-up user said "start finishing up the rest".
+Implemented the glitch-reject fix from §7.16: drop single-sample
+midpoint jumps ≥ 10 ms, with 5-consecutive safety valve for
+legitimate big shifts.
+
+Fleet-OTA'd 9/10 Tags to v22. 15-min capture showed:
+
+- Cross-Tag span p99 went from 42.5 → **47.5 ms** (worse).
+- Tag 1 locked onto -14.6 ms bad baseline; Tag 3 stuck at +2.57 s.
+- Glitch-reject ACTIVELY PREVENTED recovery — correct samples after
+  a bad baseline look like "big jumps" and get rejected. The
+  5-consecutive safety valve never triggered because interleaved
+  near-baseline samples reset the streak.
+
+**Hypothesis refuted.** Reverted glitch-reject in commit `07531ad`.
+Full doc: `docs/RF_V22_FINDINGS.md`.
+
+## 7. Drift hypothesis — offline replay (also REFUTED)
+
+Round-10 reviewer consensus (Codex + Copilot × 2) after v22
+failure: fat-tail is DRIFT-driven, not JUMP-driven. Proposed
+offline replay with PC-side bias correction — if span p99
+collapses, drift architecture validated.
+
+Built `tools/analysis/offline_bias_replay.py`, ran on 200k-row
+subset of overnight soak:
+
+- Raw (no correction): p99 **42.5 ms**
+- Fixed per-Tag bias: p99 **41.5 ms**
+- Rolling-10 s bias vs fleet median: p99 **41.0 ms**
+
+**Only 1.5 ms improvement.** Drift hypothesis also refuted.
+
+Current working hypothesis: the fat-tail is **per-Tag single-Tag
+tail events** (retry storms, radio glitches, ISR jitter). Rare,
+per-frame, irreducible on shared-pipe ESB without architecture
+change. Full doc: `docs/RF_DRIFT_HYPOTHESIS_REFUTED.md`.
+
+## Fleet state (as of checkpoint `rf-sprint-checkpoint-v1`)
 
 - **Hub:** Stage 3.6 + `CONFIG_ESB_TX_FIFO_SIZE=1` (central.conf).
-- **7 healthy Tags** (1, 2, 4, 5, 6, 7, 9): still on v20 from
-  overnight — NEEDS FLEET OTA to v22 (clean Stage-4-removed
-  build). Current build deploys Stage 4 TDMA code that does
-  nothing because Kconfig default is `n`. No harm, but a fresh
-  v22 OTA cleans it up.
-- **Tag 3:** on v21, stuck at −6 ms midpoint bias. Power-cycle
-  should re-lock.
-- **Tags 8, 10:** still on broken v19 (TDMA skip-forever bug),
-  TXing at ~1 Hz. Can't ESB-trigger OTA at that rate — needs
-  physical SWD recovery.
+- **Fleet v22 source:** Stage 4 code removed, glitch-reject
+  REVERTED to v21 behaviour. Ready for fleet OTA to v23 when
+  user says go.
+- **Fleet runtime:** Tags 1, 2, 4, 5, 6, 7, 9 on v22 (post-glitch-
+  reject OTA). Tag 3 stuck at +2.57 s bias on v22. Tags 8, 10
+  stuck on broken v19.
+- **Source ≠ fleet:** commit `07531ad` onward has glitch-reject
+  reverted in source, but fleet still runs v22 with the reject.
+  No functional hazard — counters increment but behaviour is
+  unchanged at this point in code. Fleet OTA to v23 would sync
+  source and runtime.
 
 ## CI health
 
-All runs since the fix green. Submodule pre-check + stricter
-build-failure detection in `fleet_ota.sh` protect against future
-classes of silent CI breakage.
+All runs since the fix green (through commit `35f29be`). Submodule
+pre-check + stricter build-failure detection in `fleet_ota.sh`
+protect against future classes of silent CI breakage.
 
-## What's left (all pending user action)
+## What's left — decision buckets for user
 
+(Summary; full discussion in `docs/RF.md` §8.)
+
+### Bucket 1 — Quick fleet hygiene (autonomous-safe)
+- Fleet OTA to v23 (sync source with fleet).
+- Tag 3 power-cycle + Tags 8, 10 SWD recovery (task #45).
+
+### Bucket 2 — Ship v1 at current spec
+- Per-Tag \|err\| p99 6–10 ms, cross-Tag span p99 42 ms, 429 Hz
+  aggregate. Usable for slow mocap; marginal for fast motion.
+- Merge `nrf-xiao-nrf52840` → `main`, tag `v1.0`.
+
+### Bucket 3 — Architecture change for sub-ms
+| Option | Effort |
+|---|---|
+| 3a Hardware TX timestamping (PPI + TIMER) | 3–5 days |
+| 3b Per-Tag ESB pipes (≤8 Tags/Hub) | 1–2 days + product call |
+| 3c TDMA with hardware Hub beacon (needs 3a) | 5–7 days |
+
+### Cross-bucket: firmware hygiene (round-10 unanimous)
+- Initial-lock qualification (N=5 samples within ±3 ms). ~2 h.
+- Lock-health telemetry in SUMMARY. ~2 h.
+
+**Task tracker pending items:**
 | # | Task | Status |
 |---|---|---|
-| 45 | OTA Tags 8, 10 back into fleet | Needs physical SWD access |
-| — | Tag 3 power-cycle | Needs user to touch the Tag |
-| — | Fleet OTA to v22 (clean Stage-4-removed build) | Quick; can do when user plugs in Hub |
-| — | Implement glitch-reject midpoint fix | Design ready; awaiting user go-ahead |
-| 35 | Phase E per-Hub pipe derivation | Deferred (multi-Hub not needed for 6 months) |
-| 21 | Parallel OTA | Parked by user |
-| — | Merge `nrf-xiao-nrf52840` → `main` | User decision — the RF sprint wins are ready to ship |
+| 45 | Tags 3/8/10 physical recovery | Needs bench access |
+| 35 | Phase E per-Hub pipe derivation | Deferred (multi-Hub not needed 6 mo) |
+| 21 | Parallel OTA | Parked |
+| — | Merge branch → main | User decision |
 
-## Commits today
+## Commits today (most recent first)
 
 ```
+35f29be  m8-rf: drift hypothesis ALSO refuted via offline replay
+07531ad  m8-rf: v22 findings + revert glitch-reject (v23 = v21 behaviour)
+c2c08db  m8-rf: v22 — midpoint glitch-reject (task #52)
+96fb062  docs: RF morning 2026-04-23 session summary
 04cd918  docs(RF.md): §9 — Stage 4 DELETED, archived references
 0ae662f  m8-rf: delete Stage 4 TDMA code (v22)
 da51c49  docs(reviews): Stage 4 TDMA fate brainstorm — UNANIMOUS DELETE
@@ -136,6 +201,9 @@ d788e5b  docs(RF.md): §7.11-7.16 addendum for v18-v21 + FIFO=1 history
 5e0c1c7  docs(reviews): round 7 — code review on overnight RF work
 c573335  fix(ci+rf): apply Codex+Copilot review + make CI pass
 ```
+
+Tags: `rf-sprint-checkpoint-v1` (this state),
+`stage4-tdma-path-x1-reference` (last Stage 4 code state).
 
 Plus tag `stage4-tdma-path-x1-reference` at `c442eb7`.
 
